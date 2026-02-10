@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
+    <title>Gift Game</title>
+</head>
+
+<body>
+    <script src="gift_catch.js"></script>
+    <script>
+        window.initGiftCatch = function (responseConfig) {
+            initGame(responseConfig);
+        }
+
+        var responseConfig = {
+            "actid": 1363,
+            "title": "GiftRain",
+            "actiontype": "GiftRain",
+            "actiondata": {
+                "mail_subscription": true,
+                "mail_subscription_form": {
+                    "title": "Hediye Yağmuruna Hoşgeldiniz",
+                    "message": "Süpriz hediyeleri yakalayarak indirim kazanabilirsiniz.",
+                    "placeholder": "E-posta",
+                    "button_label": "Kaydet",
+                    "consent_text": "",
+                    "invalid_email_message": "Email adresi hatalı",
+                    "success_message": "Lütfen Email kullanım iznini işaretleyin",
+                    "emailpermit_text": "Eposta iletişim izni",
+                    "check_consent_message": "Lüttfen tüm izinleri işaretleyin"
+                },
+                "game_elements": {
+                    "gift_images": [
+                        "at.png",
+                        "cam.png",
+                        "ayicik.png",
+                        "yonca.png",
+                        "paket.png",
+                        "kurabiyesi.png",
+                    ],
+                    "gift_catcher_image": "basket.png",
+                    "number_of_products": 20,
+                    "downward_speed": "1",
+                    "sound_url": ""
+                },
+                "game_result_elements": {
+                    "title": "Tebrikler",
+                    "message": "Oyun tamamlandı.\nKazandığınız indirim kuponunu kopyalayıp\nsiparişinizde kullanabilirsiniz."
+                },
+                "copybutton_label": "Kodu Kopyala",
+                "copybutton_function": "copy",
+                "ios_lnk": "",
+                "android_lnk": "",
+                "promo_codes": [
+                    {
+                        "rangebottom": 1,
+                        "rangetop": 2,
+                        "staticcode": "KOD01"
+                    },
+                    {
+                        "rangebottom": 3,
+                        "rangetop": 5,
+                        "staticcode": "KOD25"
+                    },
+                    {
+                        "rangebottom": 6,
+                        "rangetop": 800,
+                        "staticcode": "KOD6800"
+                    }
+                ],
+                "ExtendedProps": {
+                    "background_image": "bg.jpg",
+                    "background_color": "#fff",
+                    "font_family": "custom",
+                    "custom_font_family_ios": "'Poiret One', sans-serif",
+                    "custom_font_family_android": "'Poiret One', sans-serif",
+                    "close_button_color": "#9b5130",
+                    "mail_subscription_form": {
+                        "title_text_color": "#9b5130",
+                        "title_text_size": "10",
+                        "text_color": "#9b5130",
+                        "text_size": "6",
+                        "button_color": "#9b5130",
+                        "button_text_color": "#ffffff",
+                        "button_text_size": "10",
+                        "emailpermit_text_size": "5",
+                        "emailpermit_text_url": "https://www.example.com/en/",
+                        "consent_text_size": "",
+                        "consent_text_url": ""
+                    },
+                    "gamification_rules": {
+                        "button_color": "#9b5130",
+                        "button_text_color": "#ffffff",
+                        "button_text_size": "10"
+                    },
+                    "game_elements": {
+                        "scoreboard_shape": "roundedcorners",
+                        "scoreboard_background_color": "#9b5130"
+                    },
+                    "game_result_elements": {
+                        "title_text_color": "#9b5130",
+                        "title_text_size": "10",
+                        "text_color": "#9b5130",
+                        "text_size": "10"
+                    },
+                    "promocode_background_color": "#2e8194",
+                    "promocode_text_color": "#ffffff",
+                    "copybutton_color": "#9b5130",
+                    "copybutton_text_color": "#ffffff",
+                    "copybutton_text_size": "10",
+                    "promocode_banner_text": "Promosyon kodunuzu kullanmayÄ± unutmayÄ±nÄ±z.",
+                    "promocode_banner_text_color": "#ffffff",
+                    "promocode_banner_background_color": "#000000",
+                    "promocode_banner_button_label": "Kodu Kopyala"
+                },
+                "report": {
+                    "impression": "",
+                    "click": "OM.zn=acttype-35&OM.zpc=act-1363"
+                }
+            }
+        }
+        initGame(responseConfig);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GS Store Maç Tahmin</title>
+</head>
+<body>
+<script>
+const config = {
+    campName: "GS_Store_Mac_Tahmin_2025",
+    actId: 35
+};
+
+const MACLAR = [
+    { tarih: "8 Şubat 2025", rakip: "Alanyaspor", turnuva: "Süper Lig", yer: "Deplasman" },
+    { tarih: "15 Şubat 2025", rakip: "Bodrum FK", turnuva: "Süper Lig", yer: "Ev Sahibi" },
+    { tarih: "22 Şubat 2025", rakip: "Sivasspor", turnuva: "Süper Lig", yer: "Deplasman" },
+    { tarih: "1 Mart 2025", rakip: "Eyüpspor", turnuva: "Süper Lig", yer: "Ev Sahibi" },
+    { tarih: "8 Mart 2025", rakip: "Başakşehir", turnuva: "Süper Lig", yer: "Deplasman" },
+    { tarih: "15 Mart 2025", rakip: "Beşiktaş", turnuva: "Süper Lig", yer: "Ev Sahibi" },
+    { tarih: "29 Mart 2025", rakip: "Trabzonspor", turnuva: "Süper Lig", yer: "Deplasman" }
+];
+
+const GOL_ATAN_OYUNCULAR = [
+    "Mauro Icardi", "Victor Osimhen", "Dries Mertens", "Kerem Aktürkoğlu",
+    "Barış Alper Yılmaz", "Yunus Akgün", "Halil Dervişoğlu", "Carlos Vinícius",
+    "Berkay Özcan", "Lucas Torreira", "Kaan Ayhan", "Davinson Sánchez",
+    "Abdülkerim Bardakcı", "Derrick Köhn", "Sacha Boey", "Oğulcan Çağlayan",
+    "Efe Akman", "Wilfried Zaha", "Tanguy Nianzou", "Michy Batshuayi"
+];
+
+const SKOR_SECENEKLERI = [
+    "1-0", "2-0", "2-1", "3-0", "3-1", "3-2", "4-0", "4-1", "4-2", "4-3",
+    "5-0", "5-1", "5-2", "0-0", "1-1", "2-2", "3-3", "4-4",
+    "0-1", "0-2", "1-2", "0-3", "1-3", "2-3", "0-4", "1-4", "2-4", "3-4",
+    "0-5", "1-5", "2-5", "Diğer"
+];
+
+const DAKIKA_ARALIKLARI = [
+    { text: "0-15", value: "0-15" },
+    { text: "15-30", value: "15-30" },
+    { text: "30-45", value: "30-45" },
+    { text: "45-60", value: "45-60" },
+    { text: "60-75", value: "60-75" },
+    { text: "75-90", value: "75-90" }
+];
+
+function getAktifMacIndex() {
+    const now = new Date();
+    for (let i = 0; i < MACLAR.length; i++) {
+        const tarihStr = MACLAR[i].tarih;
+        const [gun, ay, yil] = tarihStr.split(" ");
+        const aylar = { "Şubat": 1, "Mart": 2 };
+        const macTarihi = new Date(parseInt(yil), (aylar[ay] || 1) - 1, parseInt(gun));
+        if (macTarihi >= now) return i;
+    }
+    return 0;
+}
+
+function gsMacTahminAnket() {
+    if (!document.querySelector('#gs-vl-popup-container')) {
+        const s = document.createElement("style");
+        s.innerHTML = `
+            #gs-vl-popup-container {
+                z-index: 10000;
+                width: 100%;
+                height: 100%;
+                position: fixed;
+                top: 0;
+                left: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            #gs-vl-popup-container .gs-vl-popup-overlay {
+                z-index: 10000;
+                width: 100%;
+                height: 100%;
+                background: #000;
+                opacity: 0.6;
+                position: fixed;
+                top: 0;
+                left: 0;
+            }
+            #gs-vl-popup-container .gs-vl-popup {
+                position: relative;
+                z-index: 100001;
+                width: 700px;
+                max-width: 90%;
+                background: #1a1a1a;
+                border: 3px solid #FDB813;
+                border-radius: 12px;
+                padding: 40px;
+                max-height: 90vh;
+                overflow-y: auto;
+                box-shadow: 0 0 0 2px #c8102e;
+            }
+            .gs-vl-popup .gs-vl-title-1 {
+                text-align: center;
+                font-size: 20px;
+                font-weight: bold;
+                color: #FDB813;
+                margin-bottom: 12px;
+            }
+            .gs-vl-popup .gs-vl-subtitle {
+                text-align: center;
+                font-size: 14px;
+                color: #888;
+                margin-bottom: 24px;
+            }
+            .gs-vl-popup .gs-vl-mac-bilgi {
+                background: #c8102e;
+                color: #fff;
+                padding: 12px 16px;
+                border-radius: 8px;
+                text-align: center;
+                margin-bottom: 24px;
+                font-weight: bold;
+            }
+            .gs-vl-popup .gs-vl-buttons {
+                margin: 20px 0;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                justify-content: center;
+            }
+            .gs-vl-popup .gs-vl-buttons button {
+                padding: 12px 20px;
+                border-radius: 8px;
+                border: 2px solid #FDB813;
+                background: #1a1a1a;
+                color: #fff;
+                font-size: 14px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .gs-vl-popup .gs-vl-buttons button:hover {
+                background: #FDB813;
+                color: #1a1a1a;
+            }
+            .gs-vl-popup .gs-vl-buttons button.selected {
+                background: #FDB813;
+                color: #1a1a1a;
+                border-color: #FDB813;
+            }
+            .gs-vl-popup-close {
+                position: absolute;
+                right: 15px;
+                top: 15px;
+                cursor: pointer;
+                font-size: 24px;
+                color: #fff;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: all 0.3s ease;
+            }
+            .gs-vl-popup-close:hover {
+                background: #c8102e;
+            }
+            .gs-vl-back-button {
+                position: absolute;
+                left: 15px;
+                top: 15px;
+                cursor: pointer;
+                font-size: 24px;
+                color: #fff;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: all 0.3s ease;
+            }
+            .gs-vl-back-button:hover {
+                background: #c8102e;
+            }
+            .gs-vl-back-button.hidden {
+                display: none;
+            }
+            .gs-vl-tesekkur {
+                text-align: center;
+                padding: 20px 0;
+            }
+            .gs-vl-tesekkur .gs-vl-title-1 {
+                margin-bottom: 10px;
+            }
+            @media only screen and (max-width: 768px) {
+                #gs-vl-popup-container .gs-vl-popup {
+                    width: 90%;
+                    padding: 25px 20px;
+                }
+                .gs-vl-popup .gs-vl-title-1 { font-size: 16px; }
+                .gs-vl-popup .gs-vl-buttons button { padding: 10px 14px; font-size: 13px; }
+            }
+        `;
+        document.head.appendChild(s);
+
+        const popup = document.createElement("div");
+        popup.id = "gs-vl-popup-container";
+        popup.innerHTML = `
+            <div class="gs-vl-popup-overlay"></div>
+            <div class="gs-vl-popup">
+                <span class="gs-vl-back-button hidden">←</span>
+                <span class="gs-vl-popup-close">✕</span>
+                <div class="gs-vl-anket-content"></div>
+            </div>
+        `;
+        document.body.appendChild(popup);
+
+        const content = popup.querySelector('.gs-vl-anket-content');
+        const aktifMacIdx = getAktifMacIndex();
+        const aktifMac = MACLAR[aktifMacIdx];
+
+        let currentQuestion = 0;
+        const surveyData = {
+            mac: `${aktifMac.tarih}_${aktifMac.rakip}`,
+            rakip: aktifMac.rakip,
+            q1_skor: null,
+            q2_golcu: null,
+            q3_dakika: null
+        };
+
+        function closePopup() {
+            popup.remove();
+            s.remove();
+        }
+
+        const backBtn = popup.querySelector('.gs-vl-back-button');
+        const closeBtn = popup.querySelector('.gs-vl-popup-close');
+        closeBtn.addEventListener('click', closePopup);
+        popup.querySelector('.gs-vl-popup-overlay').addEventListener('click', closePopup);
+
+        backBtn.addEventListener('click', () => {
+            if (currentQuestion === 1) {
+                currentQuestion = 0;
+                renderWelcome();
+            } else if (currentQuestion === 2) {
+                currentQuestion = 1;
+                renderSoru1();
+            } else if (currentQuestion === 3) {
+                currentQuestion = 2;
+                renderSoru2();
+            }
+        });
+
+        function updateBackBtn() {
+            backBtn.classList.toggle('hidden', currentQuestion === 0);
+        }
+
+        function vlCollect(extra) {
+            try {
+                const vl = new Visilabs();
+                vl.AddParameter('OM.surveyName', config.campName);
+                vl.AddParameter('OM.mac_bilgi', surveyData.mac);
+                vl.AddParameter('OM.mac_rakip', surveyData.rakip);
+                vl.AddParameter('OM.survey_answer_q1_skor', surveyData.q1_skor || '');
+                vl.AddParameter('OM.survey_answer_q2_golcu', surveyData.q2_golcu || '');
+                vl.AddParameter('OM.survey_answer_q3_dakika', surveyData.q3_dakika || '');
+                if (extra) {
+                    Object.keys(extra).forEach(k => vl.AddParameter(k, extra[k]));
+                }
+                vl.Collect();
+            } catch (e) {
+                console.error('Visilabs:', e);
+            }
+        }
+
+        function renderWelcome() {
+            currentQuestion = 0;
+            updateBackBtn();
+            content.innerHTML = `
+                <div class="gs-vl-title-1">Maç tahmin oyunumuza hoş geldiniz!</div>
+                <div class="gs-vl-subtitle">3'te 3 yapan forma şansını yakalar</div>
+                <div class="gs-vl-subtitle" style="margin-top:8px;font-size:12px;">Sadece bir kere tahmin yapabilirsiniz, birden fazla tahmin kabul edilmeyecektir.</div>
+                <div class="gs-vl-buttons">
+                    <button id="gs-vl-basla">Tahmin Yap</button>
+                </div>
+            `;
+            content.querySelector('#gs-vl-basla').addEventListener('click', () => {
+                currentQuestion = 1;
+                renderSoru1();
+            });
+        }
+
+        function renderSoru1() {
+            currentQuestion = 1;
+            updateBackBtn();
+            const skorHtml = SKOR_SECENEKLERI.map(s => `<button data-value="${s}">${s}</button>`).join('');
+            content.innerHTML = `
+                <div class="gs-vl-mac-bilgi">${aktifMac.tarih} · Galatasaray - ${aktifMac.rakip} (${aktifMac.yer})</div>
+                <div class="gs-vl-title-1">Maç skoru tahmininiz?</div>
+                <div class="gs-vl-buttons">${skorHtml}</div>
+            `;
+            const buttons = content.querySelectorAll('button');
+            buttons.forEach(btn => {
+                if (surveyData.q1_skor === btn.getAttribute('data-value')) btn.classList.add('selected');
+                btn.addEventListener('click', () => {
+                    surveyData.q1_skor = btn.getAttribute('data-value');
+                    vlCollect();
+                    buttons.forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    setTimeout(() => renderSoru2(), 300);
+                });
+            });
+        }
+
+        function renderSoru2() {
+            currentQuestion = 2;
+            updateBackBtn();
+            const golcuHtml = GOL_ATAN_OYUNCULAR.map(p => `<button data-value="${p}">${p}</button>`).join('');
+            content.innerHTML = `
+                <div class="gs-vl-mac-bilgi">${aktifMac.tarih} · Galatasaray - ${aktifMac.rakip}</div>
+                <div class="gs-vl-title-1">Hangi futbolcu gol atar?</div>
+                <div class="gs-vl-buttons">${golcuHtml}</div>
+            `;
+            const buttons = content.querySelectorAll('button');
+            buttons.forEach(btn => {
+                if (surveyData.q2_golcu === btn.getAttribute('data-value')) btn.classList.add('selected');
+                btn.addEventListener('click', () => {
+                    surveyData.q2_golcu = btn.getAttribute('data-value');
+                    vlCollect();
+                    buttons.forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    setTimeout(() => renderSoru3(), 300);
+                });
+            });
+        }
+
+        function renderSoru3() {
+            currentQuestion = 3;
+            updateBackBtn();
+            const dakikaHtml = DAKIKA_ARALIKLARI.map(d => `<button data-value="${d.value}">${d.text}</button>`).join('');
+            content.innerHTML = `
+                <div class="gs-vl-mac-bilgi">${aktifMac.tarih} · Galatasaray - ${aktifMac.rakip}</div>
+                <div class="gs-vl-title-1">İlk gol hangi dakika aralığında gelir?</div>
+                <div class="gs-vl-buttons">${dakikaHtml}</div>
+            `;
+            const buttons = content.querySelectorAll('button');
+            buttons.forEach(btn => {
+                if (surveyData.q3_dakika === btn.getAttribute('data-value')) btn.classList.add('selected');
+                btn.addEventListener('click', () => {
+                    surveyData.q3_dakika = btn.getAttribute('data-value');
+                    vlCollect();
+                    buttons.forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    setTimeout(() => renderTesekkur(), 300);
+                });
+            });
+        }
+
+        function renderTesekkur() {
+            currentQuestion = 4;
+            backBtn.classList.add('hidden');
+            content.innerHTML = `
+                <div class="gs-vl-tesekkur">
+                    <div class="gs-vl-title-1">Tahmininiz alındı!</div>
+                    <div class="gs-vl-subtitle">Skor: ${surveyData.q1_skor} · Gol atan: ${surveyData.q2_golcu} · İlk gol: ${surveyData.q3_dakika} dk.</div>
+                </div>
+            `;
+            vlCollect();
+        }
+
+        renderWelcome();
+    }
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", gsMacTahminAnket);
+} else {
+    gsMacTahminAnket();
+}
+</script>
+</body>
+</html>

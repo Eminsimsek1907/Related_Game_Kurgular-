@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
+    <title>Gift Game</title>
+    <style>
+        @import 'https://fonts.googleapis.com/css?family=Poiret+One';
+
+        .bg {
+            position: fixed;
+            width: 100%;
+            z-index: 8;
+            filter: blur(65px)
+        }
+
+        a {
+            width: 100px;
+            height: 150px;
+            background-color: #3d424a;
+            color: white;
+            text-decoration: none;
+            padding: 25px;
+            margin: 25px;
+            border-radius: 15px;
+            box-shadow: inset 1px 1px 5px 0px black;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            float: left;
+            position: relative;
+            transition: 1s all;
+        }
+
+        a:hover {
+            box-shadow: 1px 1px 5px 0px black;
+        }
+
+        .container {
+            background-color: #24282f;
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            z-index: 9;
+            font-family: 'Poiret One', sans-serif;
+            padding-left: 50px;
+            overflow: scroll;
+        }
+
+        .background {
+            background-repeat: no-repeat;
+            background-size: contain;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .size {
+            width: 70px;
+            height: 70px;
+        }
+
+        h1 {
+            color: white;
+            font-weight: bold;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        .aviator {
+            background-image: url('./assets/thy.webp');
+        }
+
+        .giftcatch {
+            background-image: url('./giftrain/basket.png');
+        }
+
+        .number {
+            position: absolute;
+            top: 15px;
+            font-weight: bold;
+            left: 15px;
+            text-shadow: 0px 0px 11px white;
+            font-size: 23px;
+            color: rgb(255 255 255);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- <img src="rmc.png" class="bg"/> -->
+    <div class="container">
+        <div>
+            <h1>Popup Games</h1>
+            <a href="Clover/index.html" class="background">
+                <div class="number">1</div><img class="size" style="width: 60px;height: auto;"
+                    src="https://imgvisilabsnet.azureedge.net/banner/uploaded_images/305_1365_20220905125206633.png">
+                <h2>Clover</h2>
+            </a>
+            <a href="SantaDeer/index.html" class="background">
+                <div class="number">2</div><img class="size" style="width: 144px;height: auto;"
+                    src="https://cdn.discordapp.com/attachments/807578340050993155/1045343063645618196/Geyikler.gif">
+                <h2>Santa Deer</h2>
+            </a>
+            <a href="swiping/index.html" class="background">
+                <div class="number">3</div><img class="size" style="width: 70px;height: auto;"
+                    src="./assets/swiping.png">
+                <h2>Swiping</h2>
+            </a>
+            <a href="jackpot/jackpot.html" class="background">
+                <div class="number">4</div><img class="size" style="width: 70px;height: auto;"
+                    src="./assets/jackpot.png">
+                <h2>Jackpot</h2>
+            </a>
+            <a href="clawmachine/index.html" class="background">
+                <div class="number">5</div><img class="size" style="width: 35px;height: auto; border-radius: 5px;"
+                    src="./assets/clawmachinelogo.png">
+                <h2>Claw Machine</h2>
+            </a>
+            <a href="spintowin/index.html" class="background">
+                <div class="number">6</div><img class="size" style="width: 70px;height: auto;"
+                    src="https://img.euromsg.net/3EEFFBAD63444ABF9F3DAF0FC1C3D9DE/images/cark22/krc-cark-25022022.png">
+                <h2>Spin To Win</h2>
+            </a>
+            <a href="scratchtowin/index.html" class="background">
+                <div class="number">7</div><img class="size" style="width: 50px;height: auto; border-radius: 5px;"
+                    src="./assets/stw.png">
+                <h2>Scratch To Win</h2>
+            </a>
+        </div>
+
+        <div>
+            <h1>Full Screen Games</h1>
+            <a href="snowfall/index.html" class="background">
+                <div class="number">8</div>
+                <div style="width: 40px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                        <path fill="white"
+                            d="M484.4 294.4c1.715 6.402 .6758 12.89-2.395 18.21s-8.172 9.463-14.57 11.18l-31.46 8.43l32.96 19.03C480.4 357.8 484.4 372.5 477.8 384s-21.38 15.41-32.86 8.783l-32.96-19.03l8.43 31.46c3.432 12.81-4.162 25.96-16.97 29.39s-25.96-4.162-29.39-16.97l-20.85-77.82L280 297.6v84.49l56.97 56.97c9.375 9.375 9.375 24.56 0 33.94C332.3 477.7 326.1 480 320 480s-12.28-2.344-16.97-7.031L280 449.9V488c0 13.25-10.75 24-24 24s-24-10.75-24-24v-38.06l-23.03 23.03c-9.375 9.375-24.56 9.375-33.94 0s-9.375-24.56 0-33.94L232 382.1V297.6l-73.17 42.25l-20.85 77.82c-3.432 12.81-16.58 20.4-29.39 16.97s-20.4-16.58-16.97-29.39l8.43-31.46l-32.96 19.03C55.61 399.4 40.85 395.5 34.22 384s-2.615-26.16 8.859-32.79l32.96-19.03l-31.46-8.43c-12.81-3.432-20.4-16.58-16.97-29.39s16.58-20.4 29.39-16.97l77.82 20.85L208 255.1L134.8 213.8L57.01 234.6C44.2 238 31.05 230.4 27.62 217.6s4.162-25.96 16.97-29.39l31.46-8.432L43.08 160.8C31.61 154.2 27.6 139.5 34.22 128s21.38-15.41 32.86-8.785l32.96 19.03L91.62 106.8C88.18 93.98 95.78 80.83 108.6 77.39s25.96 4.162 29.39 16.97l20.85 77.82L232 214.4V129.9L175 72.97c-9.375-9.375-9.375-24.56 0-33.94s24.56-9.375 33.94 0L232 62.06V24C232 10.75 242.8 0 256 0s24 10.75 24 24v38.06l23.03-23.03c9.375-9.375 24.56-9.375 33.94 0s9.375 24.56 0 33.94L280 129.9v84.49l73.17-42.25l20.85-77.82c3.432-12.81 16.58-20.4 29.39-16.97c6.402 1.715 11.5 5.861 14.57 11.18s4.109 11.81 2.395 18.21l-8.43 31.46l32.96-19.03C456.4 112.6 471.2 116.5 477.8 128s2.615 26.16-8.859 32.78l-32.96 19.03l31.46 8.432c12.81 3.432 20.4 16.58 16.97 29.39s-16.58 20.4-29.39 16.97l-77.82-20.85L304 255.1l73.17 42.25l77.82-20.85C467.8 273.1 480.1 281.6 484.4 294.4z" />
+                    </svg></div>
+                <h2>Snowfall</h2>
+            </a>
+            <a href="giftrain/index.html" class="background">
+                <div class="number">9</div><img src="./giftrain/basket.png" class="size">
+                <h2>Gift Catch</h2>
+            </a>
+            <a href="findtowin/find_to_win.html" class="background">
+                <div class="number">10</div><img class="size" style="width: 70px;height: auto;"
+                    src="./findtowin/apple.png">
+                <h2>Find To Win</h2>
+            </a>
+            <a href="space/index.html" class="background">
+                <div class="number">11</div><img class="size" style="width: 50px;height: auto; border-radius: 5px;"
+                    src="./space/aim_red.png">
+                <h2>Space</h2>
+            </a>
+            <a href="aviator/fly.html" class="background">
+                <div class="number">12</div><img src="./aviator/assets/ucak.gif" style="width: 100px;">
+                <h2>Aviator</h2>
+            </a>
+            <a href="roomescape/roomescape.html" class="background">
+                <div class="number">13</div>
+                <div style="width: 50px;"></div><img class="size" style="width: 70px;height: auto;"
+                    src="./roomescape/assets/bureau/drill.png">
+                <h2>Room Escape</h2>
+            </a>
+        </div>
+
+        <div>
+            <h1>Yeni Oyunlar</h1>
+            <a href="EmojiBil/index.html" class="background">
+                <div class="number">14</div>
+                <div style="width: 50px; font-size: 50px;">🎵</div>
+                <h2>Emoji Şarkı</h2>
+            </a>
+            <a href="ArrowGame/index.html" class="background">
+                <div class="number">15</div>
+                <div style="width: 50px; font-size: 50px;">🏹</div>
+                <h2>Okçuluk</h2>
+            </a>
+            <a href="pongGame/index.html" class="background">
+                <div class="number">16</div>
+                <div style="width: 50px; font-size: 50px;">❤️</div>
+                <h2>Pong</h2>
+            </a>
+            <a href="AdventCalendar/index.html" class="background">
+                <div class="number">17</div>
+                <div style="width: 50px; font-size: 50px;">🎁</div>
+                <h2>Advent Takvimi</h2>
+            </a>
+            <a href="skorTahminGame/index.html" class="background">
+                <div class="number">18</div>
+                <div style="width: 50px; font-size: 50px;">⚽</div>
+                <h2>Maç Tahmin</h2>
+            </a>
+            <a href="HiddenTemple/index.html" class="background">
+                <div class="number">19</div>
+                <div style="width: 50px; font-size: 50px;">🏛️</div>
+                <h2>Hidden Temple</h2>
+            </a>
+            <a href="kalpSıralama/index.html" class="background">
+                <div class="number">20</div>
+                <div style="width: 50px; font-size: 50px;">💖</div>
+                <h2>Kalp Sıralama</h2>
+            </a>
+            <a href="ParfumeDesign/index.html" class="background">
+                <div class="number">21</div>
+                <div style="width: 50px; font-size: 50px;">🌸</div>
+                <h2>Parfüm Kurgusu</h2>
+            </a>
+            <a href="SelfBingo/index.html" class="background">
+                <div class="number">22</div>
+                <div style="width: 50px; font-size: 50px;">🎯</div>
+                <h2>Self Bingo</h2>
+            </a>
+            <a href="KalpVurma/index.html" class="background">
+                <div class="number">23</div>
+                <div style="width: 50px; font-size: 50px;">💝</div>
+                <h2>Kalp Vurma</h2>
+            </a>
+            <a href="SiseCevirme/index.html" class="background">
+                <div class="number">24</div>
+                <div style="width: 50px; font-size: 50px;">🍾</div>
+                <h2>Şişe Çevirme</h2>
+            </a>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
+    <title>Gift Game</title>
+</head>
+
+<body>
+    <script src="find_to_win.js"></script>
+    <script>
+        let responseConfig = {
+            // "gamificationRules": {
+            //     "backgroundImage": "https:\/\/imgvisilabsnet.azureedge.net\/find_to_win\/uploaded_images\/test\/112_885_490_20221114163254892.jpg",
+            //     "buttonLabel": "Oyuna Başlad"
+            // },
+            "copybutton_text_color": "#fff",
+            "mailSubscriptionForm": {
+                "placeholder": "E-posta",
+                "consentText": "Koşulları kabul ediyorum",
+                "title": "Bul Kazana Hoşgeldiniz",
+                "message": "Tüm eşleşmeleri tamamla ve indirim kuponlarını kazan",
+                "checkConsentMessage": "Lüttfen tüm izinleri işaretleyin",
+                "invalidEmailMessage": "Email adresi hatalı",
+                "emailPermitText": "Eposta iletişim izni",
+                "buttonTitle": "Kaydet",
+                "successMessage": "Kayıt başarılı yönlendiriliyorsunuz."
+            },
+            "ios_lnk": "",
+            "title": "Find-To-Win-Test",
+            "report": {},
+            "promocode_background_color": "#1ec4d2",
+            "mailExtendedProps": {
+                "buttonTextSize": "10",
+                "textSize": "6",
+                "buttonTextColor": "#ffffff",
+                "titleTextColor": "#e85731",
+                "consentTextUrl": "https:\/\/www.example.com",
+                "consentTextSize": "5",
+                "textColor": "#e85731",
+                "emailPermitTextSize": "5",
+                "titleFontFamily": "",
+                "titleTextSize": "10",
+                "emailPermitTextUrl": "https:\/\/www.example.com",
+                "buttonColor": "#e85731"
+            },
+            "gameResultElementsExtended": {
+                "titleTextSize": "10",
+                "losebuttonTextSize": "10",
+                "losebuttonColor": "#383636",
+                "textSize": "10",
+                "titleTextColor": "#e85731",
+                "textColor": "#e85731",
+                "losebuttonTextColor": "#e85731"
+            },
+            "promocode_banner_button_label": "GET",
+            "targetingActionType": "findtowin",
+            "gamificationRulesExtended": {
+                "buttonTextSize": "10",
+                "buttonTextColor": "#fffb00",
+                "buttonColor": "#000000"
+            },
+            "background_color": "gray",
+            "close_button_color": "#383636",
+            "copybutton_label": "Kodu Kopyala",
+            "actId": 490,
+            "copybutton_text_size": "10",
+            "custom_font_family_ios": "'Poiret One', sans-serif",
+            "promocode_banner_text_color": "#e85731",
+            "backgroundImage": "bg.jpg",
+            "auth": "",
+            "promoCodes": [
+                {
+                    "rangebottom": 1,
+                    "rangetop": 5,
+                    "staticcode": "KOD1000TL"
+                },
+                {
+                    "rangebottom": 6,
+                    "rangetop": 15,
+                    "staticcode": "KOD25TL"
+                },
+                {
+                    "rangebottom": 16,
+                    "rangetop": 25,
+                    "staticcode": "KOD15TL"
+                },
+                {
+                    "rangebottom": 26,
+                    "rangetop": 999,
+                    "staticcode": "KOD10TL"
+                }
+            ],
+            "promocode_text_color": "#e85731",
+            "promocode_banner_text": "GET CODE",
+            "copybutton_color": "#e85731",
+            "copybutton_function": "copy",
+            "mailSubscription": true,
+            "font_family": "custom",
+            "gameElements": {
+                "playgroundColumncount": 4,
+                "playgroundRowcount": 3,
+                "soundUrl": "https:\/\/bariisarslans.github.io\/giftcatchgame\/sound.mp3",
+                "durationOfGame":60,
+                "cardImages": [
+                    "apple.png",
+                    "banana.png",
+                    "cherries.png",
+                    "dragon-fruit.png",
+                    "grapes.png",
+                    "mango.png",
+                    "orange.png",
+                    "watermelon.png"
+                ]
+            },
+            "gameResultElements": {
+                "loseImage": "https:\/\/imgvisilabsnet.azureedge.net\/find_to_win\/uploaded_images\/test\/112_885_490_20221018013614608.png",
+                "message": "Oyun Tamamlandı.\nKazandığınız indirim kuponunu kopyalayıp\nsiparişinizde kullanabilirsiniz.",
+                "title": "Tebrikler",
+                "loseButtonLabel": "Kazanamadınız",
+                "loseIosLnk": "https:\/\/www.example.com\/en\/"
+            },
+            "promocode_banner_background_color": "#2e3d49",
+            "gameElementsExtended": {
+                "scoreboardBackgroundColor": "#e85731",
+                "scoreboardShape": "rounded",
+                "scoreboardPageposition": "topLeft",
+                "backofcardsImage": "",
+                "backofcardsColor": "#e85731",
+                "blankcardImage": "https:\/\/imgvisilabsnet.azureedge.net\/find_to_win\/uploaded_images\/test\/112_885_490_20221114164359090.jpg"
+            }
+        }
+        initFindToWinGameIOS(responseConfig);
+
+    </script>
+</body>
+
+</html>

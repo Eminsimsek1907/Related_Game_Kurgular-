@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sevgililer Advent Takvimi</title>
+</head>
+
+<body>
+    <script>
+        ; (function () {
+            "use strict";
+            if (window.__vl_advent_valentine_booted) return;
+            window.__vl_advent_valentine_booted = true;
+
+            var config = {
+                desktopWidth: "96vw",
+                maxWidth: "1200px",
+                mobileWidth: "94%"
+            };
+
+            var VALENTINE_QUOTES = [
+                "Aşk, iki kalbin aynı ritimde atmasıdır. Seninle her anımız bir hediye.",
+                "Sevgililer Günü'nde sana olan sevgimi bir kez daha hatırlatmak istedim: Sen benim için çok özelsin.",
+                "Gülüşün dünyamı aydınlatıyor. Seninle geçen her gün bir mucize.",
+                "Kalp kalbe karşı derler; senin kalbin benimkini buldu. İyi ki varsın.",
+                "Aşk paylaştıkça büyür. Bugün de sevgimizi kutluyoruz.",
+                "Seninle olmak, evde hissetmek gibi. Teşekkürler her şey için.",
+                "Hayatın anlamı seninle bir arada olmak. Sevgililer Günümüz kutlu olsun.",
+                "İlk günden beri kalbimdesin. Bu özel günde seni çok sevdiğimi söylemek istedim.",
+                "Sen benim en güzel sürprizimsin. Bugün de seninle olmak en büyük hediyem.",
+                "Aşk, senin gülüşünle başladı ve her gün büyüyor. İyi ki yanımdasın.",
+                "Kalbimin tek sahibi sensin. Sevgililer Günü'nü seninle kutlamak bir ayrıcalık.",
+                "Seninle her gün 14 Şubat. Sevgin için teşekkürler.",
+                "İki kalp, bir ritim. Seninle olmak hayatın en güzel hediyesi.",
+                "Aşk bazen sessizce bakar, bazen çığlık atar; seninle ikisi de güzel.",
+                "Bu özel günde sana olan bağlılığımı bir kez daha ifade etmek istedim.",
+                "Sen benim için sadece bir gün değil, her günün sebebisin. Sevgililer Günü kutlu olsun.",
+                "Kalbimdeki en güzel yer hep senin oldu. İyi ki varsın.",
+                "Aşk, seninle sabahları uyanmak ve akşamları yanında olmaktır.",
+                "Sevgililer Günü'nde tek isteğim senin mutlu olman. Seni çok seviyorum.",
+                "Seninle geçen her an bir hatıra. Bugün de kalbimiz bir.",
+                "Aşkın rengi pembe, siyah ve beyaz olsun; tıpkı seninle yaşadığımız gibi.",
+                "İki yarımız bir bütün olduk. Bu güzel gün bizim günümüz.",
+                "Kalbimdeki kapıyı sadece sen açtın. Sevgililer Günü'nü seninle kutluyorum.",
+                "Sen benim en değerli sürprizimsin. Bugün ve her gün seninleyim."
+            ];
+
+            var COUPONS = [
+                { percent: 5, title: "Sevgililer İndirimi", sub: "Tüm ürünlerde geçerli" },
+                { percent: 10, title: "Aşk Fırsatı", sub: "Seçili kategorilerde" },
+                { percent: 15, title: "Kalp Özel", sub: "250 TL üzeri alışverişte" },
+                { percent: 5, title: "Sevgililer Kuponu", sub: "Çevrimiçi indirim" },
+                { percent: 20, title: "Romantik İndirim", sub: "Sadece bugün" },
+                { percent: 10, title: "İlk Alışveriş Hediyesi", sub: "Sevgililer'e özel" },
+                { percent: 25, title: "Aşk Sürprizi", sub: "Seçili ürünlerde" },
+                { percent: 15, title: "Sevgililer Günü İndirimi", sub: "500 TL üzeri" },
+                { percent: 10, title: "Çift İndirim", sub: "Tüm kampanyalara ek" },
+                { percent: 30, title: "Mega Aşk İndirimi", sub: "Sınırlı süre" },
+                { percent: 10, title: "Kalp Kuponu", sub: "Ücretsiz kargo ile" },
+                { percent: 20, title: "Sevgililer Koleksiyonu", sub: "Özel indirim" },
+                { percent: 15, title: "Romantik Hediye", sub: "Çevrimiçi alışverişte" },
+                { percent: 25, title: "Özel Gün Şansı", sub: "Sadece bugün" },
+                { percent: 10, title: "Sevgi İndirimi", sub: "Tüm ürünlerde" },
+                { percent: 20, title: "İki Kalp Fırsatı", sub: "Online indirim" },
+                { percent: 15, title: "Sevgililer Özel", sub: "300 TL üzeri" },
+                { percent: 35, title: "Büyük Aşk İndirimi", sub: "Seçili ürünlerde" },
+                { percent: 10, title: "İlk Sipariş Kuponu", sub: "Sevgililer'e özel" },
+                { percent: 20, title: "Kalpler Sürprizi", sub: "Tüm kampanyalara ek" },
+                { percent: 25, title: "Romantik Hediye İndirimi", sub: "500 TL üzeri" },
+                { percent: 15, title: "Sevgililer İndirimi", sub: "Çevrimiçi indirim" },
+                { percent: 40, title: "Özel Gün Mega İndirim", sub: "Sadece bugün" },
+                { percent: 50, title: "Sevgililer Günü Büyük Sürpriz", sub: "Mega indirim" }
+            ];
+
+            var selectedDay = null;
+            var revealed = false;
+
+            function $(id) { return document.getElementById(id); }
+            function ce(tag, attrs) {
+                var el = document.createElement(tag);
+                if (attrs) {
+                    for (var k in attrs) {
+                        if (k === "className") el.className = attrs[k];
+                        else if (k === "innerHTML") el.innerHTML = attrs[k];
+                        else if (k === "style" && typeof attrs[k] === "object") for (var s in attrs[k]) el.style[s] = attrs[k][s];
+                        else if (k === "onclick") el.onclick = attrs[k];
+                        else el.setAttribute(k, attrs[k]);
+                    }
+                }
+                return el;
+            }
+
+            function injectStyles() {
+                var style = document.createElement("style");
+                style.id = "vl-advent-valentine-style";
+                style.innerHTML = `
+       #vl-advent-valentine {
+           position: fixed;
+           inset: 0;
+           z-index: 2147483646;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           background: rgba(0, 0, 0, 0.65);
+           animation: vl-av-fadeIn 0.35s ease;
+           padding: 12px;
+           box-sizing: border-box;
+       }
+
+       #vl-advent-valentine .vl-av-overlay {
+           position: absolute;
+           inset: 0;
+       }
+
+       #vl-advent-valentine .vl-av-box {
+           position: relative;
+           z-index: 1;
+           width: ${config.desktopWidth};
+           max-width: ${config.maxWidth};
+           height: 88vh;
+           max-height: 720px;
+           display: flex;
+           flex-direction: row;
+           border-radius: 16px;
+           box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+           overflow: hidden;
+           background: #fff;
+       }
+
+       #vl-advent-valentine .vl-av-close {
+           position: absolute;
+           right: 16px;
+           top: 16px;
+           width: 44px;
+           height: 44px;
+           border-radius: 50%;
+           border: 2px solid rgba(255, 255, 255, 0.8);
+           background: rgba(0, 0, 0, 0.35);
+           color: #fff;
+           font-size: 22px;
+           cursor: pointer;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           z-index: 10;
+       }
+
+       #vl-advent-valentine .vl-av-close:hover {
+           background: rgba(0, 0, 0, 0.5);
+       }
+
+       #vl-advent-valentine .vl-av-left,
+       #vl-advent-valentine .vl-av-right {
+           width: 50%;
+           height: 100%;
+           box-sizing: border-box;
+           display: flex;
+           flex-direction: column;
+           min-height: 0;
+       }
+
+       #vl-advent-valentine .vl-av-left {
+           background: linear-gradient(180deg, #fce4ec 0%, #f8bbd9 50%, #f48fb1 100%);
+           padding: 28px 32px;
+       }
+
+       #vl-advent-valentine .vl-av-left-select {
+           display: flex;
+           flex-direction: column;
+           height: 100%;
+       }
+
+       #vl-advent-valentine .vl-av-grid-title {
+           color: #880e4f;
+           font-size: 18px;
+           font-weight: 700;
+           text-align: center;
+           margin-bottom: 16px;
+           flex-shrink: 0;
+       }
+
+       #vl-advent-valentine .vl-av-grid {
+           display: grid;
+           grid-template-columns: repeat(6, 1fr);
+           grid-template-rows: repeat(4, 1fr);
+           gap: 10px 12px;
+           flex: 1;
+           min-height: 0;
+       }
+
+       #vl-advent-valentine .vl-av-box-num {
+           background: rgba(255, 255, 255, 0.7);
+           border: 2px solid rgba(136, 14, 79, 0.4);
+           border-radius: 10px;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           font-weight: 700;
+           font-size: clamp(16px, 2.2vw, 24px);
+           color: #880e4f;
+           cursor: pointer;
+           transition: all 0.2s;
+       }
+
+       #vl-advent-valentine .vl-av-box-num:hover {
+           background: rgba(255, 255, 255, 0.95);
+           border-color: #ad1457;
+           transform: scale(1.03);
+       }
+
+       #vl-advent-valentine .vl-av-box-num.selected {
+           background: #ad1457;
+           border-color: #c2185b;
+           color: #fff;
+       }
+
+       #vl-advent-valentine .vl-av-box-num.disabled {
+           opacity: 0.45;
+           cursor: not-allowed;
+           pointer-events: none;
+       }
+
+       #vl-advent-valentine .vl-av-right-placeholder {
+           background: linear-gradient(165deg, #1a1a1a 0%, #252525 35%, #2d2d2d 70%, #1f1f1f 100%);
+           color: #fff;
+           align-items: center;
+           justify-content: center;
+           text-align: center;
+           padding: 48px 40px;
+           min-height: 100%;
+           position: relative;
+           overflow: hidden;
+       }
+
+       #vl-advent-valentine .vl-av-right-placeholder::before {
+           content: "";
+           position: absolute;
+           inset: 24px;
+           border: 2px dashed rgba(248, 187, 217, 0.25);
+           border-radius: 12px;
+           pointer-events: none;
+       }
+
+       #vl-advent-valentine .vl-av-right-placeholder-inner {
+           position: relative;
+           z-index: 1;
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           justify-content: center;
+           gap: 24px;
+           max-width: 360px;
+       }
+
+       #vl-advent-valentine .vl-av-right-placeholder h2 {
+           font-size: 26px;
+           margin: 0;
+           color: #f8bbd9;
+           font-weight: 700;
+           letter-spacing: 0.02em;
+       }
+
+       #vl-advent-valentine .vl-av-right-placeholder p {
+           font-size: 15px;
+           opacity: 0.88;
+           margin: 0;
+           color: rgba(255, 255, 255, 0.9);
+           line-height: 1.6;
+       }
+
+       #vl-advent-valentine .vl-av-right-placeholder .vl-av-placeholder-hint {
+           margin-top: 16px;
+           font-size: 13px;
+           color: rgba(248, 187, 217, 0.7);
+           font-weight: 500;
+       }
+
+       #vl-advent-valentine .vl-av-day-view {
+           display: none;
+           flex-direction: column;
+           height: 100%;
+           padding: 24px 28px;
+       }
+
+       #vl-advent-valentine .vl-av-day-view.visible {
+           display: flex;
+       }
+
+       #vl-advent-valentine .vl-av-day-num {
+           font-size: clamp(56px, 9vw, 100px);
+           font-weight: 800;
+           color: #880e4f;
+           margin: 0;
+           line-height: 1;
+           text-align: center;
+       }
+
+       #vl-advent-valentine .vl-av-day-label {
+           font-size: 18px;
+           color: #ad1457;
+           margin: 8px 0 20px;
+           text-align: center;
+           font-weight: 600;
+       }
+
+       #vl-advent-valentine .vl-av-day-quote {
+           font-size: 15px;
+           line-height: 1.65;
+           color: #4a148c;
+           flex: 1;
+           overflow-y: auto;
+           margin-bottom: 20px;
+           padding: 0 8px;
+       }
+
+       #vl-advent-valentine .vl-av-btn-surprise {
+           padding: 16px 40px;
+           background: linear-gradient(180deg, #c2185b, #880e4f);
+           color: #fff;
+           border: none;
+           border-radius: 12px;
+           font-weight: 700;
+           font-size: 16px;
+           cursor: pointer;
+           align-self: center;
+           transition: transform 0.2s, box-shadow 0.2s;
+           box-shadow: 0 4px 14px rgba(136, 14, 79, 0.4);
+       }
+
+       #vl-advent-valentine .vl-av-btn-surprise:hover {
+           transform: scale(1.03);
+           box-shadow: 0 6px 18px rgba(136, 14, 79, 0.5);
+       }
+
+       #vl-advent-valentine .vl-av-right-frame-wrap {
+           width: 100%;
+           height: 100%;
+           padding: 28px;
+           box-sizing: border-box;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           background: linear-gradient(165deg, #1a1a1a 0%, #252525 40%, #2d2d2d 100%);
+       }
+
+       #vl-advent-valentine .vl-av-frame {
+           width: 100%;
+           max-width: 380px;
+           min-height: 400px;
+           border: 3px solid rgba(248, 187, 217, 0.45);
+           border-radius: 20px;
+           background: radial-gradient(ellipse at center, rgba(233, 30, 99, 0.08) 0%, rgba(255, 255, 255, 0.03) 70%);
+           position: relative;
+           overflow: hidden;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           box-shadow: inset 0 0 60px rgba(233, 30, 99, 0.06);
+       }
+
+       #vl-advent-valentine .vl-av-hearts {
+           display: grid;
+           grid-template-columns: repeat(6, 1fr);
+           grid-template-rows: repeat(4, 1fr);
+           gap: 14px 18px;
+           padding: 28px;
+           width: 100%;
+           height: 100%;
+           min-height: 340px;
+           align-items: center;
+           justify-items: center;
+           transition: opacity 0.7s ease, transform 0.7s ease;
+       }
+
+       #vl-advent-valentine .vl-av-hearts.vl-av-hearts-out {
+           opacity: 0;
+           transform: scale(0.2);
+           pointer-events: none;
+       }
+
+       #vl-advent-valentine .vl-av-heart {
+           font-size: 32px;
+           color: #e91e63;
+           text-shadow: 0 0 12px rgba(233, 30, 99, 0.6), 0 0 24px rgba(233, 30, 99, 0.3);
+           display: flex;
+           align-items: center;
+           justify-content: center;
+       }
+
+       #vl-advent-valentine .vl-av-heart.vl-av-h1 {
+           animation: vl-av-float 2.2s ease-in-out infinite;
+           color: #e91e63;
+       }
+
+       #vl-advent-valentine .vl-av-heart.vl-av-h2 {
+           animation: vl-av-pulse 1.8s ease-in-out infinite;
+           color: #f48fb1;
+       }
+
+       #vl-advent-valentine .vl-av-heart.vl-av-h3 {
+           animation: vl-av-sway 2.5s ease-in-out infinite;
+           color: #ec407a;
+       }
+
+       #vl-advent-valentine .vl-av-heart.vl-av-h4 {
+           animation: vl-av-glow 2s ease-in-out infinite;
+           color: #f06292;
+       }
+
+       #vl-advent-valentine .vl-av-heart.vl-av-h5 {
+           animation: vl-av-float 2.4s ease-in-out infinite reverse;
+           color: #e91e63;
+       }
+
+       #vl-advent-valentine .vl-av-heart.vl-av-h6 {
+           animation: vl-av-pulse 2.1s ease-in-out infinite;
+           color: #f8bbd9;
+       }
+
+       #vl-advent-valentine .vl-av-heart:nth-child(6n+1) { animation-delay: 0s; }
+       #vl-advent-valentine .vl-av-heart:nth-child(6n+2) { animation-delay: 0.2s; }
+       #vl-advent-valentine .vl-av-heart:nth-child(6n+3) { animation-delay: 0.4s; }
+       #vl-advent-valentine .vl-av-heart:nth-child(6n+4) { animation-delay: 0.15s; }
+       #vl-advent-valentine .vl-av-heart:nth-child(6n+5) { animation-delay: 0.35s; }
+       #vl-advent-valentine .vl-av-heart:nth-child(6n+6) { animation-delay: 0.55s; }
+
+       #vl-advent-valentine .vl-av-coupon-inner {
+           display: none;
+           flex-direction: column;
+           align-items: center;
+           justify-content: center;
+           text-align: center;
+           padding: 32px;
+           animation: vl-av-couponIn 0.5s ease;
+       }
+
+       #vl-advent-valentine .vl-av-coupon-inner.visible {
+           display: flex;
+       }
+
+       #vl-advent-valentine .vl-av-coupon-percent {
+           font-size: clamp(42px, 6vw, 64px);
+           font-weight: 800;
+           color: #f8bbd9;
+           margin: 0 0 8px;
+       }
+
+       #vl-advent-valentine .vl-av-coupon-title {
+           font-size: 18px;
+           color: #fff;
+           margin: 0 0 6px;
+       }
+
+       #vl-advent-valentine .vl-av-coupon-sub {
+           font-size: 14px;
+           color: rgba(255, 255, 255, 0.85);
+           margin: 0;
+       }
+
+       @keyframes vl-av-fadeIn {
+           from { opacity: 0; }
+           to { opacity: 1; }
+       }
+
+       @keyframes vl-av-float {
+           0%, 100% { transform: translateY(0) scale(1); opacity: 1; }
+           50% { transform: translateY(-12px) scale(1.15); opacity: 0.95; }
+       }
+
+       @keyframes vl-av-pulse {
+           0%, 100% { transform: scale(1); filter: brightness(1); }
+           50% { transform: scale(1.25); filter: brightness(1.2); }
+       }
+
+       @keyframes vl-av-sway {
+           0%, 100% { transform: translateX(0) rotate(-3deg); }
+           50% { transform: translateX(6px) rotate(3deg); }
+       }
+
+       @keyframes vl-av-glow {
+           0%, 100% { text-shadow: 0 0 12px rgba(233, 30, 99, 0.5), 0 0 24px rgba(233, 30, 99, 0.2); }
+           50% { text-shadow: 0 0 20px rgba(233, 30, 99, 0.9), 0 0 40px rgba(244, 143, 177, 0.4); }
+       }
+
+       @keyframes vl-av-couponIn {
+           from { opacity: 0; transform: scale(0.8); }
+           to { opacity: 1; transform: scale(1); }
+       }
+
+       @media only screen and (max-width: 768px) {
+           #vl-advent-valentine .vl-av-box {
+               width: ${config.mobileWidth};
+               flex-direction: column;
+               max-height: 92vh;
+           }
+           #vl-advent-valentine .vl-av-left,
+           #vl-advent-valentine .vl-av-right {
+               width: 100%;
+               min-height: 45%;
+           }
+           #vl-advent-valentine .vl-av-grid {
+               min-height: 180px;
+           }
+       }
+       `;
+                document.head.appendChild(style);
+            }
+
+            function buildGridSection() {
+                var wrap = ce("div", { className: "vl-av-left-select" });
+                wrap.appendChild(ce("div", { className: "vl-av-grid-title", innerHTML: "Bir sayı seçin (tek hakkınız var)" }));
+                var grid = ce("div", { className: "vl-av-grid" });
+                for (var i = 1; i <= 24; i++) {
+                    var box = ce("div", {
+                        className: "vl-av-box-num" + (selectedDay === i ? " selected" : "") + (selectedDay !== null && selectedDay !== i ? " disabled" : ""),
+                        innerHTML: String(i)
+                    });
+                    box.onclick = (function (day) {
+                        return function () {
+                            if (selectedDay === null) {
+                                selectedDay = day;
+                                showDayView();
+                            }
+                        };
+                    })(i);
+                    grid.appendChild(box);
+                }
+                wrap.appendChild(grid);
+                return wrap;
+            }
+
+            function buildDaySection() {
+                var wrap = ce("div", { className: "vl-av-day-view visible" });
+                wrap.appendChild(ce("p", { className: "vl-av-day-num", innerHTML: String(selectedDay) }));
+                wrap.appendChild(ce("p", { className: "vl-av-day-label", innerHTML: "GÜN" }));
+                wrap.appendChild(ce("p", { className: "vl-av-day-quote", innerHTML: (VALENTINE_QUOTES[selectedDay - 1] || VALENTINE_QUOTES[0]) }));
+                var btn = ce("button", { className: "vl-av-btn-surprise", innerHTML: "Sürprizi göster" });
+                btn.onclick = onSurpriseClick;
+                wrap.appendChild(btn);
+                return wrap;
+            }
+
+            function buildRightPlaceholder() {
+                var wrap = ce("div", { className: "vl-av-right-placeholder" });
+                wrap.style.display = "flex";
+                var inner = ce("div", { className: "vl-av-right-placeholder-inner" });
+                inner.appendChild(ce("h2", { innerHTML: "Sevgililer Günü" }));
+                inner.appendChild(ce("p", { innerHTML: "Soldan bir sayı seçin. Seçtiğiniz güne özel söz ve sürpriz sizi bekliyor." }));
+                inner.appendChild(ce("p", { className: "vl-av-placeholder-hint", innerHTML: "Sürpriz alanı seçiminizden sonra burada belirecek." }));
+                wrap.appendChild(inner);
+                return wrap;
+            }
+
+            function buildHeartsFrame() {
+                var wrap = ce("div", { className: "vl-av-frame" });
+                var hearts = ce("div", { className: "vl-av-hearts", id: "vl-av-hearts-container" });
+                var animClasses = ["vl-av-h1", "vl-av-h2", "vl-av-h3", "vl-av-h4", "vl-av-h5", "vl-av-h6"];
+                for (var i = 0; i < 24; i++) {
+                    var h = ce("span", { className: "vl-av-heart " + animClasses[i % 6], innerHTML: "♥" });
+                    hearts.appendChild(h);
+                }
+                var couponInner = ce("div", { className: "vl-av-coupon-inner", id: "vl-av-coupon-inner" });
+                var c = COUPONS[selectedDay - 1] || COUPONS[0];
+                couponInner.appendChild(ce("p", { className: "vl-av-coupon-percent", innerHTML: "%" + c.percent }));
+                couponInner.appendChild(ce("p", { className: "vl-av-coupon-title", innerHTML: c.title }));
+                couponInner.appendChild(ce("p", { className: "vl-av-coupon-sub", innerHTML: c.sub }));
+                wrap.appendChild(hearts);
+                wrap.appendChild(couponInner);
+                return wrap;
+            }
+
+            function showDayView() {
+                var left = $("vl-advent-valentine") && $("vl-advent-valentine").querySelector(".vl-av-left");
+                var right = $("vl-advent-valentine") && $("vl-advent-valentine").querySelector(".vl-av-right");
+                if (!left || !right) return;
+                left.innerHTML = "";
+                left.appendChild(buildDaySection());
+                right.innerHTML = "";
+                var frameWrap = ce("div", { className: "vl-av-right-frame-wrap" });
+                frameWrap.appendChild(buildHeartsFrame());
+                right.appendChild(frameWrap);
+            }
+
+            function onSurpriseClick() {
+                if (revealed) return;
+                revealed = true;
+                var hearts = $("vl-av-hearts-container");
+                var couponInner = $("vl-av-coupon-inner");
+                if (!hearts || !couponInner) return;
+                hearts.classList.add("vl-av-hearts-out");
+                setTimeout(function () {
+                    hearts.style.display = "none";
+                    couponInner.classList.add("visible");
+                }, 650);
+            }
+
+            function render() {
+                if ($("vl-advent-valentine")) return;
+                injectStyles();
+                var wrap = ce("div", { id: "vl-advent-valentine" });
+                wrap.appendChild(ce("div", { className: "vl-av-overlay" }));
+                var box = ce("div", { className: "vl-av-box" });
+                var closeBtn = ce("button", { className: "vl-av-close", innerHTML: "×" });
+                closeBtn.onclick = function () { wrap.remove(); };
+                box.appendChild(closeBtn);
+                var left = ce("div", { className: "vl-av-left" });
+                var right = ce("div", { className: "vl-av-right" });
+                left.appendChild(buildGridSection());
+                right.appendChild(buildRightPlaceholder());
+                box.appendChild(left);
+                box.appendChild(right);
+                wrap.appendChild(box);
+                wrap.querySelector(".vl-av-overlay").onclick = function () { wrap.remove(); };
+                document.body.appendChild(wrap);
+            }
+
+            function openCalendar() {
+                selectedDay = null;
+                revealed = false;
+                render();
+            }
+
+            window.VLAdventCalendar = { open: openCalendar };
+            if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", openCalendar); else openCalendar();
+        })();
+    </script>
+</body>
+
+</html>
