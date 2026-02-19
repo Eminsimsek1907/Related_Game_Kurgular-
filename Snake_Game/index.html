@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snake Challenge</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0b0f14; font-family: Arial, sans-serif; }
+  </style>
+</head>
+<body>
+
+<button id="floatingBtn" style="position:fixed;bottom:20px;right:20px;padding:12px 18px;background:#00ff88;color:#000;border:none;border-radius:30px;font-weight:bold;cursor:pointer;z-index:99999;box-shadow:0 8px 25px rgba(0,255,136,0.4);transition:0.2s">
+  🐍 Oyuna Başla
+</button>
+
+<div id="overlay" style="display:none;position:fixed;inset:0;background:#0b0f14;flex-direction:column;align-items:center;justify-content:center;z-index:999999;font-family:Arial"></div>
+
+<script>
+(function () {
+  const floatingBtn = document.getElementById("floatingBtn");
+  const overlay = document.getElementById("overlay");
+
+  floatingBtn.onmouseenter = () => floatingBtn.style.transform = "scale(1.08)";
+  floatingBtn.onmouseleave = () => floatingBtn.style.transform = "scale(1)";
+  floatingBtn.onclick = openGame;
+
+  function openGame() {
+    floatingBtn.style.display = "none";
+    overlay.style.display = "flex";
+    showIntro();
+  }
+
+  function closeGame() {
+    overlay.style.display = "none";
+    overlay.innerHTML = "";
+    floatingBtn.style.display = "block";
+  }
+
+  function showIntro() {
+    overlay.innerHTML = `
+      <div style="text-align:center;color:white;max-width:400px">
+        <h2 style="color:#00ff88">🐍 Snake Challenge</h2>
+        <p>⏳ 40 saniyede mümkün olduğunca yem topla!</p>
+        <p>⌨️ Ok tuşları ile oynanır</p>
+        <p>🎁 5 yem → %5 indirim</p>
+        <p>🎁 10 yem → %20 indirim</p>
+        <p>🎁 20 yem → %30 indirim</p>
+        <button id="startGame" style="margin-top:15px;padding:10px 20px;background:#00ff88;border:none;border-radius:6px;cursor:pointer;font-weight:bold">
+          Oyuna Başla
+        </button>
+        <br/><br/>
+        <button id="closeGame" style="background:#ff3b3b;padding:8px 15px;border:none;border-radius:6px;cursor:pointer;color:white">
+          Kapat
+        </button>
+      </div>
+    `;
+    document.getElementById("startGame").onclick = startGame;
+    document.getElementById("closeGame").onclick = closeGame;
+  }
+
+  function startGame() {
+    overlay.innerHTML = `
+      <div style="color:white;margin-bottom:15px;font-size:18px">
+        Skor: <span id="score" style="color:#00ff88">0</span>
+        | Süre: <span id="time">40</span>
+      </div>
+      <canvas id="gameCanvas" width="600" height="400"
+        style="
+          background:
+            radial-gradient(circle at center, rgba(0,255,136,0.07), transparent 70%),
+            linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+          background-size:100% 100%, 20px 20px, 20px 20px;
+          box-shadow:0 0 60px rgba(0,255,136,0.15);
+        ">
+      </canvas>
+    `;
+
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const grid = 20;
+    let count = 0;
+    let score = 0;
+    let timeLeft = 40;
+    let gameOver = false;
+    let animationId;
+
+    const snake = { x: 160, y: 160, dx: grid, dy: 0, cells: [], maxCells: 4 };
+    let apple = { x: 320, y: 320 };
+
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min)) + min;
+    }
+
+    function gameLoop() {
+      if (gameOver) return;
+      animationId = requestAnimationFrame(gameLoop);
+      if (++count < 7) return;
+      count = 0;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      snake.x += snake.dx;
+      snake.y += snake.dy;
+
+      if (snake.x < 0) snake.x = canvas.width - grid;
+      if (snake.x >= canvas.width) snake.x = 0;
+      if (snake.y < 0) snake.y = canvas.height - grid;
+      if (snake.y >= canvas.height) snake.y = 0;
+
+      snake.cells.unshift({ x: snake.x, y: snake.y });
+      if (snake.cells.length > snake.maxCells) snake.cells.pop();
+
+      ctx.beginPath();
+      ctx.arc(apple.x + grid / 2, apple.y + grid / 2, grid / 2.3, 0, Math.PI * 2);
+      ctx.fillStyle = "#ff3b3b";
+      ctx.shadowColor = "#ff3b3b";
+      ctx.shadowBlur = 20;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      snake.cells.forEach(function (cell, index) {
+        const glowIntensity = 15 - index * 1.2;
+        ctx.fillStyle = index === 0 ? "#00ffcc" : `rgba(0,255,136,${1 - index * 0.05})`;
+        ctx.shadowColor = "#00ff88";
+        ctx.shadowBlur = glowIntensity > 0 ? glowIntensity : 0;
+        ctx.fillRect(cell.x, cell.y, grid - 2, grid - 2);
+        ctx.shadowBlur = 0;
+
+        if (cell.x === apple.x && cell.y === apple.y) {
+          snake.maxCells++;
+          score++;
+          document.getElementById("score").innerText = score;
+          apple.x = getRandomInt(0, 30) * grid;
+          apple.y = getRandomInt(0, 20) * grid;
+        }
+
+        for (let i = index + 1; i < snake.cells.length; i++) {
+          if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+            endGame();
+          }
+        }
+      });
+    }
+
+    const timer = setInterval(() => {
+      if (gameOver) return;
+      timeLeft--;
+      document.getElementById("time").innerText = timeLeft;
+      if (timeLeft <= 5) document.getElementById("time").style.color = "#ff3b3b";
+      if (timeLeft <= 0) endGame();
+    }, 1000);
+
+    function endGame() {
+      if (gameOver) return;
+      gameOver = true;
+      clearInterval(timer);
+      cancelAnimationFrame(animationId);
+
+      let discount = 0;
+      let code = "";
+
+      if (score >= 20) { discount = 30; code = "IND30"; }
+      else if (score >= 10) { discount = 20; code = "IND20"; }
+      else if (score >= 5) { discount = 5; code = "IND5"; }
+
+      overlay.innerHTML = `
+        <div style="text-align:center;color:white">
+          <h2 style="color:#00ff88">🎉 Oyun Bitti!</h2>
+          <p>Toplanan Yem: ${score}</p>
+          ${discount > 0
+            ? `<h3>%${discount} İndirim Kazandın!</h3><p>Kodun: <b>${code}</b></p>`
+            : `<p>Bu sefer indirim kazanamadın 😢</p>`}
+          <button id="retry" style="margin-top:15px;padding:10px 20px;background:#00ff88;border:none;border-radius:6px;cursor:pointer;font-weight:bold">
+            Tekrar Dene
+          </button>
+          <br/><br/>
+          <button id="exit" style="background:#ff3b3b;padding:8px 15px;border:none;border-radius:6px;cursor:pointer;color:white">
+            Kapat
+          </button>
+        </div>
+      `;
+      document.getElementById("retry").onclick = startGame;
+      document.getElementById("exit").onclick = closeGame;
+    }
+
+    document.addEventListener("keydown", function (e) {
+      if (gameOver) return;
+      if (e.key === "ArrowLeft" && snake.dx === 0) { snake.dx = -grid; snake.dy = 0; }
+      else if (e.key === "ArrowUp" && snake.dy === 0) { snake.dy = -grid; snake.dx = 0; }
+      else if (e.key === "ArrowRight" && snake.dx === 0) { snake.dx = grid; snake.dy = 0; }
+      else if (e.key === "ArrowDown" && snake.dy === 0) { snake.dy = grid; snake.dx = 0; }
+    });
+
+    requestAnimationFrame(gameLoop);
+  }
+})();
+</script>
+
+</body>
+</html>

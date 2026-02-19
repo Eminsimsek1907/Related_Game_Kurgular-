@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mix the Right Color</title>
+</head>
+<body>
+<script>
+(function () {
+    if (window.__vl_mix_booted) return;
+    window.__vl_mix_booted = true;
+
+    const COLORS = [
+        { id: "red", name: "Red", hex: "#e53e3e" },
+        { id: "blue", name: "Blue", hex: "#3182ce" },
+        { id: "yellow", name: "Yellow", hex: "#ecc94b" }
+    ];
+
+    const TARGETS = [
+        { name: "Purple", nameTr: "Mor", ids: ["red", "blue"], resultHex: "#805ad5", hint: "Kırmızı ve mavi karışımı." },
+        { name: "Green", nameTr: "Yeşil", ids: ["blue", "yellow"], resultHex: "#38a169", hint: "Mavi ve sarı karışımı." },
+        { name: "Orange", nameTr: "Turuncu", ids: ["red", "yellow"], resultHex: "#dd6b20", hint: "Kırmızı ve sarı karışımı." }
+    ];
+
+    const TOTAL_TIME = 20;
+    const WIN_THRESHOLD = 3;
+    const DISCOUNT_CODE = "RENK20";
+
+    let state = { phase: "welcome", score: 0, timeLeft: TOTAL_TIME, currentTargetIndex: 0, droppedIds: [], timerId: null };
+    let el = {};
+
+    const s = document.createElement("style");
+    s.innerHTML = `
+        #vl-popup-container {
+            z-index: 10000;
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #vl-popup-container .vl-overlay {
+            z-index: 10000;
+            width: 100%;
+            height: 100%;
+            background: #4a5568;
+            opacity: 0.5;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+        #vl-popup-container .vl-popup {
+            position: relative;
+            z-index: 100001;
+            width: 920px;
+            max-width: 95%;
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 48px;
+            max-height: 92vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+        #vl-popup-container .vl-strip {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #38a169 0%, #ecc94b 25%, #e53e3e 50%, #3182ce 100%);
+            border-radius: 16px 16px 0 0;
+        }
+        .vl-popup .vl-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 16px;
+        }
+        .vl-popup .vl-subtitle {
+            text-align: center;
+            font-size: 15px;
+            color: #4a5568;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+        .vl-popup .vl-buttons {
+            margin: 24px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+        .vl-popup .vl-buttons button {
+            padding: 14px 28px;
+            border-radius: 10px;
+            border: 2px solid #805ad5;
+            background: #fff;
+            color: #2d3748;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .vl-popup .vl-buttons button:hover {
+            background: #805ad5;
+            color: #fff;
+        }
+        #vl-game-wrap {
+            display: flex;
+            gap: 32px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        #vl-left {
+            flex: 0 0 320px;
+        }
+        #vl-timer {
+            background: linear-gradient(135deg, #3182ce, #805ad5);
+            color: #fff;
+            padding: 14px 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        #vl-colors {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .vl-color-block {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            border: 3px solid #cbd5e0;
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s;
+            flex-shrink: 0;
+        }
+        .vl-color-block:hover { transform: scale(1.06); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        .vl-color-block.dragging { opacity: 0.7; cursor: grabbing; }
+        .vl-color-block.reject { animation: vl-shake 0.5s ease; }
+        @keyframes vl-shake {
+            0%,100% { transform: translateX(0); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-8px); }
+            80% { transform: translateX(8px); }
+        }
+        #vl-target-name {
+            font-size: 26px;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        #vl-hint {
+            font-size: 13px;
+            color: #718096;
+            margin-bottom: 24px;
+        }
+        #vl-drop-zone {
+            flex: 1;
+            min-width: 260px;
+            min-height: 240px;
+            background: repeating-linear-gradient(0deg, #edf2f7 0, #edf2f7 1px, #fff 1px, #fff 24px),
+                        repeating-linear-gradient(90deg, #edf2f7 0, #edf2f7 1px, #fff 1px, #fff 24px);
+            border: 3px dashed #cbd5e0;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        #vl-drop-zone.drag-over { border-color: #805ad5; background-color: #f7fafc; }
+        #vl-drop-zone .vl-mix-label { color: #718096; font-size: 15px; }
+        .vl-dropped-item {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            border: 2px solid #cbd5e0;
+        }
+        .vl-result-color {
+            width: 140px;
+            height: 140px;
+            border-radius: 20px;
+            border: 4px solid rgba(255,255,255,0.8);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+            animation: vl-result-show 0.4s ease;
+        }
+        .vl-result-color.vl-result-out {
+            animation: vl-result-out 0.6s ease forwards;
+        }
+        @keyframes vl-result-show {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        @keyframes vl-result-out {
+            to { transform: scale(0.3); opacity: 0; }
+        }
+        #vl-score-bar {
+            margin-top: 16px;
+            font-size: 15px;
+            color: #718096;
+            text-align: center;
+        }
+        .vl-result-box {
+            text-align: center;
+            padding: 24px 0;
+        }
+        .vl-result-box .vl-title { margin-bottom: 12px; color: #2d3748; }
+        .vl-discount-code {
+            background: linear-gradient(135deg, #805ad5, #38a169);
+            color: #fff;
+            padding: 20px 32px;
+            border-radius: 12px;
+            font-size: 26px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            margin: 24px auto;
+            display: inline-block;
+            animation: vl-pulse 1s ease infinite;
+        }
+        @keyframes vl-pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(128,90,213,0.4); }
+            50% { transform: scale(1.03); box-shadow: 0 0 24px 8px rgba(128,90,213,0.25); }
+        }
+        .vl-tebrik-enter {
+            animation: vl-tebrik 0.6s ease;
+        }
+        @keyframes vl-tebrik {
+            0% { opacity: 0; transform: scale(0.8) translateY(-20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .vl-popup-close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            cursor: pointer;
+            font-size: 24px;
+            color: #4a5568;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            background: #edf2f7;
+        }
+        .vl-popup-close:hover { background: #e53e3e; color: #fff; }
+        @media only screen and (max-width: 768px) {
+            #vl-popup-container { align-items: center; justify-content: center; padding: 16px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+            #vl-popup-container .vl-popup { width: 100%; max-width: 100%; padding: 44px 20px 28px; margin: auto; border-radius: 12px; max-height: calc(100vh - 32px); overflow-y: auto; }
+            #vl-popup-container .vl-strip { border-radius: 12px 12px 0 0; }
+            .vl-popup .vl-title { font-size: 20px; margin-bottom: 12px; }
+            .vl-popup .vl-subtitle { font-size: 14px; margin-bottom: 20px; }
+            .vl-popup .vl-buttons { margin: 20px 0; gap: 10px; }
+            .vl-popup .vl-buttons button { padding: 14px 24px; font-size: 15px; min-height: 48px; -webkit-tap-highlight-color: transparent; }
+            #vl-game-wrap { flex-direction: column; gap: 20px; width: 100%; align-items: stretch; }
+            #vl-left { flex: 0 0 auto; width: 100%; max-width: 100%; }
+            #vl-timer { padding: 12px 16px; font-size: 18px; margin-bottom: 16px; }
+            #vl-colors { justify-content: center; gap: 14px; margin-bottom: 16px; }
+            .vl-color-block { width: 72px; height: 72px; min-width: 72px; min-height: 72px; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+            #vl-target-name { font-size: 22px; margin-bottom: 8px; }
+            #vl-hint { font-size: 13px; margin-bottom: 16px; }
+            #vl-score-bar { margin-top: 12px; font-size: 14px; }
+            #vl-drop-zone { flex: 0 0 auto; width: 100%; min-width: 0; min-height: 180px; border-radius: 12px; -webkit-tap-highlight-color: transparent; }
+            .vl-dropped-item { width: 52px; height: 52px; }
+            .vl-result-color { width: 120px; height: 120px; }
+            .vl-popup-close { right: 12px; top: 12px; width: 40px; height: 40px; font-size: 22px; }
+            .vl-result-box .vl-title { font-size: 20px; }
+            .vl-discount-code { font-size: 22px; padding: 16px 24px; }
+        }
+    `;
+    document.head.appendChild(s);
+
+    function getContainer() {
+        let c = document.getElementById("vl-popup-container");
+        if (!c) {
+            c = document.createElement("div");
+            c.id = "vl-popup-container";
+            c.innerHTML = '<div class="vl-overlay"></div><div class="vl-popup"><div class="vl-strip"></div><span class="vl-popup-close">✕</span><div class="vl-content"></div></div>';
+            document.body.appendChild(c);
+            c.querySelector(".vl-overlay").addEventListener("click", closeAll);
+            c.querySelector(".vl-popup-close").addEventListener("click", closeAll);
+        }
+        return c;
+    }
+
+    function closeAll() {
+        if (state.timerId) clearInterval(state.timerId);
+        const c = document.getElementById("vl-popup-container");
+        if (c) c.remove();
+    }
+
+    function renderWelcome() {
+        state.phase = "welcome";
+        const container = getContainer();
+        const content = container.querySelector(".vl-content");
+        content.innerHTML = `
+            <div class="vl-title">Mix the Colour</div>
+            <div class="vl-subtitle">Altta 3 ana renk var. Hedef rengi (ör. Mor) oluşturmak için doğru iki rengi sağdaki alana sürükleyip bırak. Yanlış renk bırakırsan kabul edilmez ve renk yerine geri döner. 20 saniyede 3 veya daha fazla doğru karışım yaparsan %20 indirim kodu kazanırsın!</div>
+            <div class="vl-buttons">
+                <button id="vl-start-btn">Başla</button>
+            </div>
+        `;
+        content.querySelector("#vl-start-btn").addEventListener("click", startGame);
+    }
+
+    function startGame() {
+        state.phase = "game";
+        state.score = 0;
+        state.timeLeft = TOTAL_TIME;
+        state.currentTargetIndex = 0;
+        state.droppedIds = [];
+        const container = getContainer();
+        const content = container.querySelector(".vl-content");
+        const t = TARGETS[state.currentTargetIndex];
+        content.innerHTML = `
+            <div id="vl-game-wrap">
+                <div id="vl-left">
+                    <div id="vl-timer">Süre: <span id="vl-time-num">${state.timeLeft}</span></div>
+                    <div id="vl-colors"></div>
+                    <div id="vl-target-name">${t.name}</div>
+                    <div id="vl-hint">İpucu: ${t.hint}</div>
+                    <div id="vl-score-bar">Doğru: 0</div>
+                </div>
+                <div id="vl-drop-zone">
+                    <span class="vl-mix-label">Burada karıştır</span>
+                </div>
+            </div>
+        `;
+        el.timerNum = content.querySelector("#vl-time-num");
+        el.colorsWrap = content.querySelector("#vl-colors");
+        el.targetName = content.querySelector("#vl-target-name");
+        el.hint = content.querySelector("#vl-hint");
+        el.dropZone = content.querySelector("#vl-drop-zone");
+        el.scoreBar = content.querySelector("#vl-score-bar");
+        renderColorBlocks();
+        bindDropZone();
+        state.timerId = setInterval(tick, 1000);
+    }
+
+    function renderColorBlocks() {
+        el.colorsWrap.innerHTML = "";
+        COLORS.forEach(c => {
+            const block = document.createElement("div");
+            block.className = "vl-color-block";
+            block.dataset.id = c.id;
+            block.style.backgroundColor = c.hex;
+            block.draggable = true;
+            block.addEventListener("dragstart", onDragStart);
+            block.addEventListener("dragend", onDragEnd);
+            block.addEventListener("drag", onDrag);
+            block.addEventListener("click", onColorClick);
+            el.colorsWrap.appendChild(block);
+        });
+    }
+
+    function onColorClick(ev) {
+        if (state.phase !== "game" || !el.dropZone) return;
+        const block = ev.currentTarget;
+        if (block.classList.contains("dragging")) return;
+        applyColorToZone(block.dataset.id, block);
+    }
+
+    function getTarget() {
+        return TARGETS[state.currentTargetIndex % TARGETS.length];
+    }
+
+    function onDragStart(ev) {
+        ev.dataTransfer.setData("text/plain", ev.currentTarget.dataset.id);
+        ev.dataTransfer.effectAllowed = "move";
+        ev.currentTarget.classList.add("dragging");
+    }
+
+    function onDragEnd(ev) {
+        ev.currentTarget.classList.remove("dragging");
+        el.dropZone.classList.remove("drag-over");
+    }
+
+    function onDrag(ev) {
+        ev.dataTransfer.dropEffect = "move";
+    }
+
+    function bindDropZone() {
+        el.dropZone.addEventListener("dragover", e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            el.dropZone.classList.add("drag-over");
+        });
+        el.dropZone.addEventListener("dragleave", () => el.dropZone.classList.remove("drag-over"));
+        el.dropZone.addEventListener("drop", onDrop);
+    }
+
+    function onDrop(ev) {
+        ev.preventDefault();
+        el.dropZone.classList.remove("drag-over");
+        if (state.phase !== "game") return;
+        const id = ev.dataTransfer.getData("text/plain");
+        const block = el.colorsWrap.querySelector(`[data-id="${id}"]`);
+        applyColorToZone(id, block);
+    }
+
+    function applyColorToZone(id, block) {
+        const target = getTarget();
+        const allowed = target.ids;
+        if (!allowed.includes(id)) {
+            if (block) {
+                block.classList.add("reject");
+                block.style.animation = "none";
+                block.offsetHeight;
+                block.style.animation = "";
+                block.classList.add("reject");
+                setTimeout(() => block.classList.remove("reject"), 500);
+            }
+            return;
+        }
+        if (state.droppedIds.includes(id)) return;
+        state.droppedIds.push(id);
+        const color = COLORS.find(c => c.id === id);
+        const dot = document.createElement("div");
+        dot.className = "vl-dropped-item";
+        dot.style.backgroundColor = color.hex;
+        dot.dataset.id = id;
+        el.dropZone.appendChild(dot);
+        if (state.droppedIds.length === 2) {
+            state.score++;
+            el.scoreBar.textContent = "Doğru: " + state.score;
+            const targetCur = getTarget();
+            el.dropZone.querySelectorAll(".vl-dropped-item").forEach(n => n.remove());
+            const label = el.dropZone.querySelector(".vl-mix-label");
+            if (label) label.style.visibility = "hidden";
+            const resultBlock = document.createElement("div");
+            resultBlock.className = "vl-result-color";
+            resultBlock.style.backgroundColor = targetCur.resultHex;
+            el.dropZone.appendChild(resultBlock);
+            state.droppedIds = [];
+            state.currentTargetIndex++;
+            setTimeout(() => {
+                resultBlock.classList.add("vl-result-out");
+                setTimeout(() => {
+                    resultBlock.remove();
+                    if (label) label.style.visibility = "";
+                    const next = getTarget();
+                    el.targetName.textContent = next.name;
+                    el.hint.textContent = "İpucu: " + next.hint;
+                }, 600);
+            }, 2000);
+        }
+    }
+
+    function tick() {
+        state.timeLeft--;
+        if (el.timerNum) el.timerNum.textContent = state.timeLeft;
+        if (state.timeLeft <= 0) {
+            clearInterval(state.timerId);
+            state.timerId = null;
+            showResult();
+        }
+    }
+
+    function showResult() {
+        state.phase = "result";
+        const container = getContainer();
+        const content = container.querySelector(".vl-content");
+        const won = state.score >= WIN_THRESHOLD;
+        if (won) {
+            content.innerHTML = `
+                <div class="vl-result-box vl-tebrik-enter">
+                    <div class="vl-title">Tebrikler!</div>
+                    <div class="vl-subtitle">20 saniyede ${state.score} doğru karışım yaptın. %20 indirim kodun:</div>
+                    <div class="vl-discount-code">${DISCOUNT_CODE}</div>
+                    <div class="vl-buttons">
+                        <button id="vl-close-btn">Kapat</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            content.innerHTML = `
+                <div class="vl-result-box">
+                    <div class="vl-title">Süre Doldu!</div>
+                    <div class="vl-subtitle">Üzgünüz, 20 saniyede en az 3 doğru karışım yapman gerekiyordu. (Yaptığın: ${state.score})</div>
+                    <div class="vl-buttons">
+                        <button id="vl-try-again-btn">Tekrar Dene</button>
+                        <button id="vl-close-btn">Kapat</button>
+                    </div>
+                </div>
+            `;
+            content.querySelector("#vl-try-again-btn").addEventListener("click", () => { startGame(); });
+        }
+        content.querySelector("#vl-close-btn").addEventListener("click", closeAll);
+    }
+
+    renderWelcome();
+    window.vlMixTheColor = function () {
+        if (!document.getElementById("vl-popup-container")) getContainer();
+        renderWelcome();
+    };
+})();
+</script>
+</body>
+</html>

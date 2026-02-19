@@ -1,0 +1,2996 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flip Book</title>
+</head>
+<body>
+<script>
+(function () {
+    if (window.__fb_booted) return;
+    window.__fb_booted = true;
+
+    var FLIP_MS = 800;
+    var TOTAL_FACES = 18;
+    var TOTAL_SPREADS = 10;
+    var currentSpread = 0;
+    var isFlipping = false;
+    var eventQueue = [];
+    var root = null;
+    var touchStartX = 0;
+    var keyHandler = null;
+    var audioCtx = null;
+    var soundEnabled = true;
+
+    function getAudioCtx() {
+        if (!audioCtx) {
+            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audioCtx = null; }
+        }
+        return audioCtx;
+    }
+
+    function playFlipSound() {
+        if (!soundEnabled) return;
+        var ctx = getAudioCtx();
+        if (!ctx) return;
+        try {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.08, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.2);
+            var noise = ctx.createBufferSource();
+            var buf = ctx.createBuffer(1, ctx.sampleRate * 0.12, ctx.sampleRate);
+            var data = buf.getChannelData(0);
+            for (var i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.03;
+            noise.buffer = buf;
+            var nGain = ctx.createGain();
+            noise.connect(nGain);
+            nGain.connect(ctx.destination);
+            nGain.gain.setValueAtTime(0.06, ctx.currentTime);
+            nGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+            noise.start(ctx.currentTime);
+            noise.stop(ctx.currentTime + 0.12);
+        } catch (e) { }
+    }
+
+    function playClickSound() {
+        if (!soundEnabled) return;
+        var ctx = getAudioCtx();
+        if (!ctx) return;
+        try {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(1200, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.06);
+            gain.gain.setValueAtTime(0.05, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.08);
+        } catch (e) { }
+    }
+
+    function fireConfetti(targetEl) {
+        if (!targetEl) targetEl = root;
+        var canvas = document.createElement("canvas");
+        canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:999;border-radius:inherit;";
+        targetEl.style.position = targetEl.style.position || "relative";
+        targetEl.appendChild(canvas);
+        var ctx = canvas.getContext("2d");
+        canvas.width = targetEl.offsetWidth;
+        canvas.height = targetEl.offsetHeight;
+        var W = canvas.width, H = canvas.height;
+        var colors = ["#1E3A5F", "#3B82F6", "#fff", "#60A5FA", "#93C5FD", "#1E40AF", "#DBEAFE", "#2563EB", "#1D4ED8", "#BFDBFE"];
+        var particles = [];
+        for (var i = 0; i < 80; i++) {
+            particles.push({
+                x: W / 2 + (Math.random() - 0.5) * 60,
+                y: H / 2,
+                vx: (Math.random() - 0.5) * 12,
+                vy: (Math.random() - 0.8) * 10 - 4,
+                w: Math.random() * 8 + 3,
+                h: Math.random() * 6 + 2,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                rot: Math.random() * 360,
+                rotV: (Math.random() - 0.5) * 15,
+                gravity: 0.18 + Math.random() * 0.08,
+                opacity: 1
+            });
+        }
+        var frame = 0;
+        var maxFrames = 90;
+        function draw() {
+            ctx.clearRect(0, 0, W, H);
+            for (var i = 0; i < particles.length; i++) {
+                var p = particles[i];
+                p.x += p.vx;
+                p.vy += p.gravity;
+                p.y += p.vy;
+                p.rot += p.rotV;
+                p.vx *= 0.98;
+                if (frame > maxFrames * 0.6) p.opacity -= 0.025;
+                if (p.opacity < 0) p.opacity = 0;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rot * Math.PI / 180);
+                ctx.globalAlpha = p.opacity;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+                ctx.restore();
+            }
+            frame++;
+            if (frame < maxFrames) requestAnimationFrame(draw);
+            else canvas.remove();
+        }
+        requestAnimationFrame(draw);
+    }
+
+    function log(name, data) {
+        var e = { event: name, ts: Date.now(), data: data || {} };
+        eventQueue.push(e);
+        console.log("[FlipBook]", name, e.data);
+    }
+
+    var styleEl = document.createElement("style");
+    styleEl.id = "fb-styles";
+    styleEl.innerHTML = `
+        #fb-root {
+            position: fixed;
+            inset: 0;
+            z-index: 999999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(5, 10, 20, 0.92);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        #fb-root * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        .fb-shell {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            max-width: 1100px;
+            max-height: 740px;
+            margin: auto;
+        }
+        .fb-top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            padding: 10px 16px 4px;
+            position: relative;
+            z-index: 100;
+        }
+        .fb-top-btn {
+            width: 38px;
+            height: 38px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        .fb-top-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+        .fb-top-btn.fb-x:hover {
+            background: #e53e3e;
+            color: #fff;
+        }
+        .fb-top-btn.fb-fs-active {
+            background: rgba(30, 58, 95, 0.5);
+            color: #60A5FA;
+        }
+        .fb-stage {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 0 12px 8px;
+            min-height: 0;
+        }
+        .fb-arr {
+            width: 50px;
+            height: 50px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 28px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        .fb-arr:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: #fff;
+            transform: scale(1.06);
+        }
+        .fb-arr:disabled {
+            opacity: 0.15;
+            cursor: default;
+        }
+        .fb-book-wrap {
+            flex: 1;
+            max-width: 920px;
+            height: 100%;
+            perspective: 2500px;
+            position: relative;
+        }
+        .fb-book {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            transform-style: preserve-3d;
+            border-radius: 6px;
+            box-shadow:
+                0 25px 70px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.04),
+                0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .fb-half {
+            width: 50%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+            background: #fff;
+        }
+        .fb-left {
+            border-radius: 6px 0 0 6px;
+        }
+        .fb-right {
+            border-radius: 0 6px 6px 0;
+            cursor: pointer;
+        }
+        .fb-left::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40px;
+            height: 100%;
+            background: linear-gradient(to left, rgba(0, 0, 0, 0.07), transparent);
+            pointer-events: none;
+            z-index: 4;
+        }
+        .fb-right::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 40px;
+            height: 100%;
+            background: linear-gradient(to right, rgba(0, 0, 0, 0.1), transparent);
+            pointer-events: none;
+            z-index: 4;
+        }
+        .fb-pg {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            position: relative;
+        }
+        .fb-sheet {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 50%;
+            height: 100%;
+            transform-origin: left center;
+            transform-style: preserve-3d;
+            z-index: 20;
+        }
+        .fb-sheet-face {
+            position: absolute;
+            inset: 0;
+            backface-visibility: hidden;
+            overflow: hidden;
+            background: #fff;
+        }
+        .fb-sheet-front {
+            z-index: 2;
+        }
+        .fb-sheet-back {
+            transform: rotateY(180deg);
+            z-index: 1;
+        }
+        .fb-sheet-front::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to right, rgba(0, 0, 0, 0.08) 0%, transparent 20%);
+            pointer-events: none;
+        }
+        .fb-sheet-back::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to left, rgba(0, 0, 0, 0.08) 0%, transparent 20%);
+            pointer-events: none;
+        }
+        .fb-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 24px 14px;
+            gap: 12px;
+        }
+        .fb-bar-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 340px;
+            width: 100%;
+        }
+        .fb-bar-nav button {
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            line-height: 1;
+        }
+        .fb-bar-nav button:hover:not(:disabled) {
+            color: #fff;
+        }
+        .fb-bar-nav button:disabled {
+            opacity: 0.15;
+            cursor: default;
+        }
+        .fb-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            flex: 1;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+        }
+        .fb-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+        }
+        .fb-slider::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            border: none;
+        }
+        .fb-page-num {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            min-width: 36px;
+            text-align: center;
+        }
+        .fb-blank {
+            width: 100%;
+            height: 100%;
+        }
+        .fb-blank-left {
+            background: linear-gradient(145deg, #0A1628 0%, #0C1B33 50%, #0A1628 100%);
+            position: relative;
+        }
+        .fb-blank-left::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent 0px,
+                transparent 3px,
+                rgba(255,255,255,0.01) 3px,
+                rgba(255,255,255,0.01) 4px
+            );
+        }
+        .fb-blank-right {
+            background: linear-gradient(145deg, #0C1B33 0%, #0A1628 50%, #0C1B33 100%);
+        }
+        .fb-anim {
+            opacity: 0;
+            transform: translateY(22px);
+            transition: opacity 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .fb-active .fb-anim {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .fb-anim-d1 { transition-delay: 0.08s; }
+        .fb-anim-d2 { transition-delay: 0.16s; }
+        .fb-anim-d3 { transition-delay: 0.24s; }
+        .fb-anim-d4 { transition-delay: 0.32s; }
+        .fb-anim-d5 { transition-delay: 0.40s; }
+        .fb-anim-d6 { transition-delay: 0.48s; }
+        .fb-anim-d7 { transition-delay: 0.56s; }
+        .fb-anim-scale {
+            opacity: 0;
+            transform: scale(0.88);
+            transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .fb-active .fb-anim-scale {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .fb-scratch {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(165deg, #0C1B33 0%, #1E3A5F 50%, #0C1B33 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .fb-scratch-top {
+            padding: 24px 24px 12px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        .fb-scratch-top h2 {
+            font-size: 20px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+        .fb-scratch-top p {
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+        }
+        .fb-scratch-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 24px 12px;
+            position: relative;
+            z-index: 2;
+            gap: 16px;
+        }
+        .fb-scratch-card {
+            position: relative;
+            width: 100%;
+            max-width: 280px;
+            height: 160px;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .fb-scratch-prize {
+            position: absolute;
+            inset: 0;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 16px;
+        }
+        .fb-scratch-prize .fb-prize-pct {
+            font-size: 36px;
+            font-weight: 800;
+            color: #1E3A5F;
+        }
+        .fb-scratch-prize .fb-prize-txt {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0C1B33;
+            margin-top: 4px;
+        }
+        .fb-scratch-prize .fb-prize-code {
+            margin-top: 8px;
+            padding: 6px 16px;
+            background: #0C1B33;
+            color: #60A5FA;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+        .fb-scratch-canvas {
+            position: absolute;
+            inset: 0;
+            cursor: pointer;
+            border-radius: 14px;
+        }
+        .fb-scratch-bottom {
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            padding: 0;
+        }
+        .fb-scratch-copy {
+            padding: 10px 28px;
+            background: rgba(255,255,255,0.12);
+            border: 2px solid rgba(255,255,255,0.5);
+            color: #fff;
+            border-radius: 24px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            display: none;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(4px);
+        }
+        .fb-scratch-copy.visible {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .fb-scratch-copy:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.7);
+            transform: translateY(-1px);
+        }
+        .fb-scratch-deco {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(59,130,246,0.08);
+            pointer-events: none;
+        }
+
+        .fb-hotspot {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        .fb-hotspot-bg {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(165deg, #F1F5F9 0%, #E2E8F0 40%, #F1F5F9 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .fb-hotspot-product {
+            width: 60%;
+            height: 70%;
+            background: linear-gradient(145deg, #CBD5E1, #94A3B8);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: rgba(0,0,0,0.2);
+            font-weight: 600;
+            position: relative;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .fb-hotspot-product img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .fb-hotspot-dot {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #1E3A5F;
+            border: 3px solid #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(30,58,95,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #fff;
+            font-weight: 800;
+            z-index: 5;
+            transition: transform 0.2s;
+            animation: fb-hotspot-pulse 2s ease-in-out infinite;
+        }
+        .fb-hotspot-dot:hover {
+            transform: scale(1.15);
+        }
+        @keyframes fb-hotspot-pulse {
+            0%, 100% { box-shadow: 0 2px 10px rgba(30,58,95,0.4); }
+            50% { box-shadow: 0 2px 10px rgba(30,58,95,0.4), 0 0 0 8px rgba(30,58,95,0.15); }
+        }
+        .fb-hotspot-tip {
+            position: absolute;
+            background: #fff;
+            border-radius: 10px;
+            padding: 12px 14px;
+            width: 180px;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+            z-index: 10;
+            display: none;
+            animation: fb-tip-in 0.25s ease;
+        }
+        .fb-hotspot-tip.visible {
+            display: block;
+        }
+        @keyframes fb-tip-in {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fb-hotspot-tip h4 {
+            font-size: 13px;
+            font-weight: 800;
+            color: #1a202c;
+            margin-bottom: 4px;
+        }
+        .fb-hotspot-tip p {
+            font-size: 10px;
+            color: #718096;
+            line-height: 1.4;
+            margin-bottom: 6px;
+        }
+        .fb-hotspot-tip .fb-tip-price {
+            font-size: 15px;
+            font-weight: 800;
+            color: #1E3A5F;
+            margin-bottom: 6px;
+        }
+        .fb-hotspot-tip .fb-tip-btn {
+            display: block;
+            width: 100%;
+            padding: 7px;
+            background: #0C1B33;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s;
+            font-family: inherit;
+        }
+        .fb-hotspot-tip .fb-tip-btn:hover {
+            background: #1E3A5F;
+        }
+
+        .fb-video {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(165deg, #0A1628, #0C1B33 50%, #0A1628);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding: 24px;
+        }
+        .fb-video-frame {
+            width: 88%;
+            max-width: 320px;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            cursor: pointer;
+        }
+        .fb-video-poster {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(145deg, #1E3A5F, #2C5282 40%, #1E3A5F);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fb-video-play {
+            width: 56px;
+            height: 56px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 2px solid rgba(255,255,255,0.3);
+            transition: all 0.3s;
+        }
+        .fb-video-play::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 10px 0 10px 18px;
+            border-color: transparent transparent transparent #fff;
+            margin-left: 4px;
+        }
+        .fb-video-frame:hover .fb-video-play {
+            background: rgba(59,130,246,0.4);
+            border-color: rgba(59,130,246,0.6);
+            transform: scale(1.08);
+        }
+        .fb-video-bar {
+            width: 88%;
+            max-width: 320px;
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .fb-video-prog {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .fb-video-prog-fill {
+            width: 0%;
+            height: 100%;
+            background: #3B82F6;
+            border-radius: 4px;
+            transition: width 0.3s linear;
+        }
+        .fb-video-time {
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+        .fb-video-title {
+            margin-top: 16px;
+            text-align: center;
+        }
+        .fb-video-title h3 {
+            font-size: 16px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+        .fb-video-title p {
+            font-size: 11px;
+            color: rgba(255,255,255,0.45);
+        }
+
+        .fb-quiz {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 20px;
+            background: linear-gradient(165deg, #F8FAFC 0%, #EFF6FF 40%, #DBEAFE 100%);
+        }
+        .fb-quiz-header {
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        .fb-quiz-header h2 {
+            font-size: 20px;
+            font-weight: 800;
+            color: #1E3A5F;
+            margin-bottom: 4px;
+        }
+        .fb-quiz-header p {
+            font-size: 11px;
+            color: #2C5282;
+            margin-top: 2px;
+        }
+        .fb-quiz-body {
+            width: 100%;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .fb-quiz-q {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0C1B33;
+            margin-bottom: 16px;
+            text-align: center;
+            line-height: 1.4;
+        }
+        .fb-quiz-step {
+            font-size: 11px;
+            color: #3B82F6;
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .fb-quiz-opts {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .fb-quiz-opt {
+            padding: 12px 16px;
+            background: #fff;
+            border: 2px solid #CBD5E1;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #0C1B33;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-align: center;
+            font-family: inherit;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .fb-quiz-opt:hover {
+            border-color: #3B82F6;
+            background: #EFF6FF;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(59,130,246,0.12);
+        }
+        .fb-quiz-opt.selected {
+            border-color: #1E3A5F;
+            background: #1E3A5F;
+            color: #fff;
+        }
+        .fb-quiz-result {
+            text-align: center;
+            padding: 16px;
+            animation: fb-fadeIn 0.4s ease;
+            width: 100%;
+        }
+        @keyframes fb-fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fb-quiz-result h3 {
+            font-size: 16px;
+            font-weight: 800;
+            color: #1E3A5F;
+            margin-bottom: 10px;
+        }
+        .fb-quiz-reco {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .fb-quiz-reco-card {
+            flex: 1;
+            background: #fff;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .fb-quiz-reco-img {
+            width: 100%;
+            height: 52px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            background-size: cover;
+            background-position: center;
+        }
+        .fb-quiz-reco-card h4 {
+            font-size: 10px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+        .fb-quiz-reco-card p {
+            font-size: 8px;
+            color: #718096;
+            margin-top: 2px;
+        }
+
+        .fb-shop-page {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(165deg, #0C1B33 0%, #1E3A5F 50%, #0C1B33 100%);
+            display: flex;
+            flex-direction: column;
+            padding: 18px 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        .fb-shop-page h2 {
+            font-size: 18px;
+            font-weight: 800;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+        .fb-shop-page .fb-shop-sub {
+            font-size: 10px;
+            color: rgba(255,255,255,0.6);
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .fb-shop-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+        }
+        .fb-shop-item {
+            display: flex;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.2s;
+            cursor: pointer;
+            flex: 1;
+            min-height: 0;
+        }
+        .fb-shop-item:hover {
+            background: rgba(255,255,255,0.14);
+            border-color: rgba(255,255,255,0.25);
+        }
+        .fb-shop-item-img {
+            width: 80px;
+            flex-shrink: 0;
+            background-size: cover;
+            background-position: center;
+        }
+        .fb-shop-item-body {
+            flex: 1;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .fb-shop-item-body h4 {
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 3px;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .fb-shop-item-discount {
+            font-size: 9px;
+            font-weight: 700;
+            color: #F87171;
+            margin-bottom: 2px;
+        }
+        .fb-shop-item-prices {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .fb-shop-item-new {
+            font-size: 13px;
+            font-weight: 800;
+            color: #60A5FA;
+        }
+        .fb-shop-item-old {
+            font-size: 9px;
+            color: rgba(255,255,255,0.4);
+            text-decoration: line-through;
+        }
+        .fb-shop-cta {
+            display: block;
+            text-align: center;
+            padding: 10px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            margin-top: 8px;
+            letter-spacing: 0.5px;
+        }
+        .fb-shop-cta:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .fb-picks-price {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .fb-picks-new {
+            font-size: 13px;
+            font-weight: 800;
+            color: #1E3A5F;
+        }
+        .fb-picks-old {
+            font-size: 10px;
+            color: #a0aec0;
+            text-decoration: line-through;
+        }
+
+        .fb-form {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(165deg, #0C1B33 0%, #1E3A5F 40%, #2C5282 70%, #0C1B33 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 28px 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .fb-form-deco {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .fb-form-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 2;
+        }
+        .fb-form h2 {
+            font-size: 20px;
+            font-weight: 800;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 6px;
+            position: relative;
+            z-index: 2;
+        }
+        .fb-form .fb-form-sub {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+            text-align: center;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 2;
+        }
+        .fb-form-fields {
+            width: 100%;
+            max-width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+            z-index: 2;
+        }
+        .fb-form-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .fb-form-input::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+        .fb-form-input:focus {
+            border-color: #3B82F6;
+        }
+        .fb-form-submit {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #3B82F6, #2563EB);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+            box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+        }
+        .fb-form-submit:hover {
+            background: linear-gradient(135deg, #2563EB, #1D4ED8);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(37,99,235,0.4);
+        }
+        .fb-form-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .fb-form-check {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            position: relative;
+            z-index: 2;
+        }
+        .fb-form-check input[type="checkbox"] {
+            margin-top: 2px;
+            accent-color: #3B82F6;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .fb-form-check label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.55);
+            line-height: 1.4;
+            cursor: pointer;
+        }
+        .fb-form-success {
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            animation: fb-fadeIn 0.5s ease;
+        }
+        .fb-form-success .fb-check-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(59,130,246,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 12px;
+            border: 2px solid rgba(59,130,246,0.4);
+        }
+        .fb-form-success h3 {
+            font-size: 18px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+        .fb-form-success p {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+            line-height: 1.5;
+        }
+
+        .fb-social {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(165deg, #F8FAFC 0%, #EFF6FF 40%, #DBEAFE 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 28px 24px;
+            position: relative;
+        }
+        .fb-social h2 {
+            font-size: 20px;
+            font-weight: 800;
+            color: #1E3A5F;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+        .fb-social .fb-social-sub {
+            font-size: 11px;
+            color: #2C5282;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .fb-social-links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-width: 220px;
+        }
+        .fb-social-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            font-family: inherit;
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .fb-social-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+        }
+        .fb-social-link .fb-sl-icon {
+            font-size: 20px;
+            width: 28px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .fb-sl-insta {
+            background: linear-gradient(135deg, #f56565, #ed64a6);
+            color: #fff;
+        }
+        .fb-sl-twitter {
+            background: #1a202c;
+            color: #fff;
+        }
+        .fb-sl-youtube {
+            background: #e53e3e;
+            color: #fff;
+        }
+        .fb-sl-web {
+            background: #fff;
+            color: #1E3A5F;
+            border: 2px solid #BFDBFE;
+        }
+
+        .fb-reco {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            padding: 18px 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        .fb-reco-deco {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .fb-reco h2 {
+            font-size: 18px;
+            font-weight: 800;
+            color: #1E3A5F;
+            text-align: center;
+            margin-bottom: 2px;
+            position: relative;
+            z-index: 2;
+        }
+        .fb-reco .fb-reco-sub {
+            font-size: 10px;
+            color: #718096;
+            text-align: center;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 2;
+        }
+        .fb-reco-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            position: relative;
+            z-index: 2;
+        }
+        .fb-reco-card {
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #E2E8F0;
+            display: flex;
+            flex-direction: row;
+            transition: all 0.2s;
+            cursor: pointer;
+            min-height: 72px;
+        }
+        .fb-reco-card:hover {
+            border-color: #3B82F6;
+            box-shadow: 0 4px 14px rgba(59,130,246,0.1);
+        }
+        .fb-reco-card.active {
+            border-color: #1E3A5F;
+            box-shadow: 0 4px 14px rgba(30,58,95,0.15);
+        }
+        .fb-reco-img {
+            width: 72px;
+            height: 72px;
+            flex-shrink: 0;
+            background-size: cover;
+            background-position: center;
+        }
+        .fb-reco-card-body {
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+            min-width: 0;
+        }
+        .fb-reco-card-body h4 {
+            font-size: 11px;
+            font-weight: 700;
+            color: #1a202c;
+            line-height: 1.3;
+            margin-bottom: 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .fb-reco-discount-tag {
+            font-size: 9px;
+            font-weight: 700;
+            color: #DC2626;
+            margin-bottom: 2px;
+        }
+        .fb-reco-prices {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .fb-reco-price-new {
+            font-size: 13px;
+            font-weight: 800;
+            color: #1E3A5F;
+        }
+        .fb-reco-price-old {
+            font-size: 9px;
+            color: #a0aec0;
+            text-decoration: line-through;
+        }
+
+        .fb-reco-detail {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            position: relative;
+        }
+        .fb-reco-detail-img {
+            flex: 1;
+            min-height: 0;
+            background-size: cover;
+            background-position: top center;
+            position: relative;
+        }
+        .fb-reco-detail-body {
+            padding: 14px 16px;
+            border-top: 3px solid #1E3A5F;
+        }
+        .fb-reco-detail-body .fb-reco-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            background: #FEE2E2;
+            color: #DC2626;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .fb-reco-detail-body h3 {
+            font-size: 14px;
+            font-weight: 800;
+            color: #1a202c;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+        .fb-reco-detail-body p {
+            font-size: 10px;
+            color: #718096;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        .fb-reco-detail-prices {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .fb-reco-detail-prices .fb-rd-new {
+            font-size: 18px;
+            font-weight: 800;
+            color: #1E3A5F;
+        }
+        .fb-reco-detail-prices .fb-rd-old {
+            font-size: 12px;
+            color: #a0aec0;
+            text-decoration: line-through;
+        }
+        .fb-reco-detail-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: #0C1B33;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            text-align: center;
+            transition: background 0.2s;
+        }
+        .fb-reco-detail-btn:hover {
+            background: #1E3A5F;
+        }
+        .fb-reco-material {
+            font-size: 9px;
+            color: #94A3B8;
+            margin-bottom: 6px;
+        }
+
+        .fb-cover {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(155deg, #1E3A5F 0%, #0C1B33 35%, #0A1628 70%, #071220 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding: 24px;
+        }
+        .fb-cover-deco {
+            position: absolute;
+            border-radius: 6px;
+            opacity: 0.08;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        .fb-cover-circle {
+            width: 190px;
+            height: 190px;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3), 0 0 0 6px rgba(255, 255, 255, 0.15);
+            position: relative;
+            z-index: 2;
+        }
+        .fb-cover-circle .fb-logo-icon {
+            font-size: 28px;
+            margin-bottom: 2px;
+            color: #0C1B33;
+            line-height: 1;
+        }
+        .fb-cover-circle h2 {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0C1B33;
+            letter-spacing: 1.5px;
+            text-align: center;
+            line-height: 1.25;
+        }
+        .fb-cover-circle .fb-cover-sub {
+            font-size: 10px;
+            color: #2C5282;
+            font-weight: 600;
+            margin-top: 4px;
+            letter-spacing: 0.5px;
+        }
+        .fb-cover-circle .fb-cover-year {
+            font-size: 22px;
+            font-weight: 800;
+            color: #0C1B33;
+            margin-top: 2px;
+        }
+        .fb-cover-foot {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 24px;
+            background: rgba(255, 255, 255, 0.95);
+            font-size: 10px;
+            font-weight: 700;
+            color: #4a5568;
+            letter-spacing: 1.5px;
+            z-index: 2;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .fb-cover-foot span:last-child {
+            color: #1E3A5F;
+            font-weight: 800;
+        }
+
+        .fb-about {
+            padding: 36px 32px 24px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .fb-about-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .fb-about-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1E3A5F, #2C5282);
+            flex-shrink: 0;
+            box-shadow: 0 4px 16px rgba(30, 58, 95, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .fb-about-avatar::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+        }
+        .fb-about-name {
+            font-size: 13px;
+            color: #2C5282;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .fb-about-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #1a202c;
+            line-height: 1.25;
+        }
+        .fb-about p {
+            font-size: 12.5px;
+            color: #4a5568;
+            line-height: 1.75;
+            margin-bottom: 14px;
+        }
+        .fb-about-sig {
+            margin-top: auto;
+            padding-top: 16px;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-style: italic;
+            font-size: 20px;
+            color: #a0aec0;
+            letter-spacing: 0.5px;
+        }
+        .fb-about-brand {
+            margin-top: 16px;
+            font-size: 10px;
+            color: #cbd5e0;
+            letter-spacing: 3px;
+            font-weight: 700;
+        }
+
+        .fb-surprise {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .fb-surprise-img {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            min-height: 0;
+        }
+        .fb-surprise-banner {
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #fff;
+            border-top: 3px solid #1E3A5F;
+        }
+        .fb-surprise-text {
+            font-size: 15px;
+            font-weight: 800;
+            color: #1a202c;
+            line-height: 1.3;
+        }
+        .fb-surprise-text span {
+            display: block;
+            font-size: 10px;
+            font-weight: 400;
+            color: #718096;
+            margin-top: 3px;
+        }
+        .fb-surprise-coupon {
+            padding: 12px 14px;
+            background: linear-gradient(135deg, #0C1B33, #1E3A5F);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .fb-surprise-coupon .fb-disc {
+            font-size: 28px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1;
+        }
+        .fb-surprise-coupon .fb-disc small {
+            font-size: 9px;
+            display: block;
+            font-weight: 600;
+            color: rgba(255,255,255,0.6);
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+        .fb-surprise-coupon .fb-code-box {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #60A5FA;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+
+        .fb-cat-grid {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            gap: 3px;
+            background: #0C1B33;
+            padding: 3px;
+        }
+        .fb-cat-card {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            border-radius: 4px;
+            cursor: pointer;
+            display: block;
+            text-decoration: none;
+        }
+        .fb-cat-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s ease;
+        }
+        .fb-cat-card:hover img {
+            transform: scale(1.08);
+        }
+        .fb-cat-card-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 14px 16px;
+            background: linear-gradient(transparent, rgba(12,27,51,0.85));
+        }
+        .fb-cat-card-label h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 2px;
+        }
+        .fb-cat-card-label span {
+            font-size: 10px;
+            color: rgba(255,255,255,0.7);
+            letter-spacing: 1.5px;
+            font-weight: 600;
+        }
+
+        .fb-arrivals {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            background: linear-gradient(165deg, #0A1628 0%, #0C1B33 40%, #1E3A5F 70%, #0A1628 100%);
+            padding: 40px 32px;
+            position: relative;
+            overflow: hidden;
+        }
+        .fb-arrivals::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 80%;
+            height: 120%;
+            background: radial-gradient(ellipse, rgba(59, 130, 246, 0.06), transparent 70%);
+            pointer-events: none;
+        }
+        .fb-arrivals h2 {
+            font-size: 32px;
+            font-weight: 800;
+            color: #fff;
+            font-style: italic;
+            font-family: Georgia, 'Times New Roman', serif;
+            margin-bottom: 20px;
+            line-height: 1.15;
+            position: relative;
+            z-index: 2;
+        }
+        .fb-arrivals p {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.8;
+            margin-bottom: 28px;
+            position: relative;
+            z-index: 2;
+        }
+        .fb-arrivals-btn {
+            display: inline-block;
+            padding: 12px 28px;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            background: transparent;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            letter-spacing: 0.5px;
+            position: relative;
+            z-index: 2;
+            align-self: flex-start;
+        }
+        .fb-arrivals-btn:hover {
+            background: #fff;
+            color: #0C1B33;
+            border-color: #fff;
+        }
+        .fb-arrivals-deco {
+            position: absolute;
+            bottom: -40px;
+            right: -40px;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(59, 130, 246, 0.03));
+            pointer-events: none;
+        }
+        .fb-arrivals-deco2 {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.1);
+            pointer-events: none;
+        }
+
+        .fb-picks {
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: linear-gradient(165deg, #F8FAFC 0%, #EFF6FF 50%, #E2E8F0 100%);
+        }
+        .fb-picks h2 {
+            font-size: 20px;
+            font-weight: 800;
+            color: #1E3A5F;
+            line-height: 1.15;
+            margin-bottom: 14px;
+            text-align: center;
+            letter-spacing: 0.3px;
+        }
+        .fb-picks-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+            min-height: 0;
+        }
+        .fb-picks-card {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.07);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        .fb-picks-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        }
+        .fb-picks-thumb {
+            width: 42%;
+            min-height: 100%;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .fb-picks-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .fb-picks-info {
+            flex: 1;
+            padding: 14px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .fb-picks-card .fb-cat-brand {
+            font-size: 9px;
+            color: #3B82F6;
+            font-weight: 700;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .fb-picks-card h4 {
+            font-size: 14px;
+            font-weight: 800;
+            color: #1a202c;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+        .fb-picks-card p {
+            font-size: 10px;
+            color: #718096;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        .fb-shop-btn {
+            display: inline-block;
+            padding: 8px 18px;
+            background: #0C1B33;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            letter-spacing: 0.3px;
+            align-self: flex-start;
+        }
+        .fb-shop-btn:hover {
+            background: #1E3A5F;
+        }
+
+        .fb-back {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(155deg, #1E3A5F 0%, #0C1B33 35%, #0A1628 70%, #071220 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            position: relative;
+            overflow: hidden;
+            padding: 24px;
+        }
+        .fb-back-top {
+            position: absolute;
+            inset: 0;
+        }
+        .fb-back-deco {
+            position: absolute;
+            border-radius: 6px;
+            opacity: 0.06;
+        }
+        .fb-back-card {
+            position: relative;
+            z-index: 2;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 14px;
+            padding: 28px;
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .fb-back-card .fb-logo-icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+            color: #0C1B33;
+        }
+        .fb-back-card h3 {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0C1B33;
+            letter-spacing: 1.5px;
+            margin-bottom: 6px;
+        }
+        .fb-back-card .fb-reach {
+            font-size: 11px;
+            font-weight: 700;
+            color: #4a5568;
+            margin-bottom: 14px;
+            letter-spacing: 0.5px;
+        }
+        .fb-back-card .fb-contact-line {
+            font-size: 11px;
+            color: #718096;
+            margin-bottom: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            line-height: 1.4;
+        }
+
+        @media only screen and (max-width: 768px) {
+            #fb-root {
+                align-items: center;
+                padding: 0 6px;
+            }
+            .fb-shell {
+                max-width: 100%;
+                max-height: 52vh;
+                border-radius: 12px;
+                overflow: hidden;
+                background: rgba(10, 15, 25, 0.6);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+            }
+            .fb-shell:fullscreen,
+            .fb-shell:-webkit-full-screen {
+                max-height: 100%;
+                border-radius: 0;
+                background: transparent;
+            }
+            .fb-top-bar {
+                padding: 6px 10px 2px;
+                gap: 4px;
+            }
+            .fb-top-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 15px;
+            }
+            .fb-stage {
+                padding: 0 4px 4px;
+                gap: 4px;
+            }
+            .fb-arr {
+                width: 30px;
+                height: 30px;
+                font-size: 18px;
+                border-width: 1px;
+            }
+            .fb-book {
+                border-radius: 4px;
+            }
+            .fb-left {
+                border-radius: 4px 0 0 4px;
+            }
+            .fb-right {
+                border-radius: 0 4px 4px 0;
+            }
+            .fb-left::after { width: 20px; }
+            .fb-right::before { width: 20px; }
+            .fb-bar {
+                padding: 3px 10px 6px;
+                gap: 6px;
+            }
+            .fb-bar-nav {
+                max-width: 200px;
+                gap: 4px;
+            }
+            .fb-bar-nav button {
+                font-size: 16px;
+                padding: 2px 4px;
+            }
+            .fb-page-num { font-size: 10px; }
+            .fb-cover { padding: 16px; }
+            .fb-cover-circle { width: 90px; height: 90px; }
+            .fb-cover-circle .fb-logo-icon { font-size: 16px; margin-bottom: 1px; }
+            .fb-cover-circle h2 { font-size: 8px; letter-spacing: 1px; }
+            .fb-cover-circle .fb-cover-sub { font-size: 7px; margin-top: 2px; }
+            .fb-cover-circle .fb-cover-year { font-size: 13px; margin-top: 1px; }
+            .fb-cover-foot { padding: 6px 10px; font-size: 7px; }
+            .fb-about { padding: 12px 12px 10px; }
+            .fb-about-header { gap: 8px; margin-bottom: 8px; }
+            .fb-about-avatar { width: 32px; height: 32px; }
+            .fb-about-name { font-size: 8px; }
+            .fb-about-title { font-size: 12px; }
+            .fb-about p { font-size: 8px; line-height: 1.5; margin-bottom: 4px; }
+            .fb-about-sig { font-size: 12px; padding-top: 4px; }
+            .fb-about-brand { margin-top: 4px; font-size: 7px; }
+            .fb-surprise-banner { padding: 10px 10px; gap: 8px; }
+            .fb-surprise-text { font-size: 11px; }
+            .fb-surprise-text span { font-size: 7px; margin-top: 2px; }
+            .fb-surprise-coupon { padding: 8px 10px; gap: 6px; }
+            .fb-surprise-coupon .fb-disc { font-size: 18px; }
+            .fb-surprise-coupon .fb-disc small { font-size: 6px; }
+            .fb-surprise-coupon .fb-code-box { padding: 5px 10px; font-size: 10px; letter-spacing: 1px; }
+            .fb-cat-card-label { padding: 6px 8px; }
+            .fb-cat-card-label h3 { font-size: 9px; }
+            .fb-cat-card-label span { font-size: 7px; }
+            .fb-arrivals { padding: 16px 14px; }
+            .fb-arrivals h2 { font-size: 18px; margin-bottom: 8px; }
+            .fb-arrivals p { font-size: 8px; margin-bottom: 12px; line-height: 1.5; }
+            .fb-arrivals-btn { padding: 8px 16px; font-size: 9px; }
+            .fb-picks { padding: 10px 8px; }
+            .fb-picks h2 { font-size: 14px; margin-bottom: 8px; }
+            .fb-picks-grid { gap: 6px; }
+            .fb-picks-thumb { width: 38%; }
+            .fb-picks-info { padding: 8px 8px; }
+            .fb-picks-card h4 { font-size: 10px; margin-bottom: 2px; }
+            .fb-picks-card p { font-size: 8px; margin-bottom: 4px; line-height: 1.3; }
+            .fb-picks-card .fb-cat-brand { font-size: 7px; }
+            .fb-shop-btn { padding: 5px 10px; font-size: 9px; }
+            .fb-shop-btn { padding: 6px 12px; font-size: 8px; }
+            .fb-back { padding: 16px; }
+            .fb-back-card { padding: 14px; max-width: 200px; border-radius: 10px; }
+            .fb-back-card .fb-logo-icon { font-size: 20px; margin-bottom: 3px; }
+            .fb-back-card h3 { font-size: 10px; letter-spacing: 1px; margin-bottom: 3px; }
+            .fb-back-card .fb-reach { font-size: 8px; margin-bottom: 8px; }
+            .fb-back-card .fb-contact-line { font-size: 7px; margin-bottom: 3px; gap: 4px; }
+            .fb-scratch-top { padding: 12px 12px 6px; }
+            .fb-scratch-top h2 { font-size: 14px; }
+            .fb-scratch-top p { font-size: 8px; }
+            .fb-scratch-area { padding: 0 12px 8px; gap: 10px; }
+            .fb-scratch-card { max-width: 200px; height: 110px; }
+            .fb-scratch-prize .fb-prize-pct { font-size: 24px; }
+            .fb-scratch-prize .fb-prize-txt { font-size: 9px; }
+            .fb-scratch-prize .fb-prize-code { padding: 4px 10px; font-size: 10px; }
+            .fb-scratch-copy { padding: 6px 16px; font-size: 9px; border-radius: 18px; }
+            .fb-hotspot-dot { width: 20px; height: 20px; font-size: 9px; border-width: 2px; }
+            .fb-hotspot-tip { width: 140px; padding: 8px 10px; }
+            .fb-hotspot-tip h4 { font-size: 10px; }
+            .fb-hotspot-tip p { font-size: 8px; }
+            .fb-hotspot-tip .fb-tip-price { font-size: 12px; }
+            .fb-hotspot-tip .fb-tip-btn { padding: 5px; font-size: 8px; }
+            .fb-video { padding: 14px; }
+            .fb-video-play { width: 36px; height: 36px; }
+            .fb-video-play::after { border-width: 7px 0 7px 12px; margin-left: 2px; }
+            .fb-video-title h3 { font-size: 12px; }
+            .fb-video-title p { font-size: 8px; }
+            .fb-video-time { font-size: 8px; }
+            .fb-quiz { padding: 14px 12px; }
+            .fb-quiz-header { margin-bottom: 12px; }
+            .fb-quiz-header h2 { font-size: 15px; }
+            .fb-quiz-header p { font-size: 8px; }
+            .fb-quiz-body { max-width: 100%; }
+            .fb-quiz-q { font-size: 11px; margin-bottom: 10px; }
+            .fb-quiz-step { font-size: 9px; margin-bottom: 6px; }
+            .fb-quiz-opts { gap: 7px; max-width: 100%; }
+            .fb-quiz-opt { padding: 9px 12px; font-size: 10px; }
+            .fb-quiz-result h3 { font-size: 13px; }
+            .fb-quiz-reco-card { padding: 6px; }
+            .fb-quiz-reco-img { height: 36px; }
+            .fb-quiz-reco-card h4 { font-size: 9px; }
+            .fb-shop-page { padding: 10px 8px; }
+            .fb-shop-page h2 { font-size: 14px; }
+            .fb-shop-page .fb-shop-sub { font-size: 8px; margin-bottom: 8px; }
+            .fb-shop-item-img { width: 60px; }
+            .fb-shop-item-body { padding: 6px 8px; }
+            .fb-shop-item-body h4 { font-size: 9px; }
+            .fb-shop-item-new { font-size: 10px; }
+            .fb-shop-item-old { font-size: 8px; }
+            .fb-shop-item-discount { font-size: 8px; }
+            .fb-shop-cta { padding: 8px; font-size: 10px; }
+            .fb-picks-new { font-size: 11px; }
+            .fb-picks-old { font-size: 8px; }
+            .fb-picks-price { margin-bottom: 4px; }
+            .fb-form { padding: 16px 14px; }
+            .fb-form-icon { font-size: 26px; margin-bottom: 8px; }
+            .fb-form h2 { font-size: 14px; }
+            .fb-form .fb-form-sub { font-size: 9px; margin-bottom: 12px; }
+            .fb-form-input { padding: 9px 10px; font-size: 11px; }
+            .fb-form-submit { padding: 9px; font-size: 11px; }
+            .fb-form-check label { font-size: 8px; }
+            .fb-form-success h3 { font-size: 14px; }
+            .fb-form-success .fb-check-icon { width: 40px; height: 40px; font-size: 20px; }
+            .fb-social h2 { font-size: 14px; }
+            .fb-social .fb-social-sub { font-size: 9px; margin-bottom: 12px; }
+            .fb-social-link { padding: 9px 12px; font-size: 10px; }
+            .fb-social-link .fb-sl-icon { font-size: 16px; }
+            .fb-reco { padding: 10px 8px; }
+            .fb-reco h2 { font-size: 14px; margin-bottom: 2px; }
+            .fb-reco .fb-reco-sub { font-size: 8px; margin-bottom: 8px; }
+            .fb-reco-grid { gap: 6px; }
+            .fb-reco-card { min-height: 58px; }
+            .fb-reco-img { width: 58px; height: 58px; }
+            .fb-reco-card-body { padding: 5px 7px; }
+            .fb-reco-card-body h4 { font-size: 9px; }
+            .fb-reco-discount-tag { font-size: 8px; }
+            .fb-reco-price-new { font-size: 10px; }
+            .fb-reco-price-old { font-size: 8px; }
+            .fb-reco-detail-body { padding: 10px 12px; }
+            .fb-reco-detail-body h3 { font-size: 12px; }
+            .fb-reco-detail-body p { font-size: 9px; }
+            .fb-reco-detail-prices .fb-rd-new { font-size: 15px; }
+            .fb-reco-detail-btn { padding: 8px; font-size: 10px; }
+            .fb-reco-material { font-size: 8px; }
+        }
+
+        @media only screen and (max-width: 420px) {
+            .fb-shell { max-height: 48vh; }
+            .fb-top-bar { padding: 4px 8px 1px; }
+            .fb-top-btn { width: 28px; height: 28px; font-size: 13px; }
+            .fb-arr { width: 24px; height: 24px; font-size: 14px; }
+            .fb-stage { gap: 3px; padding: 0 2px 2px; }
+            .fb-bar { padding: 2px 8px 4px; }
+            .fb-bar-nav button { font-size: 14px; }
+            .fb-page-num { font-size: 9px; }
+        }
+    `;
+    document.head.appendChild(styleEl);
+
+    function getBody() {
+        return document.body || document.getElementsByTagName("body")[0] || null;
+    }
+
+    function leftOf(s) {
+        if (s === 0) return '<div class="fb-pg"><div class="fb-blank fb-blank-left"></div></div>';
+        return '<div class="fb-pg">' + face(2 * s - 1) + '</div>';
+    }
+
+    function rightOf(s) {
+        if (2 * s >= TOTAL_FACES) return '<div class="fb-pg"><div class="fb-blank fb-blank-right"></div></div>';
+        return '<div class="fb-pg">' + face(2 * s) + '</div>';
+    }
+
+    function face(i) {
+        var fns = [coverHTML, aboutHTML, heroHTML, catLeftHTML, catRightHTML, arrivalsHTML, picksHTML, scratchHTML, hotspotHTML, videoHTML, surveyHTML, recoLeftHTML, recoRightHTML, shopLeftHTML, shopRightHTML, formHTML, socialHTML, backHTML];
+        return fns[i] ? fns[i]() : '';
+    }
+
+    var USPA_CATS = [
+        { title: "Ti\u015f\u00f6rt", img: "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/230_1216_20230602111815527.jpg", url: "https://tr.uspoloassn.com/erkek-polo-tisort/" },
+        { title: "Pantolon", img: "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/230_1216_20230601152905514.jpg", url: "https://tr.uspoloassn.com/erkek-pantolon/" },
+        { title: "Ayakkab\u0131", img: "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/230_1216_20230601153153966.jpg", url: "https://tr.uspoloassn.com/erkek-ayakkabi/" },
+        { title: "G\u00f6mlek", img: "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/230_1216_20230601153205616.jpg", url: "https://tr.uspoloassn.com/erkek-gomlek/" },
+        { title: "Sweatshirt & E\u015fofman Alt\u0131", img: "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/230_1216_20230601153217309.jpg", url: "https://tr.uspoloassn.com/sweatshirt-esofman-all/?attributes_filterable_gender=Erkek" },
+        { title: "Aksesuar", img: "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/230_1216_20230601153226445.jpg", url: "https://tr.uspoloassn.com/tum-aksesuarlar/?attributes_filterable_gender=Erkek" }
+    ];
+
+    function coverHTML() {
+        return '<div class="fb-cover">' +
+            '<div class="fb-cover-deco" style="width:130px;height:170px;background:#fff;top:-30px;right:-15px;transform:rotate(18deg)"></div>' +
+            '<div class="fb-cover-deco" style="width:90px;height:120px;background:#3B82F6;bottom:70px;left:-20px;transform:rotate(-12deg)"></div>' +
+            '<div class="fb-cover-deco" style="width:100px;height:135px;background:#1E3A5F;top:28%;right:8%;transform:rotate(22deg)"></div>' +
+            '<div class="fb-cover-deco" style="width:70px;height:95px;background:#fff;bottom:22%;left:12%;transform:rotate(-18deg)"></div>' +
+            '<div class="fb-cover-deco" style="width:50px;height:70px;background:#2C5282;top:10%;left:5%;transform:rotate(8deg)"></div>' +
+            '<div class="fb-cover-circle fb-anim fb-anim-scale">' +
+            '<div class="fb-logo-icon">\uD83C\uDFC7</div>' +
+            '<h2>U.S. POLO<br>ASSN.</h2>' +
+            '<div class="fb-cover-sub">Yeni Sezon Koleksiyonu</div>' +
+            '<div class="fb-cover-year">2026</div>' +
+            '</div>' +
+            '<div class="fb-cover-foot">' +
+            '<span>U.S. POLO ASSN. \u2022 SINCE 1890</span>' +
+            '<span>SEASONAL EDITION</span>' +
+            '</div>' +
+            '</div>';
+    }
+
+    function aboutHTML() {
+        return '<div class="fb-about">' +
+            '<div class="fb-about-header fb-anim fb-anim-d1">' +
+            '<div class="fb-about-avatar"></div>' +
+            '<div><div class="fb-about-name">Est. 1890</div><div class="fb-about-title">Marka<br>Hikayesi</div></div>' +
+            '</div>' +
+            '<p class="fb-anim fb-anim-d2">1890 y\u0131l\u0131nda kurulan Birle\u015fik Devletler Polo Derne\u011fi\'nin resmi markas\u0131 olan U.S. Polo Assn., polo sporunun otantik ruhunu g\u00fcnl\u00fck ya\u015fama ta\u015f\u0131yor. 135 y\u0131l\u0131 a\u015fk\u0131n k\u00f6kl\u00fc ge\u00e7mi\u015fiyle d\u00fcnya genelinde 180\'den fazla \u00fclkede sportif \u015f\u0131kl\u0131\u011f\u0131 ve Amerikan ya\u015fam tarz\u0131n\u0131 temsil ediyor.</p>' +
+            '<p class="fb-anim fb-anim-d3">Kalite, konfor ve zamans\u0131z tasar\u0131m\u0131n bulu\u015ftu\u011fu koleksiyonlarla her mevsim tarz\u0131n\u0131z\u0131 yans\u0131t\u0131n. Polo gelene\u011finden ilham alan \u00fcr\u00fcnlerimiz, klasik Amerikan \u015f\u0131kl\u0131\u011f\u0131n\u0131 modern \u00e7izgilerde yorumluyor.</p>' +
+            '<div class="fb-about-sig fb-anim fb-anim-d4">\u2014 U.S. Polo Assn.</div>' +
+            '<div class="fb-about-brand fb-anim fb-anim-d5">SINCE 1890</div>' +
+            '</div>';
+    }
+
+    function heroHTML() {
+        return '<div class="fb-surprise">' +
+            '<div class="fb-surprise-img fb-anim fb-anim-scale" style="background-image:url(\'https://img.visilabs.net/banner/uploaded_images/230_1216_20200721162730182.jpg\')"></div>' +
+            '<div class="fb-surprise-banner">' +
+            '<div class="fb-surprise-text fb-anim fb-anim-d3">Sana \u00f6zel bir s\u00fcrprizimiz var!' +
+            '<span>Se\u00e7ili \u00fcr\u00fcnlerde ge\u00e7erlidir</span></div>' +
+            '<div class="fb-surprise-coupon fb-anim fb-anim-d4">' +
+            '<div class="fb-disc">%15<small>\u0130ND\u0130R\u0130M</small></div>' +
+            '<div class="fb-code-box">USPA2026</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>';
+    }
+
+    function catLeftHTML() {
+        var html = '<div class="fb-cat-grid">';
+        for (var i = 0; i < 3; i++) {
+            var c = USPA_CATS[i];
+            html += '<a href="' + c.url + '" target="_blank" class="fb-cat-card fb-anim fb-anim-d' + (i + 1) + '">' +
+                '<img src="' + c.img + '" alt="' + c.title + '">' +
+                '<div class="fb-cat-card-label"><h3>' + c.title + '</h3><span>KE\u015eFET \u2192</span></div>' +
+                '</a>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function catRightHTML() {
+        var html = '<div class="fb-cat-grid">';
+        for (var i = 3; i < 6; i++) {
+            var c = USPA_CATS[i];
+            html += '<a href="' + c.url + '" target="_blank" class="fb-cat-card fb-anim fb-anim-d' + (i - 2) + '">' +
+                '<img src="' + c.img + '" alt="' + c.title + '">' +
+                '<div class="fb-cat-card-label"><h3>' + c.title + '</h3><span>KE\u015eFET \u2192</span></div>' +
+                '</a>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function arrivalsHTML() {
+        return '<div class="fb-arrivals">' +
+            '<h2 class="fb-anim fb-anim-d1">Yeni<br>Sezon</h2>' +
+            '<p class="fb-anim fb-anim-d2">2026 Yaz koleksiyonuyla tarz\u0131n\u0131z\u0131 yenileyin. Polo gelene\u011finden ilham alan sportif ve \u015f\u0131k tasar\u0131mlar, g\u00fcnl\u00fck hayat\u0131n\u0131za renk katacak. Premium kalite kuma\u015flar ve zamans\u0131z kesimlerle her kombinasyonda fark yarat\u0131n.</p>' +
+            '<button class="fb-arrivals-btn fb-anim fb-anim-d3" onclick="window.open(\'https://tr.uspoloassn.com/\',\'_blank\')">Koleksiyonu Ke\u015ffet</button>' +
+            '<div class="fb-arrivals-deco"></div>' +
+            '<div class="fb-arrivals-deco2"></div>' +
+            '</div>';
+    }
+
+    function picksHTML() {
+        var picks = [recoProducts[0], recoProducts[3], recoProducts[5]];
+        var cards = '';
+        for (var i = 0; i < picks.length; i++) {
+            var p = picks[i];
+            cards += '<div class="fb-picks-card fb-anim fb-anim-d' + (i + 2) + '" onclick="window.open(\'' + p.url + '\',\'_blank\')">' +
+                '<div class="fb-picks-thumb"><img src="' + p.img + '" alt="' + p.title + '"></div>' +
+                '<div class="fb-picks-info"><div class="fb-cat-brand">U.S. POLO ASSN.</div>' +
+                '<h4>' + p.title + '</h4>' +
+                '<p>' + p.material + ' \u2022 ' + p.color + '</p>' +
+                '<div class="fb-picks-price"><span class="fb-picks-new">' + p.newPrice + '</span><span class="fb-picks-old">' + p.oldPrice + '</span></div>' +
+                '<button class="fb-shop-btn">\u00dcr\u00fcn\u00fc \u0130ncele</button></div></div>';
+        }
+        return '<div class="fb-picks">' +
+            '<h2 class="fb-anim fb-anim-d1">\u00d6ne \u00c7\u0131kanlar</h2>' +
+            '<div class="fb-picks-grid">' + cards + '</div></div>';
+    }
+
+    function scratchHTML() {
+        return '<div class="fb-scratch">' +
+            '<div class="fb-scratch-deco" style="width:180px;height:180px;top:-60px;right:-40px"></div>' +
+            '<div class="fb-scratch-deco" style="width:120px;height:120px;bottom:-30px;left:-30px"></div>' +
+            '<div class="fb-scratch-top fb-anim fb-anim-d1"><h2>Kaz\u0131 Kazan!</h2><p>Kart\u0131 kaz\u0131yarak s\u00fcrpriz indirimini bul</p></div>' +
+            '<div class="fb-scratch-area fb-anim fb-anim-scale">' +
+            '<div class="fb-scratch-card" id="fb-scratch-card">' +
+            '<div class="fb-scratch-prize"><div class="fb-prize-pct">%25</div><div class="fb-prize-txt">\u0130ndirim Kazan\u0131ld\u0131!</div><div class="fb-prize-code">USPA25</div></div>' +
+            '<canvas class="fb-scratch-canvas" id="fb-scratch-canvas"></canvas>' +
+            '</div>' +
+            '<div class="fb-scratch-bottom"><button class="fb-scratch-copy" id="fb-scratch-copy">\u2398 Kodu Kopyala</button></div>' +
+            '</div>' +
+            '</div>';
+    }
+
+    function hotspotHTML() {
+        var hp = recoProducts[0];
+        return '<div class="fb-hotspot">' +
+            '<div class="fb-hotspot-bg">' +
+            '<div class="fb-hotspot-product fb-anim fb-anim-scale">' +
+            '<img src="' + hp.imgFull + '" alt="' + hp.title + '">' +
+            '<div class="fb-hotspot-dot" data-hs="0" style="top:15%;left:45%">1</div>' +
+            '<div class="fb-hotspot-dot" data-hs="1" style="top:48%;right:20%">2</div>' +
+            '<div class="fb-hotspot-dot" data-hs="2" style="bottom:25%;left:35%">3</div>' +
+            '</div>' +
+            '<div class="fb-hotspot-tip" id="fb-hs-tip-0" style="top:5%;left:55%"><h4>Polo Yaka Detay</h4><p>Klasik fermuarl\u0131 polo yaka, zamans\u0131z \u015f\u0131kl\u0131k.</p><div class="fb-tip-price">' + hp.newPrice + '</div><button class="fb-tip-btn" onclick="window.open(\'' + hp.url + '\',\'_blank\')">\u00dcr\u00fcn\u00fc \u0130ncele</button></div>' +
+            '<div class="fb-hotspot-tip" id="fb-hs-tip-1" style="top:38%;right:50%"><h4>' + hp.material + '</h4><p>Nefes alan, konforlu kuma\u015f yap\u0131s\u0131.</p><div class="fb-tip-price">' + hp.newPrice + '</div><button class="fb-tip-btn" onclick="window.open(\'' + hp.url + '\',\'_blank\')">\u00dcr\u00fcn\u00fc \u0130ncele</button></div>' +
+            '<div class="fb-hotspot-tip" id="fb-hs-tip-2" style="bottom:15%;left:60%"><h4>Renk: ' + hp.color + '</h4><p>Regular fit kal\u0131p ile rahat kullan\u0131m.</p><div class="fb-tip-price">' + hp.newPrice + '</div><button class="fb-tip-btn" onclick="window.open(\'' + hp.url + '\',\'_blank\')">\u00dcr\u00fcn\u00fc \u0130ncele</button></div>' +
+            '</div></div>';
+    }
+
+    function videoHTML() {
+        return '<div class="fb-video">' +
+            '<div class="fb-video-frame fb-anim fb-anim-scale" id="fb-video-frame">' +
+            '<div class="fb-video-poster"><div class="fb-video-play"></div></div>' +
+            '</div>' +
+            '<div class="fb-video-bar fb-anim fb-anim-d3"><div class="fb-video-prog"><div class="fb-video-prog-fill" id="fb-video-fill"></div></div><div class="fb-video-time" id="fb-video-time">0:00 / 1:30</div></div>' +
+            '<div class="fb-video-title fb-anim fb-anim-d4"><h3>U.S. Polo Assn.</h3><p>2026 Yaz Koleksiyonu Tan\u0131t\u0131m</p></div>' +
+            '</div>';
+    }
+
+    function surveyHTML() {
+        return '<div class="fb-quiz" id="fb-quiz-wrap">' +
+            '<div class="fb-quiz-header fb-anim fb-anim-d1"><h2>Marka Anketi</h2><p>3 soruya cevap ver, sana \u00f6zel \u00f6nerileri g\u00f6r</p></div>' +
+            '<div class="fb-quiz-body" id="fb-quiz-body"></div>' +
+            '</div>';
+    }
+
+    var recoProducts = [
+        { title: "Erkek Regular Fit Fermuar\u0131l\u0131 Lila Ti\u015f\u00f6rt", oldPrice: "1.599,95 TL", newPrice: "839,96 TL", img: "https://25d163-uspolo.akinoncloudcdn.com/products/2025/06/02/1190564/b092eb21-1328-41a8-9e67-6847bfa12bfd_size330x495_cropCenter.jpg", imgFull: "https://25d163-uspolo.akinoncloudcdn.com/products/2025/06/02/1190564/b092eb21-1328-41a8-9e67-6847bfa12bfd.jpg", badge: "-%47", url: "https://tr.uspoloassn.com/product/412896/", color: "Lila", material: "%100 Pamuk" },
+        { title: "Erkek Regular Fit A\u00e7\u0131k Haki Ti\u015f\u00f6rt", oldPrice: "1.599,95 TL", newPrice: "839,96 TL", img: "https://25d163-uspolo.akinoncloudcdn.com/products/2025/06/02/1190668/490f332d-5de1-40ad-8bab-a05c99ee46e3_size330x495_cropCenter.jpg", imgFull: "https://25d163-uspolo.akinoncloudcdn.com/products/2025/06/02/1190668/490f332d-5de1-40ad-8bab-a05c99ee46e3.jpg", badge: "-%47", url: "https://tr.uspoloassn.com/product/412900/", color: "A\u00e7\u0131k Haki", material: "%100 Pamuk" },
+        { title: "Erkek Polo Yaka Su Ye\u015fili Ti\u015f\u00f6rt", oldPrice: "1.599,95 TL", newPrice: "839,96 TL", img: "https://25d163-uspolo.akinoncloudcdn.com/products/2025/06/19/1194614/73e02820-9419-4f2e-abb5-d66e06f35451_size330x495_cropCenter.jpg", imgFull: "https://25d163-uspolo.akinoncloudcdn.com/products/2025/06/19/1194614/73e02820-9419-4f2e-abb5-d66e06f35451.jpg", badge: "-%47", url: "https://tr.uspoloassn.com/product/412914/", color: "Su Ye\u015fili", material: "%100 Pamuk" },
+        { title: "Erkek Polo Yaka Vizon Ti\u015f\u00f6rt", oldPrice: "1.499,95 TL", newPrice: "787,46 TL", img: "https://25d163-uspolo.akinoncloudcdn.com/products/2025/06/19/1194565/fb63d59c-83f5-4744-92cc-5c1b38cadd07_size330x495_cropCenter.jpg", imgFull: "https://25d163-uspolo.akinoncloudcdn.com/products/2025/06/19/1194565/fb63d59c-83f5-4744-92cc-5c1b38cadd07.jpg", badge: "-%48", url: "https://tr.uspoloassn.com/erkek-vizon-tisort-50306798-vr052/", color: "Vizon", material: "%100 Pamuk" },
+        { title: "Erkek Polo Yaka Beyaz Ti\u015f\u00f6rt", oldPrice: "1.499,95 TL", newPrice: "787,46 TL", img: "https://25d163-uspolo.akinoncloudcdn.com/products/2025/06/19/1194602/31068124-60a7-4fef-b59f-a0251ee13ca1_size330x495_cropCenter.jpg", imgFull: "https://25d163-uspolo.akinoncloudcdn.com/products/2025/06/19/1194602/31068124-60a7-4fef-b59f-a0251ee13ca1.jpg", badge: "-%48", url: "https://tr.uspoloassn.com/product/412942/", color: "Beyaz", material: "%100 Pamuk" },
+        { title: "Erkek Lacivert K\u0131sa Kollu G\u00f6mlek", oldPrice: "1.999,95 TL", newPrice: "749,96 TL", img: "https://25d163-uspolo.akinoncloudcdn.com/products/2025/06/19/1194928/e09fc8c7-8898-4183-b79b-b012b99f7192_size330x495_cropCenter.jpg", imgFull: "https://25d163-uspolo.akinoncloudcdn.com/products/2025/06/19/1194928/e09fc8c7-8898-4183-b79b-b012b99f7192.jpg", badge: "-%63", url: "https://tr.uspoloassn.com/erkek-lacivert-kisa-kollu-gomlek-50306329-vr033-1/", color: "Lacivert", material: "%100 Pamuk" }
+    ];
+
+    function recoLeftHTML() {
+        var cards = "";
+        for (var i = 0; i < recoProducts.length; i++) {
+            var p = recoProducts[i];
+            cards +=
+                '<div class="fb-reco-card fb-anim fb-anim-d' + Math.min(i + 1, 5) + (i === 0 ? ' active' : '') + '" data-reco-idx="' + i + '">' +
+                '<div class="fb-reco-img" style="background-image:url(\'' + p.img + '\')"></div>' +
+                '<div class="fb-reco-card-body">' +
+                '<h4>' + p.title + '</h4>' +
+                '<div class="fb-reco-discount-tag">' + p.badge + ' \u0130ndirim</div>' +
+                '<div class="fb-reco-prices"><span class="fb-reco-price-new">' + p.newPrice + '</span><span class="fb-reco-price-old">' + p.oldPrice + '</span></div>' +
+                '</div></div>';
+        }
+        return '<div class="fb-reco">' +
+            '<h2 class="fb-anim fb-anim-d1">Haftan\u0131n \u00dcr\u00fcnleri</h2>' +
+            '<p class="fb-reco-sub fb-anim fb-anim-d1">Se\u00e7ili \u00fcr\u00fcnleri ke\u015ffedin</p>' +
+            '<div class="fb-reco-grid" id="fb-reco-grid">' + cards + '</div>' +
+            '</div>';
+    }
+
+    function recoRightHTML() {
+        var p = recoProducts[0];
+        return '<div class="fb-reco-detail" id="fb-reco-detail">' +
+            '<div class="fb-reco-detail-img" id="fb-reco-detail-img" style="background-image:url(\'' + p.imgFull + '\')"></div>' +
+            '<div class="fb-reco-detail-body" id="fb-reco-detail-body">' +
+            '<span class="fb-reco-badge fb-anim fb-anim-d1">' + p.badge + ' \u0130ndirim</span>' +
+            '<h3 class="fb-anim fb-anim-d2">' + p.title + '</h3>' +
+            '<div class="fb-reco-material fb-anim fb-anim-d3">' + p.material + ' \u2022 ' + p.color + '</div>' +
+            '<div class="fb-reco-detail-prices fb-anim fb-anim-d3"><span class="fb-rd-new">' + p.newPrice + '</span><span class="fb-rd-old">' + p.oldPrice + '</span></div>' +
+            '<button class="fb-reco-detail-btn fb-anim fb-anim-d4" id="fb-reco-cart">\u00dcr\u00fcn\u00fc \u0130ncele</button>' +
+            '</div></div>';
+    }
+
+    function shopLeftHTML() {
+        var items = '';
+        for (var i = 0; i < 3; i++) {
+            var p = recoProducts[i];
+            items += '<div class="fb-shop-item fb-anim fb-anim-d' + (i + 1) + '" onclick="window.open(\'' + p.url + '\',\'_blank\')">' +
+                '<div class="fb-shop-item-img" style="background-image:url(\'' + p.img + '\')"></div>' +
+                '<div class="fb-shop-item-body">' +
+                '<h4>' + p.title + '</h4>' +
+                '<div class="fb-shop-item-discount">' + p.badge + ' \u0130ndirim</div>' +
+                '<div class="fb-shop-item-prices"><span class="fb-shop-item-new">' + p.newPrice + '</span><span class="fb-shop-item-old">' + p.oldPrice + '</span></div>' +
+                '</div></div>';
+        }
+        return '<div class="fb-shop-page">' +
+            '<h2 class="fb-anim fb-anim-d1">Yaz Koleksiyonu</h2>' +
+            '<div class="fb-shop-sub fb-anim fb-anim-d1">En \u00e7ok tercih edilen \u00fcr\u00fcnler</div>' +
+            '<div class="fb-shop-grid">' + items + '</div>' +
+            '<button class="fb-shop-cta fb-anim fb-anim-d5" onclick="window.open(\'https://tr.uspoloassn.com/\',\'_blank\')">T\u00fcm \u00dcr\u00fcnleri G\u00f6r</button>' +
+            '</div>';
+    }
+
+    function shopRightHTML() {
+        var items = '';
+        for (var i = 3; i < 6; i++) {
+            var p = recoProducts[i];
+            items += '<div class="fb-shop-item fb-anim fb-anim-d' + (i - 2) + '" onclick="window.open(\'' + p.url + '\',\'_blank\')">' +
+                '<div class="fb-shop-item-img" style="background-image:url(\'' + p.img + '\')"></div>' +
+                '<div class="fb-shop-item-body">' +
+                '<h4>' + p.title + '</h4>' +
+                '<div class="fb-shop-item-discount">' + p.badge + ' \u0130ndirim</div>' +
+                '<div class="fb-shop-item-prices"><span class="fb-shop-item-new">' + p.newPrice + '</span><span class="fb-shop-item-old">' + p.oldPrice + '</span></div>' +
+                '</div></div>';
+        }
+        return '<div class="fb-shop-page">' +
+            '<h2 class="fb-anim fb-anim-d1">Se\u00e7ili \u00dcr\u00fcnler</h2>' +
+            '<div class="fb-shop-sub fb-anim fb-anim-d1">Size \u00f6zel f\u0131rsatlar</div>' +
+            '<div class="fb-shop-grid">' + items + '</div>' +
+            '<button class="fb-shop-cta fb-anim fb-anim-d5" onclick="window.open(\'https://tr.uspoloassn.com/\',\'_blank\')">Ma\u011fazaya Git</button>' +
+            '</div>';
+    }
+
+    function formHTML() {
+        return '<div class="fb-form">' +
+            '<div class="fb-form-deco" style="width:160px;height:160px;background:rgba(59,130,246,0.08);top:-40px;right:-40px"></div>' +
+            '<div class="fb-form-deco" style="width:100px;height:100px;background:rgba(59,130,246,0.06);bottom:-20px;left:-20px"></div>' +
+            '<div class="fb-form-icon fb-anim fb-anim-d1">&#9993;</div>' +
+            '<h2 class="fb-anim fb-anim-d2">B\u00fcltene Abone Ol</h2>' +
+            '<p class="fb-form-sub fb-anim fb-anim-d3">U.S. Polo Assn. yeni koleksiyonlar, \u00f6zel indirimler ve kampanyalardan ilk sen haberdar ol.</p>' +
+            '<div class="fb-form-fields fb-anim fb-anim-d4" id="fb-form-fields">' +
+            '<input class="fb-form-input" type="text" id="fb-form-name" placeholder="Ad\u0131n\u0131z" />' +
+            '<input class="fb-form-input" type="email" id="fb-form-email" placeholder="E-posta adresiniz" />' +
+            '<div class="fb-form-check"><input type="checkbox" id="fb-form-agree" /><label for="fb-form-agree">Ki\u015fisel verilerimin i\u015flenmesine ve ticari ileti g\u00f6nderimine onay veriyorum.</label></div>' +
+            '<button class="fb-form-submit" id="fb-form-submit" disabled>Abone Ol</button>' +
+            '</div>' +
+            '<div class="fb-form-success" id="fb-form-success" style="display:none">' +
+            '<div class="fb-check-icon">\u2713</div>' +
+            '<h3>Te\u015fekk\u00fcrler!</h3>' +
+            '<p>U.S. Polo Assn. b\u00fcltenine ba\u015far\u0131yla abone oldunuz. Size \u00f6zel f\u0131rsatlar yolda!</p>' +
+            '</div>' +
+            '</div>';
+    }
+
+    function socialHTML() {
+        return '<div class="fb-social">' +
+            '<h2 class="fb-anim fb-anim-d1">Bizi Takip Et</h2>' +
+            '<p class="fb-social-sub fb-anim fb-anim-d2">Sosyal medyada bizi takip edin, \u00f6zel i\u00e7erikleri ka\u00e7\u0131rmay\u0131n</p>' +
+            '<div class="fb-social-links">' +
+            '<button class="fb-social-link fb-sl-insta fb-anim fb-anim-d2" onclick="window.open(\'https://www.instagram.com/usloloassn/\',\'_blank\')"><span class="fb-sl-icon">&#x1F4F8;</span>@uspoloassn</button>' +
+            '<button class="fb-social-link fb-sl-twitter fb-anim fb-anim-d3" onclick="window.open(\'https://x.com/USPoloAssn\',\'_blank\')"><span class="fb-sl-icon">&#x1D54F;</span>@USPoloAssn</button>' +
+            '<button class="fb-social-link fb-sl-youtube fb-anim fb-anim-d4" onclick="window.open(\'https://www.youtube.com/uspoloassn\',\'_blank\')"><span class="fb-sl-icon">&#x25B6;</span>YouTube</button>' +
+            '<button class="fb-social-link fb-sl-web fb-anim fb-anim-d5" onclick="window.open(\'https://tr.uspoloassn.com/\',\'_blank\')"><span class="fb-sl-icon">&#x1F310;</span>tr.uspoloassn.com</button>' +
+            '</div>' +
+            '</div>';
+    }
+
+    function backHTML() {
+        return '<div class="fb-back">' +
+            '<div class="fb-back-top"></div>' +
+            '<div class="fb-back-deco" style="width:130px;height:170px;background:#fff;top:-30px;right:-15px;transform:rotate(18deg)"></div>' +
+            '<div class="fb-back-deco" style="width:90px;height:120px;background:#3B82F6;top:28%;left:-20px;transform:rotate(-12deg)"></div>' +
+            '<div class="fb-back-deco" style="width:70px;height:95px;background:#fff;bottom:35%;right:15%;transform:rotate(10deg)"></div>' +
+            '<div class="fb-back-card fb-anim fb-anim-d2">' +
+            '<div class="fb-logo-icon">\uD83C\uDFC7</div>' +
+            '<h3>U.S. POLO ASSN.</h3>' +
+            '<div class="fb-reach">Bize Ula\u015f\u0131n</div>' +
+            '<div class="fb-contact-line">\uD83C\uDF10 tr.uspoloassn.com</div>' +
+            '<div class="fb-contact-line">\uD83D\uDCDE 0850 000 USPA</div>' +
+            '<div class="fb-contact-line" style="font-size:9px;color:#a0aec0;margin-top:6px;letter-spacing:2px;">SINCE 1890</div>' +
+            '</div>' +
+            '</div>';
+    }
+
+    function build() {
+        var body = getBody();
+        if (!body) return;
+        root = document.createElement("div");
+        root.id = "fb-root";
+        root.innerHTML =
+            '<div class="fb-shell">' +
+            '<div class="fb-top-bar">' +
+            '<button class="fb-top-btn fb-sound-btn" aria-label="Ses">&#x1F50A;</button>' +
+            '<button class="fb-top-btn fb-fs-btn" aria-label="Tam Ekran">&#x26F6;</button>' +
+            '<button class="fb-top-btn fb-x" aria-label="Kapat">&times;</button>' +
+            '</div>' +
+            '<div class="fb-stage">' +
+            '<button class="fb-arr fb-arr-l" aria-label="\u00d6nceki">&#8249;</button>' +
+            '<div class="fb-book-wrap">' +
+            '<div class="fb-book" id="fb-book">' +
+            '<div class="fb-half fb-left" id="fb-left"></div>' +
+            '<div class="fb-half fb-right" id="fb-right"></div>' +
+            '</div>' +
+            '</div>' +
+            '<button class="fb-arr fb-arr-r" aria-label="Sonraki">&#8250;</button>' +
+            '</div>' +
+            '<div class="fb-bar">' +
+            '<div class="fb-bar-nav">' +
+            '<button class="fb-bar-prev" aria-label="\u00d6nceki">&#8249;</button>' +
+            '<input type="range" class="fb-slider" min="0" max="' + (TOTAL_SPREADS - 1) + '" value="0" />' +
+            '<button class="fb-bar-next" aria-label="Sonraki">&#8250;</button>' +
+            '</div>' +
+            '<div class="fb-page-num" id="fb-page-num">1 / ' + TOTAL_SPREADS + '</div>' +
+            '</div>' +
+            '</div>';
+        body.appendChild(root);
+        bindEvents();
+        renderSpread();
+    }
+
+    function renderSpread() {
+        var leftEl = root.querySelector("#fb-left");
+        var rightEl = root.querySelector("#fb-right");
+        leftEl.classList.remove("fb-active");
+        rightEl.classList.remove("fb-active");
+        leftEl.innerHTML = leftOf(currentSpread);
+        rightEl.innerHTML = rightOf(currentSpread);
+        setTimeout(function () {
+            leftEl.classList.add("fb-active");
+            rightEl.classList.add("fb-active");
+            initInteractive();
+        }, 60);
+        updateNav();
+        log("page_view", { spread: currentSpread });
+    }
+
+    function flipTo(target) {
+        if (isFlipping || target === currentSpread) return;
+        if (target < 0 || target >= TOTAL_SPREADS) return;
+        if (videoTimer) { clearInterval(videoTimer); videoTimer = null; }
+        var forward = target > currentSpread;
+        isFlipping = true;
+        var book = root.querySelector("#fb-book");
+        var leftEl = root.querySelector("#fb-left");
+        var rightEl = root.querySelector("#fb-right");
+        var sheet = document.createElement("div");
+        sheet.className = "fb-sheet";
+        var front = document.createElement("div");
+        front.className = "fb-sheet-face fb-sheet-front";
+        var back = document.createElement("div");
+        back.className = "fb-sheet-face fb-sheet-back";
+        if (forward) {
+            front.innerHTML = rightOf(currentSpread);
+            back.innerHTML = leftOf(target);
+            rightEl.classList.remove("fb-active");
+            rightEl.innerHTML = rightOf(target);
+            sheet.style.transform = "rotateY(0deg)";
+        } else {
+            front.innerHTML = rightOf(target);
+            back.innerHTML = leftOf(currentSpread);
+            leftEl.classList.remove("fb-active");
+            leftEl.innerHTML = leftOf(target);
+            sheet.style.transform = "rotateY(-180deg)";
+        }
+        sheet.appendChild(front);
+        sheet.appendChild(back);
+        book.appendChild(sheet);
+        sheet.offsetHeight;
+        playFlipSound();
+        sheet.style.transition = "transform " + FLIP_MS + "ms cubic-bezier(0.645, 0.045, 0.355, 1.0)";
+        if (forward) {
+            sheet.style.transform = "rotateY(-180deg)";
+        } else {
+            sheet.style.transform = "rotateY(0deg)";
+        }
+        setTimeout(function () {
+            if (forward) {
+                leftEl.innerHTML = leftOf(target);
+            } else {
+                rightEl.innerHTML = rightOf(target);
+            }
+            sheet.remove();
+            currentSpread = target;
+            isFlipping = false;
+            leftEl.classList.remove("fb-active");
+            rightEl.classList.remove("fb-active");
+            setTimeout(function () {
+                leftEl.classList.add("fb-active");
+                rightEl.classList.add("fb-active");
+                initInteractive();
+            }, 60);
+            updateNav();
+            log("page_flip", { spread: currentSpread, direction: forward ? "forward" : "backward" });
+        }, FLIP_MS + 50);
+    }
+
+    function jumpTo(s) {
+        if (s < 0 || s >= TOTAL_SPREADS || s === currentSpread) return;
+        isFlipping = false;
+        var existing = root.querySelectorAll(".fb-sheet");
+        for (var i = 0; i < existing.length; i++) existing[i].remove();
+        currentSpread = s;
+        renderSpread();
+    }
+
+    function updateNav() {
+        var prevArr = root.querySelector(".fb-arr-l");
+        var nextArr = root.querySelector(".fb-arr-r");
+        var prevBar = root.querySelector(".fb-bar-prev");
+        var nextBar = root.querySelector(".fb-bar-next");
+        var slider = root.querySelector(".fb-slider");
+        var pageNum = root.querySelector("#fb-page-num");
+        prevArr.disabled = currentSpread === 0;
+        nextArr.disabled = currentSpread === TOTAL_SPREADS - 1;
+        prevBar.disabled = currentSpread === 0;
+        nextBar.disabled = currentSpread === TOTAL_SPREADS - 1;
+        slider.value = currentSpread;
+        pageNum.textContent = (currentSpread + 1) + " / " + TOTAL_SPREADS;
+    }
+
+    function bindEvents() {
+        root.querySelector(".fb-x").onclick = closeBook;
+        root.querySelector(".fb-fs-btn").onclick = toggleFS;
+        root.querySelector(".fb-sound-btn").onclick = function () {
+            soundEnabled = !soundEnabled;
+            this.innerHTML = soundEnabled ? "&#x1F50A;" : "&#x1F507;";
+            this.style.opacity = soundEnabled ? "1" : "0.5";
+            playClickSound();
+        };
+        root.querySelector(".fb-arr-l").onclick = function () { flipTo(currentSpread - 1); };
+        root.querySelector(".fb-arr-r").onclick = function () { flipTo(currentSpread + 1); };
+        root.querySelector(".fb-bar-prev").onclick = function () { flipTo(currentSpread - 1); };
+        root.querySelector(".fb-bar-next").onclick = function () { flipTo(currentSpread + 1); };
+        root.querySelector(".fb-slider").addEventListener("input", function () { jumpTo(parseInt(this.value)); });
+        root.querySelector("#fb-right").addEventListener("click", function (e) {
+            if (e.target.tagName === "BUTTON" || e.target.tagName === "CANVAS" || e.target.tagName === "INPUT" || e.target.tagName === "LABEL" || e.target.tagName === "A" || e.target.closest(".fb-hotspot") || e.target.closest(".fb-scratch") || e.target.closest(".fb-quiz") || e.target.closest(".fb-video") || e.target.closest(".fb-form") || e.target.closest(".fb-social") || e.target.closest(".fb-reco") || e.target.closest(".fb-reco-detail") || e.target.closest(".fb-cat-card") || e.target.closest(".fb-shop-page") || e.target.closest(".fb-picks")) return;
+            flipTo(currentSpread + 1);
+        });
+        root.querySelector("#fb-left").addEventListener("click", function (e) {
+            if (e.target.tagName === "BUTTON" || e.target.tagName === "CANVAS" || e.target.tagName === "INPUT" || e.target.tagName === "LABEL" || e.target.tagName === "A" || e.target.closest(".fb-hotspot") || e.target.closest(".fb-scratch") || e.target.closest(".fb-quiz") || e.target.closest(".fb-video") || e.target.closest(".fb-form") || e.target.closest(".fb-social") || e.target.closest(".fb-reco") || e.target.closest(".fb-reco-detail") || e.target.closest(".fb-cat-card") || e.target.closest(".fb-shop-page") || e.target.closest(".fb-picks")) return;
+            flipTo(currentSpread - 1);
+        });
+        keyHandler = function (e) {
+            if (!document.getElementById("fb-root")) return;
+            if (e.key === "ArrowLeft") flipTo(currentSpread - 1);
+            if (e.key === "ArrowRight") flipTo(currentSpread + 1);
+            if (e.key === "Escape") closeBook();
+        };
+        document.addEventListener("keydown", keyHandler);
+        root.addEventListener("touchstart", function (e) {
+            touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+        root.addEventListener("touchend", function (e) {
+            if (e.target.closest && (e.target.closest(".fb-scratch") || e.target.closest(".fb-hotspot") || e.target.closest(".fb-reco") || e.target.closest(".fb-reco-detail") || e.target.closest(".fb-cat-card") || e.target.closest(".fb-shop-page") || e.target.closest(".fb-picks"))) return;
+            var dx = e.changedTouches[0].clientX - touchStartX;
+            if (Math.abs(dx) > 50) {
+                if (dx < 0) flipTo(currentSpread + 1);
+                else flipTo(currentSpread - 1);
+            }
+        }, { passive: true });
+    }
+
+    function toggleFS() {
+        var el = root.querySelector(".fb-shell");
+        var btn = root.querySelector(".fb-fs-btn");
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+            btn.classList.remove("fb-fs-active");
+        } else if (el.requestFullscreen) {
+            el.requestFullscreen();
+            btn.classList.add("fb-fs-active");
+        } else if (el.webkitRequestFullscreen) {
+            el.webkitRequestFullscreen();
+            btn.classList.add("fb-fs-active");
+        }
+    }
+
+    var videoTimer = null;
+    var quizState = { step: 0, answers: [] };
+    var QUIZ_DATA = [
+        { q: "Al\u0131\u015fveri\u015f yaparken sizin i\u00e7in en \u00f6nemli kriter nedir?", opts: ["Kalite", "Fiyat-Performans", "Tarz & Tasar\u0131m", "Konfor"] },
+        { q: "Hangi \u00fcr\u00fcn kategorisi gardırobunuzda daha fazla yer kapl\u0131yor?", opts: ["Ti\u015f\u00f6rt & Polo", "Pantolon & Jean", "Ayakkab\u0131 & Sneaker", "Aksesuar"] },
+        { q: "Tarz\u0131n\u0131z\u0131 en iyi hangi kelime tan\u0131mlar?", opts: ["Klasik & Zarif", "Sportif & Dinamik", "Modern & Minimal", "Casual & Rahat"] }
+    ];
+    var QUIZ_RECOS = [
+        [
+            { name: recoProducts[5].title, desc: recoProducts[5].newPrice, img: recoProducts[5].img, url: recoProducts[5].url },
+            { name: recoProducts[4].title, desc: recoProducts[4].newPrice, img: recoProducts[4].img, url: recoProducts[4].url }
+        ],
+        [
+            { name: recoProducts[0].title, desc: recoProducts[0].newPrice, img: recoProducts[0].img, url: recoProducts[0].url },
+            { name: recoProducts[3].title, desc: recoProducts[3].newPrice, img: recoProducts[3].img, url: recoProducts[3].url }
+        ],
+        [
+            { name: recoProducts[2].title, desc: recoProducts[2].newPrice, img: recoProducts[2].img, url: recoProducts[2].url },
+            { name: recoProducts[1].title, desc: recoProducts[1].newPrice, img: recoProducts[1].img, url: recoProducts[1].url }
+        ],
+        [
+            { name: recoProducts[0].title, desc: recoProducts[0].newPrice, img: recoProducts[0].img, url: recoProducts[0].url },
+            { name: recoProducts[5].title, desc: recoProducts[5].newPrice, img: recoProducts[5].img, url: recoProducts[5].url }
+        ]
+    ];
+
+    function initInteractive() {
+        if (currentSpread === 4) initScratch();
+        if (currentSpread === 4) initHotspots();
+        if (currentSpread === 5) initVideo();
+        if (currentSpread === 5) initSurvey();
+        if (currentSpread === 6) initReco();
+        if (currentSpread === 8) initForm();
+    }
+
+    function initScratch() {
+        var canvas = root.querySelector("#fb-scratch-canvas");
+        var card = root.querySelector("#fb-scratch-card");
+        var copyBtn = root.querySelector("#fb-scratch-copy");
+        if (!canvas || !card) return;
+        var w = card.offsetWidth;
+        var h = card.offsetHeight;
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#1E3A5F";
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = "#60A5FA";
+        ctx.font = "bold 14px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Kaz\u0131maya ba\u015fla!", w / 2, h / 2 - 6);
+        ctx.font = "11px 'Segoe UI', sans-serif";
+        ctx.fillText("\u2191 Parmak veya fare ile \u2191", w / 2, h / 2 + 14);
+        var isDrawing = false;
+        var revealed = false;
+        function scratch(x, y) {
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, Math.PI * 2);
+            ctx.fill();
+            checkReveal();
+        }
+        function checkReveal() {
+            if (revealed) return;
+            var data = ctx.getImageData(0, 0, w, h).data;
+            var total = w * h;
+            var cleared = 0;
+            for (var i = 3; i < data.length; i += 4) { if (data[i] === 0) cleared++; }
+            if (cleared / total > 0.4) {
+                revealed = true;
+                canvas.style.opacity = "0";
+                canvas.style.transition = "opacity 0.5s";
+                if (copyBtn) copyBtn.classList.add("visible");
+                log("scratch_reveal", { code: "USPA25" });
+                var scratchPage = root.querySelector(".fb-scratch");
+                if (scratchPage) fireConfetti(scratchPage);
+                playClickSound();
+            }
+        }
+        function getPos(e) {
+            var r = canvas.getBoundingClientRect();
+            var t = e.touches ? e.touches[0] : e;
+            return { x: t.clientX - r.left, y: t.clientY - r.top };
+        }
+        canvas.addEventListener("mousedown", function (e) { isDrawing = true; var p = getPos(e); scratch(p.x, p.y); });
+        canvas.addEventListener("mousemove", function (e) { if (isDrawing) { var p = getPos(e); scratch(p.x, p.y); } });
+        canvas.addEventListener("mouseup", function () { isDrawing = false; });
+        canvas.addEventListener("mouseleave", function () { isDrawing = false; });
+        canvas.addEventListener("touchstart", function (e) { e.preventDefault(); isDrawing = true; var p = getPos(e); scratch(p.x, p.y); }, { passive: false });
+        canvas.addEventListener("touchmove", function (e) { e.preventDefault(); if (isDrawing) { var p = getPos(e); scratch(p.x, p.y); } }, { passive: false });
+        canvas.addEventListener("touchend", function () { isDrawing = false; });
+        if (copyBtn) {
+            copyBtn.onclick = function () {
+                if (navigator.clipboard) navigator.clipboard.writeText("USPA25");
+                copyBtn.textContent = "Kopyaland\u0131!";
+                setTimeout(function () { copyBtn.textContent = "Kodu Kopyala"; }, 2000);
+                log("scratch_copy", { code: "USPA25" });
+            };
+        }
+    }
+
+    function initHotspots() {
+        var dots = root.querySelectorAll(".fb-hotspot-dot");
+        var tips = root.querySelectorAll(".fb-hotspot-tip");
+        if (!dots.length) return;
+        dots.forEach(function (dot) {
+            dot.onclick = function (e) {
+                e.stopPropagation();
+                var idx = dot.dataset.hs;
+                var tip = root.querySelector("#fb-hs-tip-" + idx);
+                var wasVisible = tip && tip.classList.contains("visible");
+                tips.forEach(function (t) { t.classList.remove("visible"); });
+                if (!wasVisible && tip) {
+                    tip.classList.add("visible");
+                    log("hotspot_open", { index: idx });
+                }
+            };
+        });
+        var hotspotEl = root.querySelector(".fb-hotspot");
+        if (hotspotEl) {
+            hotspotEl.addEventListener("click", function (e) {
+                if (!e.target.closest(".fb-hotspot-dot") && !e.target.closest(".fb-hotspot-tip")) {
+                    tips.forEach(function (t) { t.classList.remove("visible"); });
+                }
+            });
+        }
+    }
+
+    function initVideo() {
+        if (videoTimer) { clearInterval(videoTimer); videoTimer = null; }
+        var frame = root.querySelector("#fb-video-frame");
+        var fill = root.querySelector("#fb-video-fill");
+        var timeEl = root.querySelector("#fb-video-time");
+        if (!frame) return;
+        var playing = false;
+        var elapsed = 0;
+        var duration = 90;
+        frame.onclick = function () {
+            if (playing) {
+                playing = false;
+                clearInterval(videoTimer);
+                videoTimer = null;
+                frame.querySelector(".fb-video-play").style.display = "flex";
+                log("video_pause", { time: elapsed });
+            } else {
+                playing = true;
+                frame.querySelector(".fb-video-play").style.display = "none";
+                log("video_play", { time: elapsed });
+                videoTimer = setInterval(function () {
+                    elapsed++;
+                    if (elapsed >= duration) {
+                        elapsed = duration;
+                        clearInterval(videoTimer);
+                        videoTimer = null;
+                        playing = false;
+                        frame.querySelector(".fb-video-play").style.display = "flex";
+                    }
+                    if (fill) fill.style.width = (elapsed / duration * 100) + "%";
+                    if (timeEl) {
+                        var cm = Math.floor(elapsed / 60); var cs = elapsed % 60;
+                        var tm = Math.floor(duration / 60); var ts = duration % 60;
+                        timeEl.textContent = cm + ":" + (cs < 10 ? "0" : "") + cs + " / " + tm + ":" + (ts < 10 ? "0" : "") + ts;
+                    }
+                }, 1000);
+            }
+        };
+    }
+
+    function initSurvey() {
+        quizState = { step: 0, answers: [] };
+        renderQuizStep();
+    }
+
+    function renderQuizStep() {
+        var body = root.querySelector("#fb-quiz-body");
+        if (!body) return;
+        if (quizState.step >= QUIZ_DATA.length) {
+            showQuizResult();
+            return;
+        }
+        var q = QUIZ_DATA[quizState.step];
+        var html = '<div class="fb-quiz-step">' + (quizState.step + 1) + ' / ' + QUIZ_DATA.length + '</div>';
+        html += '<div class="fb-quiz-q">' + q.q + '</div>';
+        html += '<div class="fb-quiz-opts">';
+        q.opts.forEach(function (opt, i) {
+            html += '<button class="fb-quiz-opt" data-qi="' + i + '">' + opt + '</button>';
+        });
+        html += '</div>';
+        body.innerHTML = html;
+        body.querySelectorAll(".fb-quiz-opt").forEach(function (btn) {
+            btn.onclick = function () {
+                quizState.answers.push(parseInt(btn.dataset.qi));
+                quizState.step++;
+                log("survey_answer", { step: quizState.step, answer: btn.textContent });
+                renderQuizStep();
+            };
+        });
+    }
+
+    function showQuizResult() {
+        var body = root.querySelector("#fb-quiz-body");
+        if (!body) return;
+        var styleIdx = quizState.answers[0] || 0;
+        var recos = QUIZ_RECOS[styleIdx] || QUIZ_RECOS[0];
+        var html = '<div class="fb-quiz-result"><h3>Sana \u00d6zel \u00d6neriler</h3><div class="fb-quiz-reco">';
+        recos.forEach(function (r) {
+            html += '<div class="fb-quiz-reco-card" onclick="window.open(\'' + (r.url || '#') + '\',\'_blank\')" style="cursor:pointer"><div class="fb-quiz-reco-img" style="background-image:url(\'' + r.img + '\')"></div><h4>' + r.name + '</h4><p>' + r.desc + '</p></div>';
+        });
+        html += '</div></div>';
+        body.innerHTML = html;
+        log("survey_complete", { answers: quizState.answers, style: styleIdx });
+        var quizPage = root.querySelector(".fb-quiz");
+        if (quizPage) fireConfetti(quizPage);
+        playClickSound();
+    }
+
+    function initForm() {
+        var nameInput = root.querySelector("#fb-form-name");
+        var emailInput = root.querySelector("#fb-form-email");
+        var agreeCheck = root.querySelector("#fb-form-agree");
+        var submitBtn = root.querySelector("#fb-form-submit");
+        var fieldsEl = root.querySelector("#fb-form-fields");
+        var successEl = root.querySelector("#fb-form-success");
+        if (!nameInput || !submitBtn) return;
+        function validateForm() {
+            var nameOk = nameInput.value.trim().length >= 2;
+            var emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value.trim());
+            var agreeOk = agreeCheck.checked;
+            submitBtn.disabled = !(nameOk && emailOk && agreeOk);
+        }
+        nameInput.addEventListener("input", validateForm);
+        emailInput.addEventListener("input", validateForm);
+        agreeCheck.addEventListener("change", validateForm);
+        submitBtn.onclick = function () {
+            if (submitBtn.disabled) return;
+            var data = { name: nameInput.value.trim(), email: emailInput.value.trim() };
+            log("newsletter_subscribe", data);
+            playClickSound();
+            if (fieldsEl) fieldsEl.style.display = "none";
+            if (successEl) successEl.style.display = "block";
+            var formIcon = root.querySelector(".fb-form-icon");
+            if (formIcon) formIcon.style.display = "none";
+            var formH2 = root.querySelector(".fb-form h2");
+            if (formH2) formH2.style.display = "none";
+            var formSub = root.querySelector(".fb-form .fb-form-sub");
+            if (formSub) formSub.style.display = "none";
+        };
+    }
+
+    function initReco() {
+        var grid = root.querySelector("#fb-reco-grid");
+        var detailImg = root.querySelector("#fb-reco-detail-img");
+        var detailBody = root.querySelector("#fb-reco-detail-body");
+        var cartBtn = root.querySelector("#fb-reco-cart");
+        if (!grid || !detailImg) return;
+        function updateDetail(idx) {
+            var p = recoProducts[idx];
+            if (!p) return;
+            detailImg.style.backgroundImage = "url('" + p.imgFull + "')";
+            if (detailBody) {
+                detailBody.innerHTML =
+                    '<span class="fb-reco-badge">' + p.badge + ' \u0130ndirim</span>' +
+                    '<h3>' + p.title + '</h3>' +
+                    '<div class="fb-reco-material">' + p.material + ' \u2022 ' + p.color + '</div>' +
+                    '<div class="fb-reco-detail-prices"><span class="fb-rd-new">' + p.newPrice + '</span><span class="fb-rd-old">' + p.oldPrice + '</span></div>' +
+                    '<button class="fb-reco-detail-btn" id="fb-reco-cart" onclick="window.open(\'' + p.url + '\',\'_blank\')">\u00dcr\u00fcn\u00fc \u0130ncele</button>';
+            }
+            grid.querySelectorAll(".fb-reco-card").forEach(function (c) { c.classList.remove("active"); });
+            var activeCard = grid.querySelector('[data-reco-idx="' + idx + '"]');
+            if (activeCard) activeCard.classList.add("active");
+        }
+        var cards = grid.querySelectorAll(".fb-reco-card");
+        cards.forEach(function (card) {
+            card.onclick = function () {
+                var idx = parseInt(card.getAttribute("data-reco-idx"), 10);
+                playClickSound();
+                log("reco_click", { product: recoProducts[idx].title, index: idx });
+                updateDetail(idx);
+            };
+        });
+        if (cartBtn) cartBtn.onclick = function () {
+            playClickSound();
+            window.open(recoProducts[0].url, '_blank');
+            log("reco_cart", { product: recoProducts[0].title });
+        };
+    }
+
+    function closeBook() {
+        if (videoTimer) { clearInterval(videoTimer); videoTimer = null; }
+        if (root) root.remove();
+        root = null;
+        if (styleEl.parentNode) styleEl.remove();
+        if (keyHandler) document.removeEventListener("keydown", keyHandler);
+        window.__fb_booted = false;
+    }
+
+    function open() {
+        currentSpread = 0;
+        isFlipping = false;
+        if (!root) {
+            if (!document.getElementById("fb-styles")) document.head.appendChild(styleEl);
+            build();
+        } else {
+            renderSpread();
+        }
+    }
+
+    function run() {
+        if (getBody()) open();
+        else setTimeout(run, 50);
+    }
+
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);
+    else run();
+
+    window.FlipBookCampaign = { open: open, close: closeBook, events: function () { return eventQueue; } };
+})();
+
+</script>
+</body>
+</html>
