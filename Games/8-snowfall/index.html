@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snow Fall (Kar Yağışı)</title>
+    <style>
+        body {
+            background-image: url('https://imgvisilabsnet.azureedge.net/banner/uploaded_images/59_1086_20260415143511459.jpg');
+            background-size: cover; /* Resmi ekrana orantılı şekilde yayar/sığdırır */
+            background-position: center center; /* Resmi tam merkeze hizalar */
+            background-repeat: no-repeat; /* Resmin kendini tekrar etmesini engeller */
+            height: 100vh; /* Ekranın %100 yüksekliğini kaplamasını sağlar */
+            width: 100vw; /* Ekranın %100 genişliğini kaplamasını sağlar */
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Kaydırma çubuklarını gizlemek için */
+        }
+        
+        #vl-snow {           
+            position: fixed;           
+            top: 0;           
+            left: 0;           
+            right: 0;           
+            bottom: 0;           
+            pointer-events: none;           
+            z-index: 1000;       
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        function initGame() {
+            // Kar efektinin ekleneceği div'i oluştur
+            var snow = document.createElement("div");
+            snow.id = "vl-snow";
+            document.body.prepend(snow);
+            
+            // Particles.js kütüphanesini yükle
+            var script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js";
+            
+            script.onload = function() {
+                // Kütüphane yüklendikten sonra efekti başlat
+                particlesJS("vl-snow", {
+                    particles: {
+                        number: { value: 200, density: { enable: true, value_area: 800 } },
+                        color: { value: "#ffffff" },
+                        opacity: { value: 0.7, random: false, anim: { enable: false } },
+                        size: { value: 5, random: true, anim: { enable: false } },
+                        line_linked: { enable: false },
+                        move: { 
+                            enable: true, 
+                            speed: 2, 
+                            direction: "bottom", 
+                            random: true, 
+                            straight: false, 
+                            out_mode: "out", 
+                            bounce: false, 
+                            attract: { enable: true, rotateX: 300, rotateY: 1200 } 
+                        }
+                    },
+                    interactivity: { 
+                        events: { onhover: { enable: false }, onclick: { enable: false }, resize: false } 
+                    },
+                    retina_detect: true
+                });
+            };
+            
+            document.head.append(script);
+        }
+
+        // Kar efektini başlat
+        initGame();
+    </script>
+</body>
+</html>

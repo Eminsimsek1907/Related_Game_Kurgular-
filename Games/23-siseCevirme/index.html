@@ -1,0 +1,740 @@
+<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Şişe Çevirme</title><script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.min.js"></script></head><body>
+    <script>
+    ; (function () {
+        "use strict";
+        if (window.__vl_sise_cevirme_booted) return;
+        window.__vl_sise_cevirme_booted = true;
+    
+        var config = {
+            campName: "Sise_Cevirme_Oyunu",
+            desktopWidth: "640px",
+            mobileWidth: "94%",
+            bottleImg: "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/626_1667_20260209172926201.png",
+            confettiScript: "https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.min.js"
+        };
+    
+        var SEGMENTS = [
+            { key: "yuzde50", label: "%50 İndirim" },
+            { key: "ucretsiz_hediye", label: "Ücretsiz Hediye" },
+            { key: "yuzde5", label: "%5 İndirim" },
+            { key: "yuzde10", label: "%10 İndirim" },
+            { key: "odul_yok", label: "Ödül Yok" },
+            { key: "ucretsiz_kargo", label: "Ücretsiz Kargo" }
+        ];
+    
+        var SORULAR_DOGRULUK = [
+            { id: "d1", text: "Daha önce bizden 2500 TL üzeri alışveriş yaptınız mı?" },
+            { id: "d2", text: "Son 6 ayda mağazamızdan alışveriş yaptınız mı?" },
+            { id: "d3", text: "E-bültenimize abone misiniz?" },
+            { id: "d4", text: "Daha önce indirim kodumuzu kullandınız mı?" },
+            { id: "d5", text: "Bizi sosyal medyada takip ediyor musunuz?" }
+        ];
+    
+        var SORULAR_CESARET = [
+            { id: "c1", text: "Daha önce bizden 2500 TL üzeri alışveriş yaptınız mı?" },
+            { id: "c2", text: "Önümüzdeki ay 2500 TL üzeri alışveriş yapmayı planlıyor musunuz?" },
+            { id: "c3", text: "Arkadaşlarınıza bizi tavsiye eder misiniz?" },
+            { id: "c4", text: "Ürünlerimizi inceleyip yorum bıraktınız mı?" },
+            { id: "c5", text: "Kampanyalardan haberdar olmak için bildirimlere izin verir misiniz?" }
+        ];
+    
+        var userData = { name: "", email: "", terms: false };
+    
+        function pickRandom(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+    
+        function vlPushGameData(odulKey, secim, soruId, soruMetin, cevap, kazanilanMetin) {
+            try {
+                var vl = new Visilabs();
+                vl.AddParameter("OM.Sise_Oyun", config.campName);
+                vl.AddParameter("OM.sise_isim", userData.name);
+                vl.AddParameter("OM.sise_email", userData.email);
+                vl.AddParameter("OM.sise_odul", odulKey);
+                vl.AddParameter("OM.sise_secim", secim);
+                vl.AddParameter("OM.sise_soru_id", soruId);
+                vl.AddParameter("OM.sise_soru_metin", soruMetin);
+                vl.AddParameter("OM.sise_cevap", cevap);
+                vl.AddParameter("OM.sise_odul_metin", kazanilanMetin);
+                vl.Collect();
+            } catch (e) { }
+        }
+    
+        function fireConfetti() {
+            if (typeof confetti !== "function") return;
+            var colors = ["#FFD700", "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD"];
+            confetti({ particleCount: 120, spread: 80, origin: { y: 0.55 }, colors: colors });
+            setTimeout(function () {
+                confetti({ particleCount: 60, angle: 60, spread: 55, origin: { y: 0.55 }, colors: colors });
+            }, 150);
+            setTimeout(function () {
+                confetti({ particleCount: 60, angle: 120, spread: 55, origin: { y: 0.55 }, colors: colors });
+            }, 300);
+        }
+    
+        function loadConfettiScript(cb) {
+            if (typeof confetti === "function") { cb(); return; }
+            var s = document.createElement("script");
+            s.src = config.confettiScript;
+            s.onload = cb;
+            s.onerror = cb;
+            document.head.appendChild(s);
+        }
+    
+        function siseCevirmeOyunu() {
+            if (document.getElementById("vl-sise-popup")) return;
+    
+            var style = document.createElement("style");
+            style.id = "vl-sise-style";
+            style.innerHTML = `
+           #vl-sise-popup {
+               position: fixed;
+               inset: 0;
+               z-index: 2147483647;
+               display: flex;
+               align-items: center;
+               justify-content: center;
+               animation: vl-sise-fadeIn 0.35s ease;
+           }
+    
+           #vl-sise-popup .vl-sise-overlay {
+               position: absolute;
+               inset: 0;
+               background: rgba(0, 0, 0, 0.5);
+           }
+    
+           #vl-sise-popup .vl-sise-box {
+               position: relative;
+               z-index: 1;
+               width: ${config.desktopWidth};
+               max-width: 96%;
+               max-height: 95vh;
+               height: fit-content;
+               overflow: hidden;
+               border-radius: 16px;
+               box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+               background: linear-gradient(180deg, #5dade2 0%, #3498db 50%, #2980b9 100%);
+               padding: 16px;
+               display: flex;
+               flex-direction: column;
+           }
+    
+           #vl-sise-popup .vl-sise-close {
+               position: absolute;
+               right: 12px;
+               top: 12px;
+               width: 36px;
+               height: 36px;
+               border-radius: 50%;
+               border: 2px solid rgba(255, 255, 255, 0.6);
+               background: rgba(0, 0, 0, 0.3);
+               color: #fff;
+               font-size: 20px;
+               cursor: pointer;
+               display: flex;
+               align-items: center;
+               justify-content: center;
+               z-index: 10;
+           }
+    
+           #vl-sise-popup .vl-sise-close:hover {
+               background: rgba(0, 0, 0, 0.5);
+           }
+    
+           #vl-sise-popup .vl-sise-welcome-title {
+               font-size: 22px;
+               font-weight: 800;
+               color: #f1c40f;
+               text-align: center;
+               margin: 0 0 10px;
+               text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+           }
+    
+           #vl-sise-popup .vl-sise-desc {
+               color: #fff;
+               text-align: center;
+               font-size: 13px;
+               line-height: 1.5;
+               margin-bottom: 12px;
+               padding: 0 4px;
+           }
+    
+           #vl-sise-popup .vl-sise-form .vl-sise-input {
+               width: 100%;
+               padding: 10px;
+               border: 2px solid rgba(255, 255, 255, 0.8);
+               border-radius: 8px;
+               font-size: 14px;
+               margin-bottom: 8px;
+               box-sizing: border-box;
+               background: rgba(255, 255, 255, 0.95);
+           }
+    
+           #vl-sise-popup .vl-sise-form .vl-sise-input::placeholder {
+               color: #7f8c8d;
+           }
+    
+           #vl-sise-popup .vl-sise-checkwrap {
+               display: flex;
+               align-items: flex-start;
+               gap: 8px;
+               margin: 10px 0;
+               color: #fff;
+               font-size: 12px;
+           }
+    
+           #vl-sise-popup .vl-sise-checkwrap input {
+               width: 18px;
+               height: 18px;
+               margin-top: 2px;
+           }
+    
+           #vl-sise-popup .vl-sise-submit {
+               width: 100%;
+               padding: 10px;
+               background: linear-gradient(180deg, #f1c40f, #f39c12);
+               color: #2c3e50;
+               border: none;
+               border-radius: 10px;
+               font-size: 16px;
+               font-weight: 700;
+               cursor: pointer;
+               box-shadow: 0 4px 0 #b7950b;
+           }
+    
+           #vl-sise-popup .vl-sise-skip {
+               display: block;
+               text-align: center;
+               margin-top: 12px;
+               color: #fff;
+               text-decoration: underline;
+               cursor: pointer;
+               font-size: 13px;
+           }
+    
+           #vl-sise-popup .vl-sise-game {
+               display: none;
+               flex: 1;
+               min-height: 0;
+               flex-direction: column;
+               overflow: hidden;
+           }
+    
+           #vl-sise-popup .vl-sise-game[style*="block"] {
+               display: flex !important;
+           }
+    
+           #vl-sise-popup .vl-sise-wheel-outer {
+               display: flex;
+               justify-content: center;
+               align-items: center;
+               margin: 12px 0;
+               flex: 0 0 auto;
+           }
+    
+           #vl-sise-popup .vl-sise-wheel-wrap {
+               position: relative;
+               width: 280px;
+               height: 280px;
+           }
+    
+           #vl-sise-popup .vl-sise-pointer {
+               position: absolute;
+               left: 50%;
+               top: -8px;
+               margin-left: -16px;
+               width: 0;
+               height: 0;
+               border-left: 16px solid transparent;
+               border-right: 16px solid transparent;
+               border-top: 24px solid #f1c40f;
+               z-index: 20;
+               filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+           }
+    
+           #vl-sise-popup .vl-sise-segments {
+               position: absolute;
+               inset: 0;
+               border-radius: 50%;
+           }
+    
+           #vl-sise-popup .vl-sise-seg {
+               position: absolute;
+               width: 64px;
+               height: 64px;
+               border-radius: 50%;
+               background: rgba(255, 255, 255, 0.4);
+               border: 2px solid rgba(255, 255, 255, 0.8);
+               display: flex;
+               align-items: center;
+               justify-content: center;
+               font-size: 12px;
+               font-weight: 700;
+               color: #2c3e50;
+               text-align: center;
+               line-height: 1.2;
+               box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+           }
+    
+           #vl-sise-popup .vl-sise-seg.vl-sise-seg-winner {
+               background: rgba(241, 196, 15, 0.6);
+               border-color: #f1c40f;
+               box-shadow: 0 0 0 3px rgba(241, 196, 15, 0.5);
+           }
+    
+           #vl-sise-popup .vl-sise-bottle-wrap {
+               position: absolute;
+               left: 50%;
+               top: 50%;
+               width: 48px;
+               height: 82px;
+               margin-left: -24px;
+               margin-top: -41px;
+               transform-origin: 50% 50%;
+               z-index: 10;
+           }
+    
+           #vl-sise-popup .vl-sise-bottle-wrap .vl-sise-bottle-img {
+               width: 100%;
+               height: 100%;
+               object-fit: contain;
+               object-position: center;
+               filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.25));
+           }
+    
+           #vl-sise-popup .vl-sise-spin-btn {
+               display: block;
+               margin: 12px auto 0;
+               padding: 12px 36px;
+               background: linear-gradient(180deg, #f1c40f, #f39c12);
+               color: #2c3e50;
+               border: 3px solid #2980b9;
+               border-radius: 50px;
+               font-size: 18px;
+               font-weight: 800;
+               cursor: pointer;
+               box-shadow: 0 4px 0 #b7950b;
+               transition: transform 0.2s ease, box-shadow 0.2s ease;
+           }
+    
+           #vl-sise-popup .vl-sise-spin-btn:hover:not(:disabled) {
+               transform: scale(1.04);
+               box-shadow: 0 6px 0 #b7950b;
+           }
+    
+           #vl-sise-popup .vl-sise-spin-btn:disabled {
+               opacity: 0.7;
+               cursor: not-allowed;
+           }
+    
+           #vl-sise-popup .vl-sise-choice-wrap {
+               display: none;
+               text-align: center;
+               margin-top: 12px;
+           }
+    
+           #vl-sise-popup .vl-sise-choice-wrap.visible {
+               display: block;
+           }
+    
+           #vl-sise-popup .vl-sise-choice-title {
+               color: #fff;
+               font-size: 16px;
+               margin-bottom: 12px;
+           }
+    
+           #vl-sise-popup .vl-sise-choice-btns {
+               display: flex;
+               gap: 12px;
+               justify-content: center;
+               flex-wrap: wrap;
+           }
+    
+           #vl-sise-popup .vl-sise-choice-btn {
+               padding: 12px 24px;
+               border-radius: 10px;
+               font-size: 14px;
+               font-weight: 700;
+               cursor: pointer;
+               border: 2px solid;
+           }
+    
+           #vl-sise-popup .vl-sise-choice-btn.dogruluk {
+               background: #27ae60;
+               color: #fff;
+               border-color: #1e8449;
+           }
+    
+           #vl-sise-popup .vl-sise-choice-btn.cesaret {
+               background: #e74c3c;
+               color: #fff;
+               border-color: #c0392b;
+           }
+    
+           #vl-sise-popup .vl-sise-question-wrap {
+               display: none;
+               text-align: center;
+               margin-top: 16px;
+           }
+    
+           #vl-sise-popup .vl-sise-question-wrap.visible {
+               display: block;
+           }
+    
+           #vl-sise-popup .vl-sise-question-text {
+               color: #fff;
+               font-size: 15px;
+               margin-bottom: 12px;
+               padding: 0 8px;
+           }
+    
+           #vl-sise-popup .vl-sise-yesno {
+               display: flex;
+               gap: 12px;
+               justify-content: center;
+           }
+    
+           #vl-sise-popup .vl-sise-yesno-btn {
+               padding: 12px 28px;
+               border-radius: 10px;
+               font-size: 14px;
+               font-weight: 700;
+               cursor: pointer;
+               border: 2px solid;
+           }
+    
+           #vl-sise-popup .vl-sise-yesno-btn.evet {
+               background: #2ecc71;
+               color: #fff;
+               border-color: #27ae60;
+           }
+    
+           #vl-sise-popup .vl-sise-yesno-btn.hayir {
+               background: #95a5a6;
+               color: #fff;
+               border-color: #7f8c8d;
+           }
+    
+           #vl-sise-popup .vl-sise-result-wrap {
+               display: none;
+               text-align: center;
+               padding: 12px 8px;
+               position: relative;
+               flex: 1;
+               min-height: 0;
+           }
+    
+           #vl-sise-popup .vl-sise-result-wrap.visible {
+               display: block;
+           }
+    
+           #vl-sise-popup .vl-sise-result-title {
+               font-size: 20px;
+               font-weight: 800;
+               color: #f1c40f;
+               margin-bottom: 8px;
+               text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+           }
+    
+           #vl-sise-popup .vl-sise-result-text {
+               color: #fff;
+               font-size: 13px;
+               line-height: 1.4;
+           }
+    
+           #vl-sise-popup .vl-sise-result-code {
+               background: rgba(255, 255, 255, 0.25);
+               padding: 8px 14px;
+               border-radius: 8px;
+               margin-top: 8px;
+               font-weight: 700;
+               font-size: 14px;
+               color: #fff;
+               display: inline-block;
+           }
+    
+           @keyframes vl-sise-fadeIn {
+               from { opacity: 0; }
+               to { opacity: 1; }
+           }
+    
+           @media only screen and (max-width: 768px) {
+               #vl-sise-popup .vl-sise-box {
+                   width: ${config.mobileWidth};
+                   padding: 12px;
+               }
+               #vl-sise-popup .vl-sise-wheel-wrap {
+                   width: 240px;
+                   height: 240px;
+               }
+               #vl-sise-popup .vl-sise-seg {
+                   width: 52px;
+                   height: 52px;
+                   font-size: 9px;
+               }
+               #vl-sise-popup .vl-sise-bottle-wrap {
+                   width: 40px;
+                   height: 68px;
+                   margin-left: -20px;
+                   margin-top: -34px;
+               }
+           }
+           `;
+            document.head.appendChild(style);
+    
+            loadConfettiScript();
+    
+            var wrap = document.createElement("div");
+            wrap.id = "vl-sise-popup";
+            wrap.innerHTML =
+                '<div class="vl-sise-overlay"></div>' +
+                '<div class="vl-sise-box">' +
+                '  <button class="vl-sise-close" aria-label="Kapat">×</button>' +
+                '  <div class="vl-sise-welcome" id="vl-sise-welcome">' +
+                '    <h1 class="vl-sise-welcome-title">Çevir!</h1>' +
+                '    <p class="vl-sise-desc">Şanslı mısın? Özel indirimleri keşfetmek için şişeyi çevir. Her çevirme büyük tasarruf şansı!</p>' +
+                '    <form class="vl-sise-form" id="vl-sise-form">' +
+                '      <input type="text" class="vl-sise-input" name="name" placeholder="Adınız Soyadınız">' +
+                '      <input type="email" class="vl-sise-input" name="email" placeholder="E-posta Adresiniz">' +
+                '      <div class="vl-sise-checkwrap">' +
+                '        <input type="checkbox" id="vl-sise-terms" name="terms">' +
+                '        <label for="vl-sise-terms">Şartlar ve Koşulları kabul ediyorum.</label>' +
+                '      </div>' +
+                '      <button type="submit" class="vl-sise-submit">Devam Et</button>' +
+                '      <a class="vl-sise-skip" id="vl-sise-skip">Formu Atla</a>' +
+                '    </form>' +
+                '  </div>' +
+                '  <div class="vl-sise-game" id="vl-sise-game">' +
+                '    <div class="vl-sise-wheel-outer">' +
+                '      <div class="vl-sise-wheel-wrap">' +
+                '        <div class="vl-sise-pointer"></div>' +
+                '        <div class="vl-sise-segments" id="vl-sise-segments"></div>' +
+                '        <div class="vl-sise-bottle-wrap" id="vl-sise-bottle-wrap">' +
+                '          <img class="vl-sise-bottle-img" src="' + config.bottleImg + '" alt="Şişe">' +
+                '        </div>' +
+                '      </div>' +
+                '    </div>' +
+                '    <button type="button" class="vl-sise-spin-btn" id="vl-sise-spin">Çevir</button>' +
+                '    <div class="vl-sise-choice-wrap" id="vl-sise-choice-wrap">' +
+                '      <p class="vl-sise-choice-title">Doğruluk mu Cesaret mi?</p>' +
+                '      <div class="vl-sise-choice-btns">' +
+                '        <button type="button" class="vl-sise-choice-btn dogruluk" data-secim="doğruluk">Doğruluk</button>' +
+                '        <button type="button" class="vl-sise-choice-btn cesaret" data-secim="cesaret">Cesaret</button>' +
+                '      </div>' +
+                '    </div>' +
+                '    <div class="vl-sise-question-wrap" id="vl-sise-question-wrap">' +
+                '      <p class="vl-sise-question-text" id="vl-sise-question-text">?</p>' +
+                '      <div class="vl-sise-yesno">' +
+                '        <button type="button" class="vl-sise-yesno-btn evet" data-cevap="evet">Evet</button>' +
+                '        <button type="button" class="vl-sise-yesno-btn hayir" data-cevap="hayır">Hayır</button>' +
+                '      </div>' +
+                '    </div>' +
+                '    <div class="vl-sise-result-wrap" id="vl-sise-result-wrap">' +
+                '      <h2 class="vl-sise-result-title" id="vl-sise-result-title">Tebrikler!</h2>' +
+                '      <p class="vl-sise-result-text" id="vl-sise-result-text"></p>' +
+                '      <div class="vl-sise-result-code" id="vl-sise-result-code" style="display:none;"></div>' +
+                '    </div>' +
+                '  </div>' +
+                '</div>';
+            document.body.appendChild(wrap);
+    
+            var welcomeEl = document.getElementById("vl-sise-welcome");
+            var gameEl = document.getElementById("vl-sise-game");
+            var formEl = document.getElementById("vl-sise-form");
+            var segmentsEl = document.getElementById("vl-sise-segments");
+            var bottleWrap = document.getElementById("vl-sise-bottle-wrap");
+            var spinBtn = document.getElementById("vl-sise-spin");
+            var choiceWrap = document.getElementById("vl-sise-choice-wrap");
+            var questionWrap = document.getElementById("vl-sise-question-wrap");
+            var resultWrap = document.getElementById("vl-sise-result-wrap");
+            var resultTitle = document.getElementById("vl-sise-result-title");
+            var resultTextEl = document.getElementById("vl-sise-result-text");
+            var resultCodeEl = document.getElementById("vl-sise-result-code");
+            var questionTextEl = document.getElementById("vl-sise-question-text");
+    
+            var currentSegmentIndex = 0;
+            var currentSegment = null;
+            var currentSecim = null;
+            var currentSoru = null;
+            var isSpinning = false;
+    
+            var wheelWrap = document.getElementById("vl-sise-wheel-wrap");
+    
+            function getSegPos(i) {
+                var w = wheelWrap ? wheelWrap.offsetWidth : 280;
+                var cx = w / 2;
+                var r = w * 0.34;
+                var halfSeg = 32;
+                if (w <= 260) halfSeg = 26;
+                var angle = (i * 60 - 90) * (Math.PI / 180);
+                return {
+                    left: (cx + Math.cos(angle) * r - halfSeg) + "px",
+                    top: (cx + Math.sin(angle) * r - halfSeg) + "px"
+                };
+            }
+    
+            function segPosition(i) {
+                return getSegPos(i);
+            }
+    
+            function renderSegments(winnerIndex) {
+                var html = "";
+                for (var i = 0; i < SEGMENTS.length; i++) {
+                    var pos = segPosition(i);
+                    var cls = "vl-sise-seg" + (winnerIndex === i ? " vl-sise-seg-winner" : "");
+                    html += '<div class="' + cls + '" style="left:' + pos.left + ";top:" + pos.top + ';">' + SEGMENTS[i].label + "</div>";
+                }
+                segmentsEl.innerHTML = html;
+            }
+            renderSegments(-1);
+    
+            function goToGame(skipForm) {
+                if (!skipForm) {
+                    userData.name = (formEl.querySelector('input[name="name"]').value || "").trim();
+                    userData.email = (formEl.querySelector('input[name="email"]').value || "").trim();
+                    userData.terms = formEl.querySelector('#vl-sise-terms').checked;
+                } else {
+                    userData.name = "";
+                    userData.email = "";
+                    userData.terms = false;
+                }
+                welcomeEl.style.display = "none";
+                gameEl.style.display = "block";
+                choiceWrap.classList.remove("visible");
+                questionWrap.classList.remove("visible");
+                resultWrap.classList.remove("visible");
+                resultCodeEl.style.display = "none";
+                spinBtn.disabled = false;
+                renderSegments(-1);
+            }
+    
+            function validateForm() {
+                var name = formEl.querySelector('input[name="name"]').value.trim();
+                var email = formEl.querySelector('input[name="email"]').value.trim();
+                var terms = formEl.querySelector('#vl-sise-terms').checked;
+                if (!name || !email) return false;
+                if (!email.includes("@") || !email.split("@")[1] || !email.split("@")[1].includes(".")) return false;
+                if (!terms) return false;
+                return true;
+            }
+    
+            formEl.addEventListener("submit", function (e) {
+                e.preventDefault();
+                if (validateForm()) goToGame(false);
+            });
+            document.getElementById("vl-sise-skip").addEventListener("click", function () { goToGame(true); });
+    
+            function getBottleRotationForSegment(index) {
+                return index * 60;
+            }
+    
+            function runSpin() {
+                if (isSpinning) return;
+                isSpinning = true;
+                spinBtn.disabled = true;
+                choiceWrap.classList.remove("visible");
+                questionWrap.classList.remove("visible");
+                resultWrap.classList.remove("visible");
+                renderSegments(-1);
+    
+                var targetIndex = Math.floor(Math.random() * SEGMENTS.length);
+                currentSegmentIndex = targetIndex;
+                currentSegment = SEGMENTS[targetIndex];
+    
+                var fullTurns = 4 + Math.floor(Math.random() * 3);
+                var targetDeg = fullTurns * 360 + getBottleRotationForSegment(targetIndex);
+                var startTime = null;
+                var duration = 4200;
+    
+                function easeOutCubic(t) {
+                    return 1 - Math.pow(1 - t, 3);
+                }
+    
+                function tick(t) {
+                    if (!startTime) startTime = t;
+                    var elapsed = t - startTime;
+                    var progress = Math.min(elapsed / duration, 1);
+                    var eased = easeOutCubic(progress);
+                    var deg = targetDeg * eased;
+                    bottleWrap.style.transition = "none";
+                    bottleWrap.style.transform = "rotate(" + deg + "deg)";
+                    if (progress < 1) {
+                        requestAnimationFrame(tick);
+                    } else {
+                        isSpinning = false;
+                        renderSegments(targetIndex);
+                        choiceWrap.classList.add("visible");
+                    }
+                }
+                requestAnimationFrame(tick);
+            }
+    
+            spinBtn.addEventListener("click", runSpin);
+    
+            function getPrizeMessage(seg, secim, cevap) {
+                var base = seg.label;
+                if (seg.key === "ucretsiz_kargo") {
+                    if (secim === "cesaret") {
+                        return "Ücretsiz kargo ve 2500 TL üzeri alışverişte 500 TL indirim kazandınız!";
+                    }
+                    return "Tebrikler, ücretsiz kargo kazandınız!";
+                }
+                if (seg.key === "odul_yok") {
+                    return "Bu sefer ödül çıkmadı. Bir dahaki sefere!";
+                }
+                return "Tebrikler, " + base + " kazandınız!";
+            }
+    
+            function showResult(secim, soru, cevap) {
+                var msg = getPrizeMessage(currentSegment, secim, cevap);
+                var title = currentSegment.key === "odul_yok" ? "Bir dahaki sefere!" : "Tebrikler, ödül kazandınız!";
+                resultTitle.textContent = title;
+                resultTextEl.textContent = msg;
+                resultCodeEl.style.display = "none";
+                if (currentSegment.key === "ucretsiz_kargo" && secim === "cesaret") {
+                    resultCodeEl.style.display = "block";
+                    resultCodeEl.textContent = "500TLINDIRIM";
+                }
+                resultWrap.classList.add("visible");
+                if (currentSegment.key !== "odul_yok") {
+                    loadConfettiScript(function () {
+                        fireConfetti();
+                    });
+                }
+                vlPushGameData(currentSegment.key, secim, soru.id, soru.text, cevap, msg);
+            }
+    
+            choiceWrap.querySelectorAll(".vl-sise-choice-btn").forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    currentSecim = this.getAttribute("data-secim");
+                    currentSoru = currentSecim === "doğruluk" ? pickRandom(SORULAR_DOGRULUK) : pickRandom(SORULAR_CESARET);
+                    choiceWrap.classList.remove("visible");
+                    questionTextEl.textContent = currentSoru.text;
+                    questionWrap.classList.add("visible");
+                });
+            });
+    
+            questionWrap.querySelectorAll(".vl-sise-yesno-btn").forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    var cevap = this.getAttribute("data-cevap");
+                    questionWrap.classList.remove("visible");
+                    showResult(currentSecim, currentSoru, cevap);
+                });
+            });
+    
+            function closePopup() {
+                if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+                if (style.parentNode) style.parentNode.removeChild(style);
+            }
+    
+            wrap.querySelector(".vl-sise-overlay").addEventListener("click", closePopup);
+            wrap.querySelector(".vl-sise-close").addEventListener("click", closePopup);
+        }
+    
+        if (typeof siseCevirmeOyunu === "function") siseCevirmeOyunu();
+        if (typeof window.siseCevirmeOyunu === "undefined") window.siseCevirmeOyunu = siseCevirmeOyunu;
+    })();
+    
+    </script>
+    </body>
+    </html>

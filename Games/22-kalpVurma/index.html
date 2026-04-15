@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalp Vurma Oyunu</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/MotionPathPlugin.min.js"></script>
+</head>
+<body>
+<script>
+(function () {
+    if (document.getElementById("okculuk-oyunu-overlay")) return;
+
+    function run() {
+        if (window.gsap && window.MotionPathPlugin) {
+            gsap.registerPlugin(MotionPathPlugin);
+        }
+        initGameEngine();
+    }
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", run);
+    } else {
+        run();
+    }
+
+    function initGameEngine() {
+        const overlayId = "okculuk-oyunu-overlay";
+        if (document.getElementById(overlayId)) return;
+
+        function playSound() { }
+
+        const style = document.createElement("style");
+        style.setAttribute("id", "vl-kalp-vurma-style");
+        style.innerHTML = `
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+
+    .vl-kalp-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #1a1a1a;
+        z-index: 9999999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        font-family: "Nunito", sans-serif;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none;
+    }
+
+    .vl-kalp-rotate {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgb(26 26 26);
+        color: #fff;
+        z-index: 20000001;
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .vl-kalp-rotate h2 {
+        margin: 0;
+    }
+
+    .vl-kalp-rotate svg {
+        margin-bottom: 20px;
+        animation: vl-kalp-spin 2s infinite ease-in-out;
+    }
+
+    @keyframes vl-kalp-spin {
+        0% { transform: rotate(0deg); }
+        25% { transform: rotate(-90deg); }
+        100% { transform: rotate(-90deg); }
+    }
+
+    .vl-kalp-wrapper {
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+
+    .vl-kalp-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 10000000;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        background: rgba(0,0,0,0.35);
+        color: #fff;
+        border: none;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .vl-kalp-close:hover {
+        background: rgba(0,0,0,0.5);
+    }
+
+    .vl-kalp-score {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10000000;
+        color: #fff;
+        font-size: 18px;
+        font-weight: bold;
+        pointer-events: none;
+        user-select: none;
+        background: rgba(236,72,153,0.9);
+        padding: 10px 24px;
+        border-radius: 999px;
+        display: flex;
+        gap: 24px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .vl-kalp-modal-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        z-index: 20000000;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+
+    .vl-kalp-modal {
+        background: #fff;
+        padding: 40px;
+        border-radius: 15px;
+        text-align: center;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        font-family: "Nunito", sans-serif;
+    }
+
+    .vl-kalp-modal h2 {
+        margin-top: 0;
+        font-size: 32px;
+        color: #2ecc71;
+    }
+
+    .vl-kalp-modal .vl-kalp-result-msg {
+        color: #333;
+        font-size: 18px;
+        margin-bottom: 20px;
+        line-height: 1.5;
+    }
+
+    .vl-kalp-coupon {
+        background: #f1f2f6;
+        border: 2px dashed #bdc3c7;
+        padding: 15px;
+        font-size: 24px;
+        font-weight: bold;
+        letter-spacing: 2px;
+        color: #2c3e50;
+        margin-bottom: 20px;
+        border-radius: 8px;
+    }
+
+    .vl-kalp-btn-copy {
+        background: #f39c12;
+        color: #fff;
+        border: none;
+        padding: 12px 30px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 50px;
+        cursor: pointer;
+        width: 100%;
+    }
+
+    .vl-kalp-btn-copy:hover {
+        background: #e67e22;
+    }
+
+    .vl-kalp-btn-copy.vl-kalp-copied {
+        background: #27ae60;
+    }
+
+    .vl-kalp-btn-again {
+        background: #7c3aed;
+        color: #fff;
+        border: none;
+        padding: 14px 32px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 999px;
+        cursor: pointer;
+        margin-top: 15px;
+        width: 100%;
+    }
+
+    .vl-kalp-btn-close {
+        background: transparent;
+        color: #7f8c8d;
+        border: none;
+        margin-top: 10px;
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: underline;
+    }
+
+    .vl-kalp-intro-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.75);
+        z-index: 15000000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .vl-kalp-intro-box {
+        background: #fff;
+        padding: 32px 28px;
+        border-radius: 16px;
+        text-align: center;
+        width: 90%;
+        max-width: 380px;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+        font-family: "Nunito", sans-serif;
+    }
+
+    .vl-kalp-intro-box h2 {
+        margin: 0 0 16px;
+        font-size: 24px;
+        color: #1a1a1a;
+    }
+
+    .vl-kalp-intro-box p {
+        color: #444;
+        font-size: 15px;
+        line-height: 1.6;
+        margin: 0 0 24px;
+    }
+
+    .vl-kalp-btn-start {
+        background: #c7485b;
+        color: #fff;
+        border: none;
+        padding: 16px 40px;
+        font-size: 17px;
+        font-weight: 600;
+        border-radius: 999px;
+        cursor: pointer;
+        width: 100%;
+    }
+
+    .vl-kalp-btn-start:hover {
+        background: #a63a4a;
+    }
+
+    .vl-kalp-feedback {
+        position: absolute;
+        top: 40%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 100;
+        pointer-events: none;
+        text-align: center;
+        user-select: none;
+    }
+
+    .vl-kalp-feedback h1 {
+        font-size: 48px;
+        margin: 0;
+        opacity: 0;
+        color: #fff;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    .vl-kalp-game-bg {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        background: linear-gradient(90deg, #c084fc 0%, #e879f9 25%, #f472b6 50%, #fb7185 75%, #f472b6 100%);
+        background-size: 200% 100%;
+    }
+
+    .vl-kalp-clouds {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.25) 0%, transparent 50%),
+                    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(255,255,255,0.15) 0%, transparent 50%);
+    }
+
+    .vl-kalp-cloud {
+        position: absolute;
+        border-radius: 50%;
+        object-fit: cover;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .vl-kalp-cloud-1 {
+        width: 90px;
+        height: 90px;
+        top: 8%;
+        left: 8%;
+    }
+
+    .vl-kalp-cloud-2 {
+        width: 70px;
+        height: 70px;
+        top: 18%;
+        right: 12%;
+    }
+
+    .vl-kalp-cloud-3 {
+        width: 100px;
+        height: 100px;
+        bottom: 38%;
+        left: 12%;
+    }
+
+    .vl-kalp-cloud-4 {
+        width: 80px;
+        height: 80px;
+        bottom: 28%;
+        right: 10%;
+    }
+
+    .vl-kalp-cloud-5 {
+        width: 60px;
+        height: 60px;
+        top: 45%;
+        left: 25%;
+    }
+
+    .vl-kalp-play-area {
+        position: absolute;
+        top: 58px;
+        left: 16px;
+        right: 16px;
+        bottom: 88px;
+        border-radius: 20px;
+        background: rgba(255,255,255,0.12);
+        border: 2px solid rgba(255,255,255,0.25);
+        overflow: hidden;
+        box-shadow: inset 0 2px 20px rgba(255,255,255,0.1);
+    }
+
+    .vl-kalp-play-area svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    .vl-kalp-hint {
+        position: absolute;
+        bottom: 14px;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        color: rgba(255,255,255,0.92);
+        font-size: 13px;
+        pointer-events: none;
+    }
+
+    @media screen and (orientation: portrait) and (max-width: 1024px) {
+        .vl-kalp-wrapper {
+            display: none !important;
+        }
+        .vl-kalp-rotate {
+            display: flex !important;
+        }
+    }
+
+    @media screen and (max-width: 768px) {
+        .vl-kalp-close {
+            width: 40px;
+            height: 40px;
+            top: 14px;
+            right: 14px;
+        }
+        .vl-kalp-score {
+            font-size: 16px;
+            padding: 8px 20px;
+        }
+        .vl-kalp-modal {
+            padding: 28px 24px;
+        }
+        .vl-kalp-feedback h1 {
+            font-size: 40px;
+        }
+        .vl-kalp-play-area {
+            top: 52px;
+            left: 12px;
+            right: 12px;
+            bottom: 80px;
+        }
+        .vl-kalp-hint {
+            font-size: 12px;
+            bottom: 12px;
+        }
+    }
+    `;
+        document.head.appendChild(style);
+
+        const overlay = document.createElement("div");
+        overlay.id = overlayId;
+        overlay.className = "vl-kalp-overlay";
+
+        const rotateMsg = document.createElement("div");
+        rotateMsg.id = "rotate-message";
+        rotateMsg.className = "vl-kalp-rotate";
+        rotateMsg.innerHTML = '<svg fill="white" width="80" height="80" viewBox="0 0 24 24"><path d="M16.48 2.52c3.27 1.55 5.61 4.72 5.97 8.48h1.5C23.44 4.84 18.29 0 12 0l-.66.03 3.81 3.81 1.33-1.32zm-6.25-.77c-.59-.59-1.54-.59-2.12 0L1.75 8.11c-.59.59-.59 1.54 0 2.12l12.02 12.02c.59.59 1.54.59 2.12 0l6.36-6.36c.59-.59.59-1.54 0-2.12L10.23 1.75zm4.6 19.44L2.81 9.17l6.36-6.36 12.02 12.02-6.36 6.36z"/></svg><h2>Lütfen Telefonu Yan Çevirin</h2><p>Oyun sadece yatay modda oynanabilir.</p>';
+        overlay.appendChild(rotateMsg);
+
+        const gameWrapper = document.createElement("div");
+        gameWrapper.id = "game-wrapper";
+        gameWrapper.className = "vl-kalp-wrapper";
+        overlay.appendChild(gameWrapper);
+
+        const closeGameFn = () => {
+            if (overlay.parentNode) document.body.removeChild(overlay);
+            window.removeEventListener("mousedown", window.gameDrawFn);
+            window.removeEventListener("mousemove", window.gameAimFn);
+            window.removeEventListener("mouseup", window.gameLooseFn);
+            window.removeEventListener("touchstart", window.gameDrawFn);
+            window.removeEventListener("touchmove", window.gameAimFn);
+            window.removeEventListener("touchend", window.gameLooseFn);
+        };
+
+        const closeBtn = document.createElement("button");
+        closeBtn.id = "close-game-btn-main";
+        closeBtn.className = "vl-kalp-close";
+        closeBtn.setAttribute("aria-label", "Kapat");
+        closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        closeBtn.onclick = closeGameFn;
+        closeBtn.ontouchend = (e) => {
+            e.preventDefault();
+            closeGameFn();
+        };
+        gameWrapper.appendChild(closeBtn);
+
+        document.body.appendChild(overlay);
+
+        function createGameContentAndStart() {
+            let score = 0;
+            const scoreBoard = document.createElement("div");
+            scoreBoard.className = "vl-kalp-score";
+            scoreBoard.innerHTML = 'Skor: <span id="game-score">0</span> &nbsp;|&nbsp; Süre: <span id="game-timer">10</span>';
+            gameWrapper.appendChild(scoreBoard);
+
+            const modalOverlay = document.createElement("div");
+            modalOverlay.className = "vl-kalp-modal-overlay";
+            const modalContent = document.createElement("div");
+            modalContent.className = "vl-kalp-modal";
+            modalContent.innerHTML = '<h2 id="result-title">TEBRİKLER!</h2><p id="result-msg" class="vl-kalp-result-msg">5\'ten fazla kalp vurdun, <strong>%20 indirim kodu</strong> kazandın!</p><div id="coupon-block" class="vl-kalp-coupon">SEVGILI20</div><button id="copy-btn" class="vl-kalp-btn-copy">KODU KOPYALA</button><button id="play-again-btn" class="vl-kalp-btn-again">TEKRAR OYNA</button><button id="close-game-btn-modal" class="vl-kalp-btn-close">Oyunu Kapat</button>';
+            modalOverlay.appendChild(modalContent);
+            gameWrapper.appendChild(modalOverlay);
+
+            const copyBtn = modalContent.querySelector("#copy-btn");
+            const closeGameBtn = modalContent.querySelector("#close-game-btn-modal");
+            const playAgainBtn = modalContent.querySelector("#play-again-btn");
+            const couponBlock = modalContent.querySelector("#coupon-block");
+            const resultTitle = modalContent.querySelector("#result-title");
+            const resultMsg = modalContent.querySelector("#result-msg");
+            copyBtn.onclick = function () {
+                const tempInput = document.createElement("input");
+                tempInput.value = "SEVGILI20";
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand("copy");
+                document.body.removeChild(tempInput);
+                copyBtn.innerText = "KOPYALANDI!";
+                copyBtn.classList.add("vl-kalp-copied");
+            };
+            closeGameBtn.onclick = closeGameFn;
+            playAgainBtn.onclick = function () {
+                modalOverlay.style.display = "none";
+                if (window.kalpRestartGame) window.kalpRestartGame();
+            };
+
+            const feedbackOverlay = document.createElement("div");
+            feedbackOverlay.className = "vl-kalp-feedback";
+            feedbackOverlay.innerHTML = '<h1 id="feedback-text"></h1>';
+            gameWrapper.appendChild(feedbackOverlay);
+
+            const gameContainer = document.createElement("div");
+            gameContainer.id = "kalp-game-container";
+            gameContainer.className = "vl-kalp-game-bg";
+            gameContainer.innerHTML = `
+          <div class="vl-kalp-clouds"></div>
+          <div id="kalp-play-area" class="vl-kalp-play-area">
+            <svg id="game-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 600 280" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <g id="heart-pink">
+                  <path fill="#f472b6" stroke="#ec4899" stroke-width="0.8" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" transform="scale(1.35) translate(-4,-4)"/>
+                </g>
+              </defs>
+              <g id="hearts-container"></g>
+              <g id="arrows-flying"></g>
+              <g id="bow-arrow-bottom" transform="translate(300,234)">
+                <image id="img-yay" href="https://imgvisilabsnet.azureedge.net/banner/uploaded_images/230_1218_20260210100120567.png" x="-29" y="-29" width="58" height="58" preserveAspectRatio="xMidYMid meet"/>
+                <image id="arrow-cursor" href="https://imgvisilabsnet.azureedge.net/banner/uploaded_images/230_1218_20260210100204103.png" x="-11" y="2" width="22" height="36" preserveAspectRatio="xMidYMid meet"/>
+              </g>
+            </svg>
+          </div>
+          <div class="vl-kalp-hint">Okunu sağa sola hareket ettirip tıklayarak (veya dokunup bırakarak) kalpleri vur</div>
+        `;
+            const cloudsContainer = gameContainer.querySelector(".vl-kalp-clouds");
+            const cloudUrls = [
+                "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/230_1218_20260210103145658.png",
+                "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/230_1218_20260210103421334.png",
+                "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/230_1218_20260210103610457.png"
+            ];
+            for (let c = 0; c < 5; c++) {
+                const img = document.createElement("img");
+                img.className = "vl-kalp-cloud vl-kalp-cloud-" + (c + 1);
+                img.src = cloudUrls[Math.floor(Math.random() * cloudUrls.length)];
+                img.alt = "";
+                cloudsContainer.appendChild(img);
+            }
+            gameWrapper.appendChild(gameContainer);
+
+            const introOverlay = document.createElement("div");
+            introOverlay.className = "vl-kalp-intro-overlay";
+            introOverlay.innerHTML = '<div class="vl-kalp-intro-box"><h2>Kalp Vurma Oyunu</h2><p>Okunu sağa sola hareket ettirip tıklayarak (veya dokunup bırakarak) yukarıdaki kalpleri vur. 10 saniye içinde 5 veya daha fazla kalp vurursan %20 indirim kodu kazanırsın!</p><button type="button" class="vl-kalp-btn-start" id="kalp-intro-start-btn">Oyuna Başla</button></div>';
+            gameWrapper.appendChild(introOverlay);
+
+            initGameLogic(gameContainer, gameWrapper, scoreBoard, feedbackOverlay, modalOverlay, modalContent, resultTitle, resultMsg, couponBlock, copyBtn, playAgainBtn, closeGameFn, introOverlay);
+        }
+        createGameContentAndStart();
+
+        function initGameLogic(gameContainer, gameWrapper, scoreBoard, feedbackOverlay, modalOverlay, modalContent, resultTitle, resultMsg, couponBlock, copyBtn, playAgainBtn, closeGameFn, introOverlay) {
+            const svg = gameContainer.querySelector("#game-svg");
+            const heartsContainer = svg.querySelector("#hearts-container");
+            const arrowsFlying = svg.querySelector("#arrows-flying");
+            const bowArrowBottom = svg.querySelector("#bow-arrow-bottom");
+            const arrowCursor = svg.querySelector("#arrow-cursor");
+            const scoreEl = scoreBoard.querySelector("#game-score");
+            const timerEl = scoreBoard.querySelector("#game-timer");
+            const feedbackText = feedbackOverlay.querySelector("#feedback-text");
+            const playArea = gameContainer.querySelector("#kalp-play-area");
+            const svgNS = "http://www.w3.org/2000/svg";
+            const xlinkNS = "http://www.w3.org/1999/xlink";
+
+            let score = 0;
+            let gameOver = false;
+            let timerId = null;
+            let timeLeft = 10;
+            let arrowX = 300;
+            let lastHitOrder = 0;
+            let combo = 0;
+            const heartRadius = 18;
+            const arrowSpeed = 900;
+            const vb = { w: 600, h: 280 };
+            const bowY = 234;
+            const heartYMin = 38;
+            const heartYMax = 92;
+            let heartIndexCounter = 0;
+            const heartEls = [];
+            const heartData = [];
+
+            function spawnOneHeart() {
+                const i = heartIndexCounter++;
+                const y = heartYMin + Math.random() * (heartYMax - heartYMin);
+                const startX = 80 + Math.random() * (vb.w - 160);
+                const range = 140 + Math.random() * 120;
+                const minX = Math.max(36, startX - range / 2);
+                const maxX = Math.min(vb.w - 36, startX + range / 2);
+                const g = document.createElementNS(svgNS, "g");
+                g.setAttribute("data-index", i);
+                const use = document.createElementNS(svgNS, "use");
+                use.setAttributeNS(xlinkNS, "href", "#heart-pink");
+                use.setAttribute("x", minX);
+                use.setAttribute("y", y);
+                g.appendChild(use);
+                heartsContainer.appendChild(g);
+                heartEls.push(g);
+                const h = {
+                    use: use, y: y, index: i, hit: false,
+                    minX: minX, maxX: maxX,
+                    speed: 2.8 + Math.random() * 1.4,
+                };
+                heartData.push(h);
+                gsap.to(use, {
+                    attr: { x: maxX },
+                    duration: h.speed,
+                    repeat: -1,
+                    yoyo: true,
+                    ease: "sine.inOut",
+                });
+            }
+
+            function createHearts() {
+                heartData.forEach((h) => { try { gsap.killTweensOf(h.use); } catch (_) { } });
+                heartsContainer.innerHTML = "";
+                heartEls.length = 0;
+                heartData.length = 0;
+                heartIndexCounter = 0;
+                for (let k = 0; k < 12; k++) spawnOneHeart();
+            }
+
+            function updateBowPosition(clientX) {
+                const rect = playArea.getBoundingClientRect();
+                const pct = (clientX - rect.left) / rect.width;
+                arrowX = Math.max(50, Math.min(vb.w - 50, pct * vb.w));
+                gsap.set(bowArrowBottom, { attr: { transform: `translate(${arrowX}, ${bowY})` } });
+            }
+
+            const ARROW_IMG_URL = "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/230_1218_20260210100204103.png";
+            const ARROW_W = 22;
+            const ARROW_H = 36;
+
+            function shoot() {
+                if (gameOver) return;
+                const arrow = document.createElementNS(svgNS, "image");
+                arrow.setAttributeNS(xlinkNS, "href", ARROW_IMG_URL);
+                arrow.setAttribute("x", String(arrowX - ARROW_W / 2));
+                arrow.setAttribute("y", String(bowY));
+                arrow.setAttribute("width", String(ARROW_W));
+                arrow.setAttribute("height", String(ARROW_H));
+                arrow.setAttribute("preserveAspectRatio", "xMidYMid meet");
+                arrowsFlying.appendChild(arrow);
+                let hitAny = false;
+                const tween = gsap.to(arrow, {
+                    attr: { y: -50 },
+                    duration: (bowY + 50) / arrowSpeed,
+                    ease: "none",
+                    onUpdate: function () {
+                        if (hitAny) return;
+                        const y = parseFloat(arrow.getAttribute("y")) || bowY;
+                        heartData.forEach((h, i) => {
+                            if (h.hit) return;
+                            const hx = parseFloat(h.use.getAttribute("x")) || h.minX;
+                            const cx = hx + 16;
+                            const cy = h.y + 16;
+                            const dx = arrowX - cx;
+                            const dy = y - cy;
+                            if (Math.sqrt(dx * dx + dy * dy) < heartRadius) {
+                                h.hit = true;
+                                hitAny = true;
+                                tween.pause();
+                                heartEls[i].style.opacity = "0";
+                                heartEls[i].style.pointerEvents = "none";
+                                const wasInOrder = i === lastHitOrder;
+                                if (wasInOrder) {
+                                    combo++;
+                                    lastHitOrder++;
+                                } else {
+                                    combo = 1;
+                                    lastHitOrder = i + 1;
+                                }
+                                const add = 1 + (combo - 1) * 0.5;
+                                score = Math.round((score + add) * 10) / 10;
+                                scoreEl.textContent = score;
+                                showFeedback(combo > 1 ? "+" + add.toFixed(1) : "+1", "#fff");
+                                if (heartEls.length < 8) spawnOneHeart();
+                                setTimeout(() => { try { arrow.remove(); } catch (_) { } }, 50);
+                            }
+                        });
+                    },
+                    onComplete: function () {
+                        if (!hitAny) {
+                            combo = 0;
+                            lastHitOrder = 0;
+                        }
+                        try { arrow.remove(); } catch (_) { }
+                    },
+                });
+            }
+
+            function showFeedback(text, color) {
+                if (gameOver) return;
+                feedbackText.innerText = text;
+                feedbackText.style.color = color;
+                gsap.fromTo(feedbackText, { scale: 0.5, opacity: 0 }, { scale: 1.2, opacity: 1, duration: 0.3, ease: "back.out(1.7)" });
+                gsap.to(feedbackText, { opacity: 0, duration: 0.3, delay: 0.8 });
+            }
+
+            function startTimer() {
+                timeLeft = 10;
+                timerEl.textContent = timeLeft;
+                if (timerId) clearInterval(timerId);
+                timerId = setInterval(() => {
+                    timeLeft--;
+                    timerEl.textContent = timeLeft;
+                    if (timeLeft <= 0) {
+                        clearInterval(timerId);
+                        timerId = null;
+                        endGame();
+                    }
+                }, 1000);
+            }
+
+            function endGame() {
+                gameOver = true;
+                heartData.forEach((h) => {
+                    try { gsap.killTweensOf(h.use); } catch (_) { }
+                });
+                const won = score >= 5;
+                resultTitle.textContent = won ? "TEBRİKLER!" : "OYUN BİTTİ";
+                resultTitle.style.color = won ? "#2ecc71" : "#e74c3c";
+                if (won) {
+                    resultMsg.innerHTML = "5'ten fazla kalp vurdun, <strong>%20 indirim kodu</strong> kazandın!";
+                    couponBlock.style.display = "block";
+                    copyBtn.style.display = "block";
+                    copyBtn.innerText = "KODU KOPYALA";
+                    copyBtn.classList.remove("vl-kalp-copied");
+                } else {
+                    resultMsg.innerHTML = "Hay aksi… Sadece <strong>" + Math.floor(score) + " kalp</strong> vurdun. 5 veya üzeri vurman gerekiyordu.";
+                    couponBlock.style.display = "none";
+                    copyBtn.style.display = "none";
+                }
+                modalOverlay.style.display = "flex";
+                gsap.fromTo(modalContent, { scale: 0.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" });
+            }
+
+            function restartGame() {
+                score = 0;
+                gameOver = false;
+                combo = 0;
+                lastHitOrder = 0;
+                if (timerId) clearInterval(timerId);
+                timerId = null;
+                timeLeft = 10;
+                timerEl.textContent = timeLeft;
+                scoreEl.textContent = "0";
+                arrowsFlying.innerHTML = "";
+                createHearts();
+                startTimer();
+                gsap.set(bowArrowBottom, { attr: { transform: `translate(${arrowX}, ${bowY})` } });
+            }
+            window.kalpRestartGame = restartGame;
+
+            createHearts();
+            gsap.set(bowArrowBottom, { attr: { transform: `translate(${arrowX}, ${bowY})` } });
+
+            if (introOverlay) {
+                const startBtn = introOverlay.querySelector("#kalp-intro-start-btn");
+                if (startBtn) {
+                    startBtn.onclick = function () {
+                        introOverlay.style.display = "none";
+                        startTimer();
+                    };
+                }
+            } else {
+                startTimer();
+            }
+
+            const onPointer = (e) => {
+                const x = e.touches ? e.touches[0].clientX : e.clientX;
+                updateBowPosition(x);
+            };
+            const onRelease = (e) => {
+                const inPlay = e.target.closest("#kalp-play-area") || e.target.closest("#game-svg");
+                if (inPlay && !e.target.closest("#close-game-btn-main") && !e.target.closest("#mute-btn-main")) shoot();
+            };
+            playArea.addEventListener("mousemove", (e) => { e.preventDefault(); updateBowPosition(e.clientX); });
+            playArea.addEventListener("touchmove", (e) => { e.preventDefault(); if (e.touches[0]) updateBowPosition(e.touches[0].clientX); }, { passive: false });
+            playArea.addEventListener("click", onRelease);
+            playArea.addEventListener("touchend", (e) => { e.preventDefault(); if (e.changedTouches && e.changedTouches[0]) updateBowPosition(e.changedTouches[0].clientX); onRelease(e); }, { passive: false });
+
+            const rect = playArea.getBoundingClientRect();
+            updateBowPosition(rect.left + rect.width / 2);
+        }
+    }
+})();
+</script>
+</body>
+</html>

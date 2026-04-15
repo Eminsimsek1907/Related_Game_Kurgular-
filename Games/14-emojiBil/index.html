@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji ile Şarkı Bul</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.min.js"></script>
+</head>
+<body>
+<script>
+; (function () {
+    "use strict";
+    if (window.__vl_emoji_sarki_booted) return;
+    window.__vl_emoji_sarki_booted = true;
+
+    var config = {
+        desktopWidth: "480px",
+        mobileWidth: "94%",
+        confettiScript: "https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.min.js"
+    };
+
+    var SARKILAR = [
+        { emoji: "💃😏❤️", cevap: "şımarık", sanatci: "Tarkan" },
+        { emoji: "🐑🐑❤️", cevap: "kuzu kuzu", sanatci: "Tarkan" },
+        { emoji: "🌍🎤❤️", cevap: "everyway that i can", sanatci: "Sertab Erener" },
+        { emoji: "🎤🎵", cevap: "şarkı söylemek lazım", sanatci: "Sezen Aksu" },
+        { emoji: "👩🌹💔", cevap: "senden daha güzel", sanatci: "Duman" },
+        { emoji: "😢💔🟣", cevap: "bir derdim var", sanatci: "Mor ve Ötesi" },
+        { emoji: "🏖️⛵🌊", cevap: "bodrum", sanatci: "Hande Yener" },
+        { emoji: "❤️💔🔥", cevap: "acıtarak sev beni", sanatci: "Sıla" },
+        { emoji: "🔊🕺🎵", cevap: "bangır bangır", sanatci: "Gülşen" },
+        { emoji: "❤️💫", cevap: "aşkın olayım", sanatci: "Murat Boz" },
+        { emoji: "💗⚰️", cevap: "pembe mezarlık", sanatci: "Model" },
+        { emoji: "💔🧩", cevap: "paramparça", sanatci: "Teoman" },
+        { emoji: "👟🕺", cevap: "çakkıdı", sanatci: "Kenan Doğulu" },
+        { emoji: "🚗", cevap: "araba", sanatci: "Mustafa Sandal" },
+        { emoji: "💭🌙", cevap: "rüya", sanatci: "Ziynet Sali" },
+        { emoji: "🦋✨", cevap: "bambaşka", sanatci: "Ajda Pekkan" },
+        { emoji: "📱🔔❌", cevap: "cevapsız çınlama", sanatci: "maNga" },
+        { emoji: "🎵🤷", cevap: "ben bazen", sanatci: "Simge" },
+        { emoji: "💯❤️", cevap: "çok çok", sanatci: "Edis" },
+        { emoji: "💔✨👩", cevap: "sen olsan bari", sanatci: "Aleyna Tilki" }
+    ];
+
+    var currentIndex = 0;
+    var won = false;
+
+    function normalize(str) {
+        if (!str || typeof str !== "string") return "";
+        var s = str.toLowerCase().trim();
+        s = s.replace(/ı/g, "i").replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ö/g, "o").replace(/ş/g, "s").replace(/ç/g, "c");
+        return s.replace(/\s+/g, " ");
+    }
+
+    function loadConfettiScript(cb) {
+        if (typeof confetti === "function") { cb(); return; }
+        var s = document.createElement("script");
+        s.src = config.confettiScript;
+        s.onload = cb;
+        s.onerror = cb;
+        document.head.appendChild(s);
+    }
+
+    function fireConfetti() {
+        if (typeof confetti !== "function") return;
+        var colors = ["#FF6B9D", "#C44569", "#F8B500", "#00D9FF", "#7B68EE"];
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: colors });
+        setTimeout(function () { confetti({ particleCount: 50, angle: 60, spread: 55, origin: { y: 0.6 }, colors: colors }); }, 120);
+        setTimeout(function () { confetti({ particleCount: 50, angle: 120, spread: 55, origin: { y: 0.6 }, colors: colors }); }, 240);
+    }
+
+    function getBody() {
+        return document.body || (document.getElementsByTagName && document.getElementsByTagName("body")[0]) || null;
+    }
+
+    function showResult(isWin) {
+        var popup = document.getElementById("vl-emoji-sarki-popup");
+        if (!popup) return;
+        var game = popup.querySelector(".vl-emoji-sarki-game");
+        var result = popup.querySelector(".vl-emoji-sarki-result");
+        if (!game || !result) return;
+        game.style.display = "none";
+        result.style.display = "block";
+        result.className = "vl-emoji-sarki-result " + (isWin ? "vl-emoji-won" : "vl-emoji-lost");
+        var title = result.querySelector(".vl-emoji-result-title");
+        var text = result.querySelector(".vl-emoji-result-text");
+        var code = result.querySelector(".vl-emoji-result-code");
+        if (isWin) {
+            if (title) title.textContent = "Tebrikler! Doğru bildiniz.";
+            if (text) text.textContent = "Seçili ürünlerde %20 indirim kazandınız.";
+            if (code) { code.style.display = "inline-block"; code.textContent = "%20 İNDİRİM"; }
+            loadConfettiScript(fireConfetti);
+        } else {
+            if (title) title.textContent = "Bu sefer olmadı";
+            if (text) text.textContent = "Doğru şarkı: " + (SARKILAR[currentIndex].cevap) + " – " + SARKILAR[currentIndex].sanatci;
+            if (code) code.style.display = "none";
+        }
+    }
+
+    function checkAnswer() {
+        var input = document.getElementById("vl-emoji-sarki-input");
+        if (!input) return;
+        var userAnswer = normalize(input.value);
+        var correct = normalize(SARKILAR[currentIndex].cevap);
+        if (userAnswer === correct || correct.indexOf(userAnswer) === 0 && userAnswer.length >= 3) {
+            won = true;
+            showResult(true);
+        } else {
+            showResult(false);
+        }
+    }
+
+    function openGame() {
+        var existing = document.getElementById("vl-emoji-sarki-popup");
+        if (existing) {
+            existing.style.display = "flex";
+            return;
+        }
+        var body = getBody();
+        if (!body) { setTimeout(openGame, 80); return; }
+
+        currentIndex = Math.floor(Math.random() * SARKILAR.length);
+        won = false;
+
+        var style = document.createElement("style");
+        style.id = "vl-emoji-sarki-style";
+        style.textContent = [
+            "#vl-emoji-sarki-popup{position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);animation:vl-emoji-fadeIn .3s ease;padding:12px;box-sizing:border-box;}",
+            "#vl-emoji-sarki-popup .vl-emoji-sarki-box{position:relative;width:" + config.desktopWidth + ";max-width:" + config.mobileWidth + ";background:linear-gradient(165deg,#1a0a2e 0%,#2d1b4e 40%,#16213e 100%);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.45);overflow:hidden;padding:32px;}",
+            "#vl-emoji-sarki-popup .vl-emoji-close{position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;}",
+            "#vl-emoji-sarki-popup .vl-emoji-close:hover{background:rgba(255,255,255,0.25);}",
+            "#vl-emoji-sarki-popup .vl-emoji-title{text-align:center;color:#fff;font-size:22px;font-weight:700;margin-bottom:8px;}",
+            "#vl-emoji-sarki-popup .vl-emoji-sub{text-align:center;color:rgba(255,255,255,0.75);font-size:14px;margin-bottom:24px;}",
+            "#vl-emoji-sarki-popup .vl-emoji-display{background:rgba(255,255,255,0.08);border-radius:16px;padding:28px;text-align:center;margin-bottom:20px;border:1px solid rgba(255,255,255,0.12);}",
+            "#vl-emoji-sarki-popup .vl-emoji-chars{font-size:52px;line-height:1.3;letter-spacing:8px;}",
+            "#vl-emoji-sarki-popup .vl-emoji-input-wrap{margin-bottom:20px;}",
+            "#vl-emoji-sarki-popup .vl-emoji-sarki-input{width:100%;box-sizing:border-box;padding:16px 18px;border-radius:12px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:17px;outline:none;}",
+            "#vl-emoji-sarki-popup .vl-emoji-sarki-input::placeholder{color:rgba(255,255,255,0.45);}",
+            "#vl-emoji-sarki-popup .vl-emoji-sarki-input:focus{border-color:#b388ff;}",
+            "#vl-emoji-sarki-popup .vl-emoji-btn{display:block;width:100%;padding:16px;border:none;border-radius:12px;background:linear-gradient(135deg,#7c4dff,#b388ff);color:#fff;font-size:17px;font-weight:700;cursor:pointer;}",
+            "#vl-emoji-sarki-popup .vl-emoji-btn:hover{opacity:0.95;transform:scale(1.01);}",
+            "#vl-emoji-sarki-popup .vl-emoji-sarki-result{display:none;text-align:center;padding:20px 0;}",
+            "#vl-emoji-sarki-popup .vl-emoji-result-title{color:#fff;font-size:24px;font-weight:800;margin-bottom:12px;}",
+            "#vl-emoji-sarki-popup .vl-emoji-result-text{color:rgba(255,255,255,0.9);font-size:16px;line-height:1.5;}",
+            "#vl-emoji-sarki-popup .vl-emoji-result-code{margin-top:16px;padding:14px 24px;background:linear-gradient(135deg,#00e676,#00c853);border-radius:10px;font-weight:800;color:#fff;font-size:18px;display:none;}",
+            "#vl-emoji-sarki-popup .vl-emoji-sarki-result.vl-emoji-lost .vl-emoji-result-title{color:#ff8a80;}",
+            "@keyframes vl-emoji-fadeIn{from{opacity:0;}to{opacity:1;}}",
+            "@media(max-width:520px){#vl-emoji-sarki-popup .vl-emoji-chars{font-size:42px;letter-spacing:4px;}}"
+        ].join("");
+
+        (document.head || document.documentElement).appendChild(style);
+
+        var box = document.createElement("div");
+        box.id = "vl-emoji-sarki-popup";
+        box.innerHTML =
+            '<div class="vl-emoji-sarki-box">' +
+            '<button type="button" class="vl-emoji-close" aria-label="Kapat">&times;</button>' +
+            '<div class="vl-emoji-sarki-game">' +
+            '<h2 class="vl-emoji-title">Emoji ile Şarkı Bul</h2>' +
+            '<p class="vl-emoji-sub">Emojilere bakarak şarkı adını yazın</p>' +
+            '<div class="vl-emoji-display">' +
+            '<div class="vl-emoji-chars" id="vl-emoji-chars">' + SARKILAR[currentIndex].emoji + '</div>' +
+            '</div>' +
+            '<div class="vl-emoji-input-wrap">' +
+            '<input type="text" class="vl-emoji-sarki-input" id="vl-emoji-sarki-input" placeholder="Şarkı adını yazın..." autocomplete="off" />' +
+            '</div>' +
+            '<button type="button" class="vl-emoji-btn" id="vl-emoji-submit">Tahmin Et</button>' +
+            '</div>' +
+            '<div class="vl-emoji-sarki-result">' +
+            '<div class="vl-emoji-result-title"></div>' +
+            '<div class="vl-emoji-result-text"></div>' +
+            '<div class="vl-emoji-result-code"></div>' +
+            '</div>' +
+            '</div>';
+
+        box.querySelector(".vl-emoji-close").onclick = function () {
+            box.style.display = "none";
+        };
+        box.querySelector(".vl-emoji-sarki-box").onclick = function (e) { e.stopPropagation(); };
+        box.onclick = function () { box.style.display = "none"; };
+
+        var inputEl = box.querySelector("#vl-emoji-sarki-input");
+        box.querySelector("#vl-emoji-submit").onclick = checkAnswer;
+        if (inputEl) {
+            inputEl.onkeydown = function (e) { if (e.key === "Enter") checkAnswer(); };
+            setTimeout(function () { inputEl.focus(); }, 300);
+        }
+
+        body.appendChild(box);
+    }
+
+    function run() {
+        openGame();
+    }
+
+    run();
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);
+    if (typeof window.addEventListener === "function") window.addEventListener("load", run);
+    setTimeout(run, 150);
+    setTimeout(run, 500);
+
+})();
+</script>
+</body>
+</html>

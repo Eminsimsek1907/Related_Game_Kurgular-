@@ -1,0 +1,821 @@
+<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Kalp Sıralama</title></head><body>
+    <script>
+    ; (function () {
+        "use strict";
+        if (window.__vl_kalp_siralama_booted) return;
+        window.__vl_kalp_siralama_booted = true;
+    
+        var KALP_RENKLERI = [
+            { id: 0, ad: "Kırmızı", hex: "#e74c3c" },
+            { id: 1, ad: "Turuncu", hex: "#e67e22" },
+            { id: 2, ad: "Sarı", hex: "#f1c40f" },
+            { id: 3, ad: "Turkuaz", hex: "#1abc9c" },
+            { id: 4, ad: "Mavi", hex: "#3498db" },
+            { id: 5, ad: "Mor", hex: "#9b59b6" }
+        ];
+    
+        var TOPLAM_SANIYE = 30;
+        var SLOT_SAYISI = 6;
+    
+        function shuffle(arr) {
+            var a = arr.slice();
+            for (var i = a.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var t = a[i];
+                a[i] = a[j];
+                a[j] = t;
+            }
+            return a;
+        }
+    
+        function kalpSiralamaOyunu() {
+            if (document.getElementById("vl-kalp-popup")) return;
+    
+            var hedefSira = shuffle(KALP_RENKLERI.map(function (k) { return k.id; }));
+            var denemeler = [];
+            var mevcutSatir = [null, null, null, null, null, null];
+            var kilitliIndeksler = [];
+            var kalanSaniye = TOPLAM_SANIYE;
+            var timerId = null;
+            var oyunBitti = false;
+            var kazandi = false;
+            var progressDeger = 0;
+            var seciliSlot = null;
+            var styleEl, popupEl, contentEl, progressFillEl, giftEl, timerEl, rowsEl, msgEl;
+    
+            var s = document.createElement("style");
+            s.id = "vl-kalp-siralama-style";
+            s.innerHTML = `
+                #vl-kalp-popup {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    z-index: 2147483647;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: vl-kalp-fadeIn .35s ease;
+                }
+                #vl-kalp-popup .vl-kalp-overlay {
+                    position: absolute;
+                    inset: 0;
+                    background: rgba(0,0,0,.65);
+                    cursor: pointer;
+                }
+                #vl-kalp-popup .vl-kalp-box {
+                    position: relative;
+                    z-index: 1;
+                    width: 94%;
+                    max-width: 500px;
+                    max-height: 92vh;
+                    overflow: hidden;
+                    border-radius: 18px;
+                    box-shadow: 0 20px 50px rgba(0,0,0,.4);
+                    animation: vl-kalp-slideUp .4s ease;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .vl-kalp-wall {
+                    background: #3d2a52;
+                    background-image: linear-gradient(90deg, rgba(0,0,0,.08) 1px, transparent 1px), linear-gradient(rgba(0,0,0,.08) 1px, transparent 1px);
+                    background-size: 20px 12px;
+                    padding: 26px;
+                    flex: 1;
+                    min-height: 0;
+                    overflow-y: auto;
+                    border-bottom: 12px solid #1e3a5f;
+                }
+                .vl-kalp-header {
+                    background: linear-gradient(180deg, #f9e076 0%, #e8c942 100%);
+                    border: 2px solid #8b6914;
+                    border-radius: 12px;
+                    padding: 12px 18px;
+                    margin-bottom: 16px;
+                    position: relative;
+                    box-shadow: 0 3px 8px rgba(0,0,0,.25);
+                }
+                .vl-kalp-title {
+                    text-align: center;
+                    font-size: 19px;
+                    font-weight: 800;
+                    color: #4a2c6a;
+                    text-shadow: 0 1px 0 rgba(255,255,255,.5);
+                    margin: 0;
+                }
+                .vl-kalp-timer-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    margin-top: 8px;
+                }
+                .vl-kalp-timer-icon {
+                    width: 22px;
+                    height: 22px;
+                    background: #4a2c6a;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #f9e076;
+                    font-size: 12px;
+                }
+                .vl-kalp-timer-text {
+                    font-size: 18px;
+                    font-weight: 700;
+                    color: #4a2c6a;
+                    font-variant-numeric: tabular-nums;
+                }
+                .vl-kalp-progress-wrap {
+                    height: 20px;
+                    background: rgba(74,44,106,.4);
+                    border-radius: 10px;
+                    margin-top: 10px;
+                    overflow: hidden;
+                    display: flex;
+                    align-items: center;
+                    padding: 0 2px;
+                    position: relative;
+                    border: 1px solid rgba(139,105,20,.4);
+                }
+                .vl-kalp-progress-fill {
+                    height: 14px;
+                    border-radius: 7px;
+                    background: linear-gradient(90deg, #2ecc71, #27ae60);
+                    width: 0%;
+                    transition: width .5s cubic-bezier(0.34, 1.56, 0.64, 1);
+                    box-shadow: inset 0 1px 0 rgba(255,255,255,.3);
+                }
+                .vl-kalp-gift-wrap {
+                    position: absolute;
+                    right: 4px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 28px;
+                    height: 28px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    pointer-events: none;
+                }
+                .vl-kalp-gift {
+                    font-size: 24px;
+                    filter: drop-shadow(0 1px 2px rgba(0,0,0,.4));
+                    transition: transform .3s ease;
+                }
+                .vl-kalp-gift.open {
+                    animation: vl-kalp-giftOpen .6s ease forwards;
+                }
+                @keyframes vl-kalp-giftOpen {
+                    0% { transform: scale(1); }
+                    30% { transform: scale(1.2); }
+                    60% { transform: scale(1.1) rotate(-5deg); }
+                    100% { transform: scale(1.15); }
+                }
+                .vl-kalp-rows {
+                    flex: 1;
+                    min-height: 120px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                    margin-top: 16px;
+                }
+                .vl-kalp-row {
+                    display: flex;
+                    gap: 10px;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 56px;
+                }
+                .vl-kalp-slot {
+                    width: 50px;
+                    height: 50px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    position: relative;
+                    overflow: hidden;
+                    cursor: pointer;
+                    transition: transform .15s ease, box-shadow .2s ease;
+                    border: none;
+                    box-shadow: inset 0 2px 0 rgba(255,255,255,.2), 0 3px 0 rgba(0,0,0,.25);
+                }
+                .vl-kalp-slot .slot-zemin {
+                    position: absolute;
+                    inset: 0;
+                    border-radius: 10px;
+                    background: linear-gradient(180deg, #2a4a6e 0%, #1e3a5f 100%);
+                }
+                .vl-kalp-slot.dogru .slot-zemin {
+                    background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%);
+                    box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+                }
+                .vl-kalp-slot:hover:not(.locked) {
+                    transform: scale(1.04);
+                }
+                .vl-kalp-slot.locked {
+                    cursor: default;
+                }
+                .vl-kalp-slot .slot-icerik {
+                    position: relative;
+                    z-index: 1;
+                    width: 28px;
+                    height: 28px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .vl-kalp-slot .slot-icerik svg {
+                    width: 100%;
+                    height: 100%;
+                    filter: drop-shadow(0 1px 1px rgba(0,0,0,.4));
+                }
+                .vl-kalp-splash {
+                    position: absolute;
+                    inset: 0;
+                    border-radius: 10px;
+                    pointer-events: none;
+                    z-index: 2;
+                }
+                .vl-kalp-splash::before {
+                    content: '';
+                    position: absolute;
+                    width: 120%;
+                    height: 120%;
+                    top: -10%;
+                    left: -10%;
+                    background: radial-gradient(ellipse 50% 50% at 35% 45%, currentColor 0%, currentColor 35%, transparent 65%);
+                    border-radius: 50%;
+                }
+                .vl-kalp-splash::after {
+                    content: '';
+                    position: absolute;
+                    width: 80%;
+                    height: 90%;
+                    left: 15%;
+                    top: 5%;
+                    background: radial-gradient(ellipse 45% 55% at 60% 55%, currentColor 0%, currentColor 40%, transparent 70%);
+                    border-radius: 50%;
+                }
+                .vl-kalp-msg {
+                    text-align: center;
+                    min-height: 22px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #f9e076;
+                    margin-top: 8px;
+                    text-shadow: 0 1px 2px rgba(0,0,0,.5);
+                }
+                .vl-kalp-picker {
+                    display: flex;
+                    gap: 8px;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                    margin-top: 14px;
+                    padding: 12px;
+                    background: rgba(255,255,255,.12);
+                    border-radius: 12px;
+                }
+                .vl-kalp-picker-btn {
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 10px;
+                    background: #fff;
+                    border: none;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: transform .2s ease, box-shadow .2s ease;
+                    overflow: hidden;
+                    box-shadow: 0 2px 6px rgba(0,0,0,.2);
+                }
+                .vl-kalp-picker-btn svg {
+                    width: 30px;
+                    height: 30px;
+                    filter: drop-shadow(0 1px 1px rgba(0,0,0,.15));
+                }
+                .vl-kalp-picker-btn:hover:not(:disabled) {
+                    transform: scale(1.08);
+                    box-shadow: 0 4px 12px rgba(0,0,0,.25);
+                }
+                .vl-kalp-picker-btn:disabled {
+                    opacity: .35;
+                    cursor: not-allowed;
+                    transform: none;
+                }
+                .vl-kalp-submit {
+                    margin-top: 14px;
+                    padding: 12px 24px;
+                    border: none;
+                    border-radius: 12px;
+                    background: linear-gradient(180deg, #f9e076, #e8c942);
+                    color: #4a2c6a;
+                    font-size: 15px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: block;
+                    width: 100%;
+                    box-shadow: 0 4px 0 #b8960f, 0 6px 12px rgba(0,0,0,.25);
+                    transition: transform .1s, box-shadow .1s;
+                }
+                .vl-kalp-submit:hover:not(:disabled) {
+                    transform: translateY(1px);
+                    box-shadow: 0 3px 0 #b8960f, 0 5px 10px rgba(0,0,0,.25);
+                }
+                .vl-kalp-submit:active:not(:disabled) {
+                    transform: translateY(2px);
+                    box-shadow: 0 1px 0 #b8960f;
+                }
+                .vl-kalp-submit:disabled {
+                    opacity: .7;
+                    cursor: not-allowed;
+                }
+                .vl-kalp-close {
+                    position: absolute;
+                    right: 14px;
+                    top: 14px;
+                    width: 34px;
+                    height: 34px;
+                    border-radius: 50%;
+                    border: 2px solid rgba(255,255,255,.5);
+                    background: rgba(0,0,0,.3);
+                    color: #fff;
+                    font-size: 18px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10;
+                    transition: background .2s, color .2s;
+                }
+                .vl-kalp-close:hover {
+                    background: rgba(255,255,255,.9);
+                    color: #4a2c6a;
+                }
+                .vl-kalp-win-overlay {
+                    position: absolute;
+                    inset: 0;
+                    background: rgba(74,44,106,.85);
+                    border-radius: 18px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 28px;
+                    z-index: 20;
+                    animation: vl-kalp-fadeIn .4s ease;
+                }
+                .vl-kalp-win-title {
+                    font-size: 20px;
+                    font-weight: 800;
+                    color: #f9e076;
+                    text-align: center;
+                    margin-bottom: 12px;
+                    text-shadow: 0 2px 4px rgba(0,0,0,.4);
+                }
+                .vl-kalp-win-hearts {
+                    display: flex;
+                    gap: 10px;
+                    margin-bottom: 20px;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .vl-kalp-win-hearts .slot-icerik {
+                    width: 36px;
+                    height: 36px;
+                    animation: vl-kalp-sway 1s ease-in-out infinite;
+                }
+                .vl-kalp-win-hearts .vl-kalp-win-h0 { animation-delay: 0s; }
+                .vl-kalp-win-hearts .vl-kalp-win-h1 { animation-delay: .1s; }
+                .vl-kalp-win-hearts .vl-kalp-win-h2 { animation-delay: .2s; }
+                .vl-kalp-win-hearts .vl-kalp-win-h3 { animation-delay: .3s; }
+                .vl-kalp-win-hearts .vl-kalp-win-h4 { animation-delay: .4s; }
+                .vl-kalp-win-hearts .vl-kalp-win-h5 { animation-delay: .5s; }
+                @keyframes vl-kalp-sway {
+                    0%, 100% { transform: translateY(0) rotate(-2deg); }
+                    50% { transform: translateY(-6px) rotate(2deg); }
+                }
+                .vl-kalp-discount {
+                    background: linear-gradient(180deg, #f9e076, #e8c942);
+                    color: #4a2c6a;
+                    padding: 14px 20px;
+                    border-radius: 12px;
+                    font-size: 16px;
+                    font-weight: 800;
+                    text-align: center;
+                    box-shadow: 0 4px 15px rgba(0,0,0,.3);
+                    animation: vl-kalp-popIn .5s .3s ease backwards;
+                }
+                @keyframes vl-kalp-popIn {
+                    from { opacity: 0; transform: scale(0.8) translateY(10px); }
+                    to { opacity: 1; transform: scale(1) translateY(0); }
+                }
+                @keyframes vl-kalp-fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes vl-kalp-slideUp {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .vl-kalp-welcome {
+                    padding: 14px 0;
+                    text-align: center;
+                    animation: vl-kalp-fadeIn .4s ease;
+                }
+                .vl-kalp-welcome-title {
+                    font-size: 23px;
+                    font-weight: 800;
+                    color: #f9e076;
+                    margin: 0 0 24px;
+                    text-shadow: 0 2px 4px rgba(0,0,0,.4);
+                }
+                .vl-kalp-how {
+                    font-size: 14px;
+                    color: rgba(255,255,255,.9);
+                    line-height: 1.6;
+                    margin-bottom: 24px;
+                    padding: 0 8px;
+                    text-align: left;
+                    max-width: 320px;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+                .vl-kalp-how strong {
+                    color: #f9e076;
+                }
+                .vl-kalp-basla {
+                    padding: 16px 36px;
+                    border: none;
+                    border-radius: 14px;
+                    background: linear-gradient(180deg, #f9e076, #e8c942);
+                    color: #4a2c6a;
+                    font-size: 16px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    box-shadow: 0 4px 0 #b8960f, 0 6px 16px rgba(0,0,0,.3);
+                    transition: transform .15s, box-shadow .15s;
+                    animation: vl-kalp-popIn .5s .3s ease backwards;
+                }
+                .vl-kalp-basla:hover {
+                    transform: translateY(1px);
+                    box-shadow: 0 3px 0 #b8960f, 0 5px 12px rgba(0,0,0,.3);
+                }
+                .vl-kalp-basla:active {
+                    transform: translateY(2px);
+                    box-shadow: 0 1px 0 #b8960f;
+                }
+                .vl-kalp-timeout {
+                    padding: 24px 16px;
+                    text-align: center;
+                    animation: vl-kalp-fadeIn .4s ease;
+                }
+                .vl-kalp-timeout-title {
+                    font-size: 18px;
+                    font-weight: 700;
+                    color: #f9e076;
+                    margin: 0 0 8px;
+                }
+                .vl-kalp-timeout-text {
+                    font-size: 14px;
+                    color: rgba(255,255,255,.85);
+                    margin-bottom: 20px;
+                }
+                .vl-kalp-tekrar {
+                    padding: 16px 32px;
+                    border: none;
+                    border-radius: 14px;
+                    background: linear-gradient(180deg, #f9e076, #e8c942);
+                    color: #4a2c6a;
+                    font-size: 15px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    box-shadow: 0 4px 0 #b8960f;
+                    transition: transform .15s, box-shadow .15s;
+                }
+                .vl-kalp-tekrar:hover {
+                    transform: translateY(1px);
+                    box-shadow: 0 3px 0 #b8960f;
+                }
+            `;
+            document.head.appendChild(s);
+            styleEl = s;
+    
+            var wrap = document.createElement("div");
+            wrap.id = "vl-kalp-popup";
+            wrap.innerHTML = [
+                '<div class="vl-kalp-overlay"></div>',
+                '<div class="vl-kalp-box vl-kalp-wall">',
+                '  <button class="vl-kalp-close" aria-label="Kapat">×</button>',
+                '  <div class="vl-kalp-welcome" id="vl-kalp-welcome">',
+                '    <h1 class="vl-kalp-welcome-title">Kalp Sıralama</h1>',
+                '    <div class="vl-kalp-how">',
+                '      <strong>Nasıl oynanır?</strong><br>',
+                '      Sistem 6 renkli kalbin sırasını belirler. Sen de aynı sırayı tahmin etmeye çalışıyorsun. Taşa tıkla, alttan rengi seç. Doğru yerdeki taş <strong>yeşil</strong> olur, yanlışta <strong>fırça izi</strong> görünür. 30 saniyede doğru sırayı bul, hediyeni kazan!',
+                '    </div>',
+                '    <button class="vl-kalp-basla" id="vl-kalp-basla">Başla</button>',
+                '  </div>',
+                '  <div class="vl-kalp-game" id="vl-kalp-game" style="display:none">',
+                '    <div class="vl-kalp-header">',
+                '      <h1 class="vl-kalp-title">Kalp Sıralama</h1>',
+                '      <div class="vl-kalp-timer-row" id="vl-kalp-timer-wrap">',
+                '        <span class="vl-kalp-timer-icon">⏱</span>',
+                '        <span class="vl-kalp-timer-text" id="vl-kalp-timer">00:30</span>',
+                '      </div>',
+                '      <div class="vl-kalp-progress-wrap">',
+                '        <div class="vl-kalp-progress-fill" id="vl-kalp-progress-fill"></div>',
+                '        <div class="vl-kalp-gift-wrap"><span class="vl-kalp-gift" id="vl-kalp-gift">🎁</span></div>',
+                '      </div>',
+                '    </div>',
+                '    <div class="vl-kalp-msg" id="vl-kalp-msg"></div>',
+                '    <div class="vl-kalp-rows" id="vl-kalp-rows"></div>',
+                '    <div class="vl-kalp-picker" id="vl-kalp-picker"></div>',
+                '    <button class="vl-kalp-submit" id="vl-kalp-submit">Kontrol Et</button>',
+                '  </div>',
+                '  <div class="vl-kalp-timeout" id="vl-kalp-timeout" style="display:none">',
+                '    <div class="vl-kalp-timeout-title">Süre doldu!</div>',
+                '    <div class="vl-kalp-timeout-text">Tekrar denemek ister misin?</div>',
+                '    <button class="vl-kalp-tekrar" id="vl-kalp-tekrar">Oyuna Tekrar Başla</button>',
+                '  </div>',
+                '</div>'
+            ].join("");
+            document.body.appendChild(wrap);
+            popupEl = wrap;
+    
+            contentEl = wrap.querySelector(".vl-kalp-box");
+            var welcomeEl = document.getElementById("vl-kalp-welcome");
+            var gameEl = document.getElementById("vl-kalp-game");
+            var timeoutEl = document.getElementById("vl-kalp-timeout");
+            progressFillEl = document.getElementById("vl-kalp-progress-fill");
+            giftEl = document.getElementById("vl-kalp-gift");
+            timerEl = document.getElementById("vl-kalp-timer");
+            rowsEl = document.getElementById("vl-kalp-rows");
+            msgEl = document.getElementById("vl-kalp-msg");
+    
+            function getKalpSvg(hex) {
+                if (!hex) return "";
+                return '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="' + hex + '" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+            }
+            function getKalpHtml(renkId) {
+                var r = KALP_RENKLERI[renkId];
+                return r ? getKalpSvg(r.hex) : "";
+            }
+    
+            function updateProgress() {
+                if (progressFillEl) progressFillEl.style.width = (progressDeger / SLOT_SAYISI * 100) + "%";
+            }
+    
+            function formatTime(sec) {
+                var m = Math.floor(sec / 60);
+                var s = sec % 60;
+                return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+            }
+    
+            function updateTimer() {
+                if (!timerEl) return;
+                timerEl.textContent = formatTime(kalanSaniye);
+                updateProgress();
+            }
+    
+            function tick() {
+                if (oyunBitti || kazandi) return;
+                kalanSaniye--;
+                updateTimer();
+                if (kalanSaniye <= 0) {
+                    oyunBitti = true;
+                    if (timerId) clearInterval(timerId);
+                    timerId = null;
+                    gameEl.style.display = "none";
+                    timeoutEl.style.display = "block";
+                }
+            }
+    
+            function startGame() {
+                welcomeEl.style.display = "none";
+                gameEl.style.display = "block";
+                updateTimer();
+                renderRows();
+                renderPicker();
+                timerId = setInterval(tick, 1000);
+            }
+    
+            function restartGame() {
+                hedefSira = shuffle(KALP_RENKLERI.map(function (k) { return k.id; }));
+                denemeler = [];
+                mevcutSatir = [null, null, null, null, null, null];
+                kilitliIndeksler = [];
+                kalanSaniye = TOPLAM_SANIYE;
+                oyunBitti = false;
+                progressDeger = 0;
+                seciliSlot = null;
+                if (timerId) clearInterval(timerId);
+                timerId = null;
+                timeoutEl.style.display = "none";
+                gameEl.style.display = "block";
+                updateTimer();
+                renderRows();
+                renderPicker();
+                timerId = setInterval(tick, 1000);
+            }
+    
+            function renderRows() {
+                var html = "";
+                var i, j, d, slotVal, isCorrect, isWrong;
+                for (i = 0; i < denemeler.length; i++) {
+                    d = denemeler[i];
+                    html += '<div class="vl-kalp-row vl-kalp-row-past">';
+                    for (j = 0; j < SLOT_SAYISI; j++) {
+                        slotVal = d.arr[j];
+                        isCorrect = d.dogruIndeksler && d.dogruIndeksler[j];
+                        isWrong = d.yanlisIndeksler && d.yanlisIndeksler[j];
+                        html += '<div class="vl-kalp-slot ' + (isCorrect ? 'dogru' : '') + ' locked">';
+                        html += '<div class="slot-zemin"></div>';
+                        if (isWrong) {
+                            var hex = KALP_RENKLERI[slotVal] ? KALP_RENKLERI[slotVal].hex : "#999";
+                            html += '<div class="vl-kalp-splash" style="color:' + hex + ';"></div>';
+                        }
+                        if (isCorrect && slotVal !== undefined && slotVal !== null) {
+                            html += '<span class="slot-icerik">' + getKalpHtml(slotVal) + '</span>';
+                        }
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                }
+                html += '<div class="vl-kalp-row vl-kalp-row-current" id="vl-kalp-current-row">';
+                for (j = 0; j < SLOT_SAYISI; j++) {
+                    var locked = kilitliIndeksler.indexOf(j) !== -1;
+                    var val = mevcutSatir[j];
+                    var dogru = locked && val === hedefSira[j];
+                    html += '<div class="vl-kalp-slot ' + (dogru ? 'dogru' : '') + (locked ? ' locked' : '') + '" data-index="' + j + '">';
+                    html += '<div class="slot-zemin"></div>';
+                    if (val !== null && val !== undefined) {
+                        html += '<span class="slot-icerik">' + getKalpHtml(val) + '</span>';
+                    }
+                    html += '</div>';
+                }
+                html += '</div>';
+                rowsEl.innerHTML = html;
+    
+                var currentRow = document.getElementById("vl-kalp-current-row");
+                if (currentRow && !oyunBitti && !kazandi) {
+                    currentRow.querySelectorAll(".vl-kalp-slot:not(.locked)").forEach(function (slot) {
+                        slot.addEventListener("click", function () {
+                            var idx = parseInt(slot.getAttribute("data-index"), 10);
+                            if (mevcutSatir[idx] !== null && mevcutSatir[idx] !== undefined) {
+                                mevcutSatir[idx] = null;
+                                seciliSlot = null;
+                                renderRows();
+                                renderPicker();
+                            } else {
+                                showPicker(idx);
+                            }
+                        });
+                    });
+                }
+            }
+    
+            function usedInCurrentRow() {
+                var u = [];
+                for (var i = 0; i < SLOT_SAYISI; i++) {
+                    if (mevcutSatir[i] !== null && mevcutSatir[i] !== undefined) u.push(mevcutSatir[i]);
+                }
+                return u;
+            }
+    
+            function showPicker(slotIndex) {
+                seciliSlot = slotIndex;
+                renderPicker();
+            }
+    
+            function renderPicker() {
+                var picker = document.getElementById("vl-kalp-picker");
+                if (!picker) return;
+                var used = [];
+                for (var u = 0; u < SLOT_SAYISI; u++) {
+                    if (u !== seciliSlot && mevcutSatir[u] !== null && mevcutSatir[u] !== undefined) used.push(mevcutSatir[u]);
+                }
+                picker.innerHTML = "";
+                KALP_RENKLERI.forEach(function (k) {
+                    var disabled = used.indexOf(k.id) !== -1;
+                    var btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = "vl-kalp-picker-btn";
+                    btn.disabled = disabled;
+                    btn.innerHTML = getKalpSvg(k.hex);
+                    btn.setAttribute("data-color-id", k.id);
+                    if (!disabled) {
+                        btn.addEventListener("click", function () {
+                            var cid = parseInt(btn.getAttribute("data-color-id"), 10);
+                            if (seciliSlot !== null) {
+                                mevcutSatir[seciliSlot] = cid;
+                                seciliSlot = null;
+                            } else {
+                                for (var e = 0; e < SLOT_SAYISI; e++) {
+                                    if (mevcutSatir[e] === null || mevcutSatir[e] === undefined) {
+                                        mevcutSatir[e] = cid;
+                                        break;
+                                    }
+                                }
+                            }
+                            renderRows();
+                            renderPicker();
+                        });
+                    }
+                    picker.appendChild(btn);
+                });
+            }
+    
+            function evaluateRow(arr) {
+                var dogruIndeksler = {};
+                var yanlisIndeksler = {};
+                var dogruSayisi = 0;
+                for (var i = 0; i < SLOT_SAYISI; i++) {
+                    if (arr[i] === hedefSira[i]) {
+                        dogruIndeksler[i] = true;
+                        dogruSayisi++;
+                    } else {
+                        yanlisIndeksler[i] = true;
+                    }
+                }
+                return { arr: arr.slice(), dogruIndeksler: dogruIndeksler, yanlisIndeksler: yanlisIndeksler, dogruSayisi: dogruSayisi };
+            }
+    
+            function submitAttempt() {
+                if (oyunBitti || kazandi) return;
+                var full = true;
+                for (var i = 0; i < SLOT_SAYISI; i++) {
+                    if (mevcutSatir[i] === null || mevcutSatir[i] === undefined) {
+                        full = false;
+                        break;
+                    }
+                }
+                if (!full) {
+                    msgEl.textContent = "Tüm kalpleri yerleştirin.";
+                    return;
+                }
+                var arr = mevcutSatir.slice();
+                var result = evaluateRow(arr);
+                denemeler.push(result);
+                progressDeger = result.dogruSayisi;
+                updateProgress();
+                msgEl.textContent = result.dogruSayisi + " doğru!";
+                if (result.dogruSayisi === SLOT_SAYISI) {
+                    kazandi = true;
+                    if (timerId) clearInterval(timerId);
+                    timerId = null;
+                    progressDeger = SLOT_SAYISI;
+                    progressFillEl.style.width = "100%";
+                    progressFillEl.style.transition = "width .6s cubic-bezier(0.34, 1.56, 0.64, 1)";
+                    giftEl.classList.add("open");
+                    setTimeout(function () {
+                        var overlay = document.createElement("div");
+                        overlay.className = "vl-kalp-win-overlay";
+                        var winHearts = hedefSira.map(function (rid, idx) {
+                            return '<span class="slot-icerik vl-kalp-win-h' + idx + '">' + getKalpHtml(rid) + '</span>';
+                        }).join("");
+                        overlay.innerHTML = '<div class="vl-kalp-win-title">Tebrikler!</div><div class="vl-kalp-win-hearts">' + winHearts + '</div><div class="vl-kalp-discount">Belirtilen ürünlerde %20 indirim kazandınız!</div>';
+                        contentEl.appendChild(overlay);
+                    }, 400);
+                    return;
+                }
+                kilitliIndeksler = [];
+                for (var k = 0; k < SLOT_SAYISI; k++) {
+                    if (result.dogruIndeksler[k]) kilitliIndeksler.push(k);
+                }
+                mevcutSatir = [null, null, null, null, null, null];
+                for (var q = 0; q < kilitliIndeksler.length; q++) {
+                    mevcutSatir[kilitliIndeksler[q]] = arr[kilitliIndeksler[q]];
+                }
+                updateTimer();
+                renderRows();
+                renderPicker();
+            }
+    
+            function closePopup() {
+                if (timerId) clearInterval(timerId);
+                if (popupEl && popupEl.parentNode) popupEl.parentNode.removeChild(popupEl);
+                if (styleEl && styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
+            }
+    
+            wrap.querySelector(".vl-kalp-overlay").addEventListener("click", closePopup);
+            wrap.querySelector(".vl-kalp-close").addEventListener("click", closePopup);
+            document.getElementById("vl-kalp-submit").addEventListener("click", submitAttempt);
+            document.getElementById("vl-kalp-basla").addEventListener("click", startGame);
+            document.getElementById("vl-kalp-tekrar").addEventListener("click", restartGame);
+        }
+    
+        if (typeof kalpSiralamaOyunu === "function") {
+            kalpSiralamaOyunu();
+        }
+        if (typeof window.kalpSiralamaOyunu === "undefined") {
+            window.kalpSiralamaOyunu = kalpSiralamaOyunu;
+        }
+    })();
+    
+    </script>
+    </body>
+    </html>

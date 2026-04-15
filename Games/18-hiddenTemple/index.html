@@ -1,0 +1,936 @@
+<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Hidden Temple</title></head><body>
+    <script>
+    ; (function () {
+        "use strict";
+        if (window.__vl_hidden_temple_booted) return;
+        window.__vl_hidden_temple_booted = true;
+    
+        if (typeof window.VL_HT_GEM_IMAGES === "undefined") window.VL_HT_GEM_IMAGES = [];
+        if (typeof window.VL_HT_AXE_IMAGE === "undefined") window.VL_HT_AXE_IMAGE = "";
+    
+        var ROWS = 7;
+        var COLS = 7;
+        var TOTAL_TILES = ROWS * COLS;
+        var GEM_COUNT = 4;
+        var MAX_PICKS = 30;
+    
+        var GEM_COLORS = ["#9b59b6", "#e74c3c", "#f39c12", "#1abc9c"];
+        var GEM_IMAGES = (typeof window.VL_HT_GEM_IMAGES !== "undefined" && Array.isArray(window.VL_HT_GEM_IMAGES)) ? window.VL_HT_GEM_IMAGES : [];
+        var AXE_IMAGE = (typeof window.VL_HT_AXE_IMAGE === "string" && window.VL_HT_AXE_IMAGE) ? window.VL_HT_AXE_IMAGE : "";
+    
+        function shuffle(arr) {
+            var a = arr.slice();
+            for (var i = a.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var t = a[i];
+                a[i] = a[j];
+                a[j] = t;
+            }
+            return a;
+        }
+    
+        function allPlacements() {
+            var h4 = [], h2 = [], v5 = [], h5 = [];
+            var r, c, i, list;
+            for (r = 0; r < ROWS; r++) {
+                for (c = 0; c + 4 <= COLS; c++) {
+                    list = [];
+                    for (i = 0; i < 4; i++) list.push(r * COLS + c + i);
+                    h4.push(list);
+                }
+            }
+            for (r = 0; r < ROWS; r++) {
+                for (c = 0; c + 2 <= COLS; c++) {
+                    list = [];
+                    for (i = 0; i < 2; i++) list.push(r * COLS + c + i);
+                    h2.push(list);
+                }
+            }
+            for (c = 0; c < COLS; c++) {
+                for (r = 0; r + 5 <= ROWS; r++) {
+                    list = [];
+                    for (i = 0; i < 5; i++) list.push((r + i) * COLS + c);
+                    v5.push(list);
+                }
+            }
+            for (r = 0; r < ROWS; r++) {
+                for (c = 0; c + 5 <= COLS; c++) {
+                    list = [];
+                    for (i = 0; i < 5; i++) list.push(r * COLS + c + i);
+                    h5.push(list);
+                }
+            }
+            return { h4: h4, h2: h2, v5: v5, h5: h5 };
+        }
+    
+        function placeGems() {
+            var all = allPlacements();
+            var shapeKeys = ["h4", "h2", "v5", "h5"];
+            var attempt = 0;
+            while (attempt < 300) {
+                attempt++;
+                shuffle(shapeKeys);
+                var used = {};
+                var result = [];
+                var ok = true;
+                for (var s = 0; s < shapeKeys.length; s++) {
+                    var opts = all[shapeKeys[s]].slice();
+                    shuffle(opts);
+                    var valid = [];
+                    for (var k = 0; k < opts.length; k++) {
+                        var tileList = opts[k];
+                        var overlap = false;
+                        for (var t = 0; t < tileList.length; t++) {
+                            if (used[tileList[t]]) { overlap = true; break; }
+                        }
+                        if (!overlap) valid.push(tileList.slice());
+                    }
+                    if (valid.length === 0) { ok = false; break; }
+                    var pick = valid[Math.floor(Math.random() * valid.length)];
+                    for (var t = 0; t < pick.length; t++) used[pick[t]] = true;
+                    result.push(pick);
+                }
+                if (ok && result.length === 4) return result;
+            }
+            shuffle(shapeKeys);
+            var used = {};
+            var result = [];
+            for (var s = 0; s < shapeKeys.length; s++) {
+                var opts = all[shapeKeys[s]].slice();
+                for (var k = 0; k < opts.length; k++) {
+                    var tileList = opts[k];
+                    var overlap = false;
+                    for (var t = 0; t < tileList.length; t++) {
+                        if (used[tileList[t]]) { overlap = true; break; }
+                    }
+                    if (!overlap) {
+                        for (t = 0; t < tileList.length; t++) used[tileList[t]] = true;
+                        result.push(tileList.slice());
+                        break;
+                    }
+                }
+            }
+            return result;
+        }
+    
+        function hiddenTempleGame() {
+            if (document.getElementById("vl-ht-popup")) return;
+    
+            var gemShapes = [];
+            var tileToGem = {};
+            var gemBrokenCount = [0, 0, 0, 0];
+            var broken = {};
+            var picksLeft = MAX_PICKS;
+            var placedInSlots = 0;
+            var gameOver = false;
+            var won = false;
+            var styleEl, popupEl, boxEl, welcomeEl, gameEl, loseEl, gridEl, slotsEl, picksEl;
+    
+            var s = document.createElement("style");
+            s.id = "vl-ht-style";
+            s.innerHTML = `
+        #vl-ht-popup {
+            position: fixed;
+            inset: 0;
+            z-index: 2147483647;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: vl-ht-fadeIn .35s ease;
+        }
+    
+        #vl-ht-popup .vl-ht-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, .7);
+            cursor: pointer;
+        }
+    
+        #vl-ht-popup .vl-ht-box {
+            position: relative;
+            z-index: 1;
+            width: 96%;
+            max-width: 520px;
+            max-height: 95vh;
+            overflow: hidden;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+            animation: vl-ht-slideUp .4s ease;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, #2c1810 0%, #1a0f0a 100%);
+        }
+    
+        #vl-ht-popup .vl-ht-wall {
+            background: linear-gradient(135deg, #3d2316 0%, #2c1810 50%, #1a0f0a 100%);
+            padding: 20px;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            border: 3px solid #8b6914;
+            border-radius: 14px;
+            margin: 10px;
+        }
+    
+        #vl-ht-popup .vl-ht-close {
+            position: absolute;
+            right: 12px;
+            top: 12px;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, .4);
+            background: rgba(0, 0, 0, .4);
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 25;
+        }
+    
+        #vl-ht-popup .vl-ht-close:hover {
+            background: rgba(220, 80, 60, .9);
+            color: #fff;
+        }
+    
+        #vl-ht-popup .vl-ht-welcome {
+            padding: 28px 20px;
+            text-align: center;
+            animation: vl-ht-fadeIn .4s ease;
+        }
+    
+        #vl-ht-popup .vl-ht-welcome-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #f4d03f;
+            margin: 0 0 22px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, .5);
+        }
+    
+        #vl-ht-popup .vl-ht-how {
+            font-size: 15px;
+            color: rgba(255, 255, 255, .9);
+            line-height: 1.7;
+            margin-bottom: 26px;
+            padding: 0 10px;
+            text-align: left;
+            max-width: 360px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    
+        #vl-ht-popup .vl-ht-how strong {
+            color: #f4d03f;
+        }
+    
+        #vl-ht-popup .vl-ht-basla {
+            padding: 18px 44px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #f4d03f, #e8b82e);
+            color: #2c1810;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #b8960f, 0 6px 20px rgba(0, 0, 0, .4);
+            transition: transform .15s, box-shadow .15s;
+        }
+    
+        #vl-ht-popup .vl-ht-basla:hover {
+            transform: translateY(1px);
+            box-shadow: 0 3px 0 #b8960f, 0 5px 15px rgba(0, 0, 0, .4);
+        }
+    
+        #vl-ht-popup .vl-ht-basla:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #b8960f;
+        }
+    
+        #vl-ht-popup .vl-ht-game {
+            display: none;
+            padding: 14px 12px 22px;
+        }
+    
+        #vl-ht-popup .vl-ht-header {
+            background: linear-gradient(180deg, #8b6914 0%, #6b4a0a 100%);
+            border: 2px solid #f4d03f;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 14px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 4px 12px rgba(0, 0, 0, .4);
+        }
+    
+        #vl-ht-popup .vl-ht-title {
+            text-align: center;
+            font-size: 19px;
+            font-weight: 800;
+            color: #fff;
+            margin: 0 0 10px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, .5);
+        }
+    
+        #vl-ht-popup .vl-ht-picks-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+    
+        #vl-ht-popup .vl-ht-pickaxe-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f4d03f;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .5));
+        }
+    
+        #vl-ht-popup .vl-ht-pickaxe-icon .vl-ht-axe-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    
+        #vl-ht-popup .vl-ht-picks-text {
+            font-size: 17px;
+            font-weight: 700;
+            color: #fff;
+            font-variant-numeric: tabular-nums;
+        }
+    
+        #vl-ht-popup .vl-ht-slots-wrap {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            min-height: 48px;
+            align-items: center;
+        }
+    
+        #vl-ht-popup .vl-ht-slot {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #1e3a5f 0%, #0f1f35 100%);
+            border: 2px solid #f4d03f;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, .4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+    
+        #vl-ht-popup .vl-ht-slot.filled .vl-ht-slot-gem,
+        #vl-ht-popup .vl-ht-slot.filled .vl-ht-slot-gem-img {
+            opacity: 1;
+            transform: scale(1);
+        }
+    
+        #vl-ht-popup .vl-ht-slot-gem {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            opacity: 0;
+            transform: scale(0);
+            transition: opacity .3s ease, transform .3s ease;
+            box-shadow: 0 0 12px currentColor, inset 0 1px 0 rgba(255, 255, 255, .4);
+        }
+    
+        #vl-ht-popup .vl-ht-slot-gem-img {
+            width: 26px;
+            height: 26px;
+            object-fit: contain;
+            opacity: 0;
+            transform: scale(0);
+            transition: opacity .3s ease, transform .3s ease;
+        }
+    
+        #vl-ht-popup .vl-ht-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            max-width: 100%;
+            margin: 0 auto;
+            aspect-ratio: 1;
+            width: min(100%, 360px);
+            padding: 8px;
+            background: #5d3a1a;
+            border: 3px solid #8b6914;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, .5), 0 4px 16px rgba(0, 0, 0, .4);
+        }
+    
+        #vl-ht-popup .vl-ht-cell {
+            aspect-ratio: 1;
+            border-radius: 0;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #4a3520 0%, #2c1810 100%);
+            border: 1px solid #3d2815;
+            transition: transform .1s ease;
+        }
+    
+        #vl-ht-popup .vl-ht-cell:active:not(.broken) {
+            transform: scale(0.97);
+        }
+    
+        #vl-ht-popup .vl-ht-cell.vl-ht-cell-hit {
+            animation: vl-ht-cell-hit .12s ease-out;
+        }
+    
+        @keyframes vl-ht-cell-hit {
+            0% { transform: scale(0.92); }
+            60% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+    
+        #vl-ht-popup .vl-ht-cell.broken {
+            cursor: default;
+            pointer-events: none;
+            background: linear-gradient(180deg, #3a2818 0%, #1e140c 100%);
+            border-color: #2a1c10;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, .6);
+        }
+    
+        #vl-ht-popup .vl-ht-cell.broken .vl-ht-wood {
+            opacity: 0;
+            transform: scale(1.6);
+        }
+    
+        #vl-ht-popup .vl-ht-cell .vl-ht-wood {
+            position: absolute;
+            inset: 1px;
+            border-radius: 0;
+            background: linear-gradient(145deg, #c9a86c 0%, #a88448 40%, #8b6914 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3);
+            transition: opacity .28s cubic-bezier(0.4, 0, 0.2, 1), transform .28s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+        }
+    
+        #vl-ht-popup .vl-ht-cell .vl-ht-wood::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(90deg, transparent 0, transparent 2px, rgba(0, 0, 0, .06) 2px, rgba(0, 0, 0, .06) 4px);
+            pointer-events: none;
+        }
+    
+        #vl-ht-popup .vl-ht-cell.broken .vl-ht-particles {
+            opacity: 1;
+            animation: vl-ht-particles .7s ease-out forwards;
+        }
+    
+        #vl-ht-popup .vl-ht-particles {
+            position: absolute;
+            inset: -4px;
+            pointer-events: none;
+            opacity: 0;
+        }
+    
+        #vl-ht-popup .vl-ht-particles span {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: linear-gradient(145deg, #d4b87c, #9a7a3c);
+            border-radius: 2px;
+            box-shadow: 0 0 4px rgba(0, 0, 0, .35);
+            animation: vl-ht-particle-fly .6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+    
+        #vl-ht-popup .vl-ht-particles span:nth-child(1) { left: 20%; top: 30%; --dx: 18px; --dy: -22px; --dr: 0.4; }
+        #vl-ht-popup .vl-ht-particles span:nth-child(2) { left: 50%; top: 20%; --dx: -14px; --dy: -18px; --dr: -0.3; }
+        #vl-ht-popup .vl-ht-particles span:nth-child(3) { left: 75%; top: 50%; --dx: 20px; --dy: 12px; --dr: 0.5; }
+        #vl-ht-popup .vl-ht-particles span:nth-child(4) { left: 25%; top: 70%; --dx: -18px; --dy: 14px; --dr: -0.4; }
+        #vl-ht-popup .vl-ht-particles span:nth-child(5) { left: 45%; top: 65%; --dx: 10px; --dy: 18px; --dr: 0.35; }
+        #vl-ht-popup .vl-ht-particles span:nth-child(6) { left: 80%; top: 25%; --dx: -20px; --dy: -12px; --dr: -0.5; }
+        #vl-ht-popup .vl-ht-particles span:nth-child(7) { left: 15%; top: 50%; --dx: -16px; --dy: 8px; --dr: 0.3; }
+        #vl-ht-popup .vl-ht-particles span:nth-child(8) { left: 60%; top: 75%; --dx: 14px; --dy: -10px; --dr: -0.35; }
+    
+        #vl-ht-popup .vl-ht-gem-part {
+            position: absolute;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .25s ease;
+            box-shadow: 0 0 10px currentColor, inset 0 1px 0 rgba(255, 255, 255, .35);
+        }
+    
+        #vl-ht-popup .vl-ht-gem-part:not(.vl-ht-gem-img-wrap)::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,.4) 0%, transparent 50%, rgba(0,0,0,.15) 100%);
+            border-radius: 0;
+            pointer-events: none;
+        }
+    
+        #vl-ht-popup .vl-ht-cell.broken .vl-ht-gem-part {
+            opacity: 1;
+        }
+    
+        #vl-ht-popup .vl-ht-cell.broken.gem-complete .vl-ht-gem-part {
+            opacity: 0;
+        }
+    
+        #vl-ht-popup .vl-ht-gem-part-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    
+        .vl-ht-axe .vl-ht-axe-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    
+        .vl-ht-axe {
+            position: fixed;
+            width: 64px;
+            height: 64px;
+            pointer-events: none;
+            z-index: 2147483646;
+            transform-origin: 50% 85%;
+        }
+    
+        .vl-ht-fly-gem {
+            position: fixed;
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 0 24px rgba(0, 0, 0, .4);
+            transition: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    
+        .vl-ht-fly-gem .vl-ht-fly-gem-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    
+        #vl-ht-popup .vl-ht-lose {
+            padding: 28px 20px;
+            text-align: center;
+            display: none;
+            animation: vl-ht-fadeIn .4s ease;
+        }
+    
+        #vl-ht-popup .vl-ht-lose-title {
+            font-size: 21px;
+            font-weight: 800;
+            color: #f4d03f;
+            margin: 0 0 12px;
+        }
+    
+        #vl-ht-popup .vl-ht-lose-text {
+            font-size: 15px;
+            color: rgba(255, 255, 255, .9);
+            margin-bottom: 24px;
+        }
+    
+        #vl-ht-popup .vl-ht-tekrar {
+            padding: 18px 40px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #f4d03f, #e8b82e);
+            color: #2c1810;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #b8960f;
+            transition: transform .15s, box-shadow .15s;
+        }
+    
+        #vl-ht-popup .vl-ht-tekrar:hover {
+            transform: translateY(1px);
+            box-shadow: 0 3px 0 #b8960f;
+        }
+    
+        #vl-ht-popup .vl-ht-win-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(20, 12, 8, .92);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 28px;
+            z-index: 30;
+            animation: vl-ht-fadeIn .5s ease;
+        }
+    
+        #vl-ht-popup .vl-ht-win-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #f4d03f;
+            text-align: center;
+            margin-bottom: 18px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, .5);
+        }
+    
+        #vl-ht-popup .vl-ht-win-discount {
+            background: linear-gradient(180deg, #f4d03f, #e8b82e);
+            color: #2c1810;
+            padding: 20px 28px;
+            border-radius: 14px;
+            font-size: 18px;
+            font-weight: 800;
+            text-align: center;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, .4);
+            animation: vl-ht-popIn .5s .3s ease backwards;
+        }
+    
+        @keyframes vl-ht-particle-fly {
+            0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+            100% { opacity: 0; transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.15) rotate(var(--dr, 0)turn); }
+        }
+    
+        @keyframes vl-ht-particles {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    
+        @keyframes vl-ht-fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    
+        @keyframes vl-ht-slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    
+        @keyframes vl-ht-popIn {
+            from { opacity: 0; transform: scale(0.85) translateY(12px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+    
+        @media only screen and (max-width: 420px) {
+            #vl-ht-popup .vl-ht-slot {
+                width: 38px;
+                height: 38px;
+            }
+    
+            #vl-ht-popup .vl-ht-slot-gem {
+                width: 22px;
+                height: 22px;
+            }
+    
+            #vl-ht-popup .vl-ht-grid {
+                width: min(100%, 300px);
+            }
+    
+            #vl-ht-popup .vl-ht-wall {
+                padding: 14px;
+            }
+        }
+            `;
+            document.head.append(s);
+            styleEl = s;
+    
+            var axeSvg = '<svg width="64" height="64" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="vl-ht-axe-metal" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#7eb8da"/><stop offset="50%" style="stop-color:#5a9fc9"/><stop offset="100%" style="stop-color:#4a8ab5"/></linearGradient><linearGradient id="vl-ht-axe-wood" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#a67c52"/><stop offset="100%" style="stop-color:#6b4423"/></linearGradient><linearGradient id="vl-ht-axe-gold" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#f4d03f"/><stop offset="100%" style="stop-color:#d4a012"/></linearGradient></defs><path d="M8 6 L16 4 L24 8 L22 12 L16 10 L10 12 Z" fill="url(#vl-ht-axe-metal)" stroke="#3d6b85" stroke-width="0.6"/><path d="M16 10 L20 24 L12 24 Z" fill="url(#vl-ht-axe-metal)" stroke="#3d6b85" stroke-width="0.6"/><rect x="13.5" y="4" width="5" height="20" rx="1" fill="url(#vl-ht-axe-wood)" stroke="#5c4033" stroke-width="0.5"/><rect x="12" y="2.5" width="8" height="2.2" rx="0.8" fill="url(#vl-ht-axe-gold)" stroke="#b8860b" stroke-width="0.4"/><rect x="12" y="23" width="8" height="2.2" rx="0.8" fill="url(#vl-ht-axe-gold)" stroke="#b8860b" stroke-width="0.4"/></svg>';
+    
+            var wrap = document.createElement("div");
+            wrap.id = "vl-ht-popup";
+            wrap.innerHTML = [
+                '<div class="vl-ht-overlay"></div>',
+                '<div class="vl-ht-box vl-ht-wall">',
+                '  <button class="vl-ht-close" aria-label="Kapat">×</button>',
+                '  <div class="vl-ht-welcome" id="vl-ht-welcome">',
+                '    <h1 class="vl-ht-welcome-title">Hidden Temple</h1>',
+                '    <div class="vl-ht-how">',
+                '      <strong>Nasıl oynanır?</strong><br>',
+                '      7x7 tahta alanında 4 mücevher gizli (yatay ve dikey bitişik). Balta ile tahtaya tıkla; balta vurur, tahta kırılır. Bir mücevherin tüm tahtalarını kırınca mücevher yuvaya gider. 30 kazıma hakkın var. 4 mücevheri de topla, kalan tahtalar kırılsın, %20 indirim kazan!',
+                '    </div>',
+                '    <button class="vl-ht-basla" id="vl-ht-basla">Oyuna Başla</button>',
+                '  </div>',
+                '  <div class="vl-ht-game" id="vl-ht-game">',
+                '    <div class="vl-ht-header">',
+                '      <h2 class="vl-ht-title">Hidden Temple</h2>',
+                '      <div class="vl-ht-slots-wrap" id="vl-ht-slots"></div>',
+                '      <div class="vl-ht-picks-row">',
+                '        <span class="vl-ht-pickaxe-icon">' + (AXE_IMAGE ? '<img src="' + AXE_IMAGE + '" alt="" class="vl-ht-axe-img">' : axeSvg) + '</span>',
+                '        <span class="vl-ht-picks-text" id="vl-ht-picks">30</span>',
+                '      </div>',
+                '    </div>',
+                '    <div class="vl-ht-grid" id="vl-ht-grid"></div>',
+                '  </div>',
+                '  <div class="vl-ht-lose" id="vl-ht-lose">',
+                '    <div class="vl-ht-lose-title">Hakların bitti!</div>',
+                '    <div class="vl-ht-lose-text">4 mücevheri bulamadın. Tekrar dene.</div>',
+                '    <button class="vl-ht-tekrar" id="vl-ht-tekrar">Tekrar Başla</button>',
+                '  </div>',
+                '</div>'
+            ].join("");
+            document.body.appendChild(wrap);
+            popupEl = wrap;
+            boxEl = wrap.querySelector(".vl-ht-box");
+            welcomeEl = document.getElementById("vl-ht-welcome");
+            gameEl = document.getElementById("vl-ht-game");
+            loseEl = document.getElementById("vl-ht-lose");
+            gridEl = document.getElementById("vl-ht-grid");
+            slotsEl = document.getElementById("vl-ht-slots");
+    
+            function gemPartStyle(gemId, idx, tiles) {
+                if (tiles.indexOf(idx) < 0) return "display:none";
+                var color = GEM_COLORS[gemId] || "#9b59b6";
+                return "background:" + color + ";color:" + color + ";left:0;top:0;width:100%;height:100%;border-radius:0;";
+            }
+    
+            function renderSlots() {
+                var html = "";
+                for (var i = 0; i < GEM_COUNT; i++) {
+                    var filled = i < placedInSlots;
+                    var color = GEM_COLORS[i] || "#9b59b6";
+                    var gemContent = GEM_IMAGES[i] ? '<img src="' + GEM_IMAGES[i] + '" alt="" class="vl-ht-slot-gem-img">' : '<div class="vl-ht-slot-gem" style="background:' + color + ';color:' + color + '"></div>';
+                    html += '<div class="vl-ht-slot' + (filled ? " filled" : "") + '" data-slot="' + i + '">' + gemContent + '</div>';
+                }
+                slotsEl.innerHTML = html;
+            }
+    
+            function renderGrid() {
+                var html = "";
+                for (var r = 0; r < ROWS; r++) {
+                    for (var c = 0; c < COLS; c++) {
+                        var idx = r * COLS + c;
+                        var isBroken = broken[idx];
+                        var gemId = tileToGem[idx];
+                        var tiles = gemId !== undefined ? gemShapes[gemId] : [];
+                        var allBroken = tiles.length > 0 && tiles.every(function (i) { return broken[i]; });
+                        var partStyle = gemId !== undefined ? gemPartStyle(gemId, idx, tiles) : "";
+                        html += '<div class="vl-ht-cell' + (isBroken ? " broken" : "") + (allBroken ? " gem-complete" : "") + '" data-idx="' + idx + '">';
+                        html += '<div class="vl-ht-wood"></div>';
+                        if (isBroken) {
+                            html += '<div class="vl-ht-particles">';
+                            for (var p = 0; p < 8; p++) html += '<span></span>';
+                            html += '</div>';
+                        }
+                        if (gemId !== undefined) {
+                            if (GEM_IMAGES[gemId]) html += '<div class="vl-ht-gem-part vl-ht-gem-img-wrap" style="left:0;top:0;width:100%;height:100%"><img src="' + GEM_IMAGES[gemId] + '" alt="" class="vl-ht-gem-part-img"></div>';
+                            else html += '<div class="vl-ht-gem-part" style="' + partStyle + '"></div>';
+                        }
+                        html += '</div>';
+                    }
+                }
+                gridEl.innerHTML = html;
+                gridEl.querySelectorAll(".vl-ht-cell:not(.broken)").forEach(function (cell) {
+                    cell.addEventListener("click", onCellClick);
+                });
+            }
+    
+            function showAxeThenBreak(cell, idx, cb) {
+                var rect = cell.getBoundingClientRect();
+                var cx = rect.left + rect.width / 2;
+                var cy = rect.top + rect.height / 2;
+                cell.classList.add("vl-ht-cell-hit");
+                var ax = document.createElement("div");
+                ax.className = "vl-ht-axe";
+                ax.style.left = cx + "px";
+                ax.style.top = (rect.top - 36) + "px";
+                ax.style.transform = "translate(-50%, 0) rotate(-58deg) scale(1.25)";
+                if (AXE_IMAGE) {
+                    var aimg = document.createElement("img");
+                    aimg.src = AXE_IMAGE;
+                    aimg.alt = "";
+                    aimg.className = "vl-ht-axe-img";
+                    ax.appendChild(aimg);
+                } else {
+                    ax.innerHTML = axeSvg;
+                }
+                document.body.appendChild(ax);
+                requestAnimationFrame(function () {
+                    ax.style.transition = "top .25s ease-out, transform .25s ease-out";
+                    ax.style.top = cy + "px";
+                    ax.style.transform = "translate(-50%, -50%) rotate(25deg) scale(1.2)";
+                });
+                setTimeout(function () {
+                    if (cell.classList) cell.classList.remove("vl-ht-cell-hit");
+                    if (ax.parentNode) ax.parentNode.removeChild(ax);
+                    cb();
+                }, 480);
+            }
+    
+            function flyGemToSlot(gemId) {
+                var tiles = gemShapes[gemId];
+                var color = GEM_COLORS[gemId] || "#9b59b6";
+                var firstCell = gridEl.querySelector('[data-idx="' + tiles[0] + '"]');
+                if (!firstCell) return;
+                var rect = firstCell.getBoundingClientRect();
+                for (var i = 1; i < tiles.length; i++) {
+                    var r = gridEl.querySelector('[data-idx="' + tiles[i] + '"]').getBoundingClientRect();
+                    rect = {
+                        left: Math.min(rect.left, r.left),
+                        top: Math.min(rect.top, r.top),
+                        width: Math.max(rect.left + rect.width, r.left + r.width) - Math.min(rect.left, r.left),
+                        height: Math.max(rect.top + rect.height, r.top + r.height) - Math.min(rect.top, r.top)
+                    };
+                }
+                var fromX = rect.left + rect.width / 2;
+                var fromY = rect.top + rect.height / 2;
+                var fly = document.createElement("div");
+                fly.className = "vl-ht-fly-gem";
+                fly.style.left = fromX + "px";
+                fly.style.top = fromY + "px";
+                fly.style.transform = "translate(-50%,-50%) scale(0.5)";
+                if (GEM_IMAGES[gemId]) {
+                    var fimg = document.createElement("img");
+                    fimg.src = GEM_IMAGES[gemId];
+                    fimg.alt = "";
+                    fimg.className = "vl-ht-fly-gem-img";
+                    fly.appendChild(fimg);
+                } else {
+                    fly.style.background = color;
+                    fly.style.color = color;
+                    fly.style.boxShadow = "0 0 24px " + color + ", inset 0 1px 0 rgba(255,255,255,.4)";
+                }
+                document.body.appendChild(fly);
+                var slot = slotsEl.querySelector('[data-slot="' + placedInSlots + '"]');
+                if (!slot) { fly.remove(); return; }
+                var slotRect = slot.getBoundingClientRect();
+                var toX = slotRect.left + slotRect.width / 2;
+                var toY = slotRect.top + slotRect.height / 2;
+                requestAnimationFrame(function () {
+                    fly.style.transition = "transform .38s cubic-bezier(0.34,1.56,0.64,1)";
+                    fly.style.transform = "translate(-50%,-50%) scale(1.55)";
+                });
+                setTimeout(function () {
+                    fly.style.left = toX + "px";
+                    fly.style.top = toY + "px";
+                    fly.style.transition = "left .5s cubic-bezier(0.25,0.46,0.45,0.94), top .5s cubic-bezier(0.25,0.46,0.45,0.94), transform .5s cubic-bezier(0.25,0.46,0.45,0.94)";
+                    requestAnimationFrame(function () {
+                        fly.style.transform = "translate(-50%,-50%) scale(0.5)";
+                    });
+                }, 400);
+                setTimeout(function () {
+                    fly.remove();
+                    placedInSlots++;
+                    renderSlots();
+                    if (placedInSlots >= GEM_COUNT) setTimeout(doWinSequence, 350);
+                }, 950);
+            }
+    
+            function onCellClick(ev) {
+                if (gameOver || won) return;
+                var cell = ev.currentTarget;
+                var idx = parseInt(cell.getAttribute("data-idx"), 10);
+                if (broken[idx]) return;
+                var gemId = tileToGem[idx];
+                showAxeThenBreak(cell, idx, function () {
+                    broken[idx] = true;
+                    picksLeft--;
+                    picksEl.textContent = picksLeft;
+                    cell.classList.add("broken");
+                    var particles = document.createElement("div");
+                    particles.className = "vl-ht-particles";
+                    for (var p = 0; p < 8; p++) { var sp = document.createElement("span"); particles.appendChild(sp); }
+                    cell.appendChild(particles);
+                    if (gemId !== undefined) {
+                        gemBrokenCount[gemId]++;
+                        var tiles = gemShapes[gemId];
+                        if (gemBrokenCount[gemId] >= tiles.length) {
+                            tiles.forEach(function (i) {
+                                var c = gridEl.querySelector('[data-idx="' + i + '"]');
+                                if (c) c.classList.add("gem-complete");
+                            });
+                            setTimeout(function () { flyGemToSlot(gemId); }, 150);
+                        }
+                    }
+                    renderGrid();
+                    if (picksLeft <= 0 && placedInSlots < GEM_COUNT) {
+                        setTimeout(function () {
+                            gameOver = true;
+                            gameEl.style.display = "none";
+                            loseEl.style.display = "block";
+                        }, 500);
+                    }
+                });
+            }
+    
+            function doWinSequence() {
+                won = true;
+                var remaining = [];
+                for (var i = 0; i < TOTAL_TILES; i++) {
+                    if (!broken[i]) remaining.push(i);
+                }
+                var cells = gridEl.querySelectorAll(".vl-ht-cell");
+                remaining.forEach(function (idx, order) {
+                    setTimeout(function () {
+                        var cell = cells[idx];
+                        if (cell && !cell.classList.contains("broken")) {
+                            cell.classList.add("broken");
+                            var w = cell.querySelector(".vl-ht-wood");
+                            if (w) { w.style.opacity = "0"; w.style.transform = "scale(1.4)"; }
+                        }
+                    }, order * 70);
+                });
+                setTimeout(function () {
+                    var overlay = document.createElement("div");
+                    overlay.className = "vl-ht-win-overlay";
+                    overlay.innerHTML = '<div class="vl-ht-win-title">Tebrikler!</div><div class="vl-ht-win-discount">%20 indirim kazandınız!</div>';
+                    boxEl.appendChild(overlay);
+                }, remaining.length * 70 + 450);
+            }
+    
+            function startGame() {
+                gemShapes = placeGems();
+                tileToGem = {};
+                gemBrokenCount = [0, 0, 0, 0];
+                broken = {};
+                picksLeft = MAX_PICKS;
+                placedInSlots = 0;
+                gameOver = false;
+                won = false;
+                for (var g = 0; g < gemShapes.length; g++) {
+                    for (var t = 0; t < gemShapes[g].length; t++) tileToGem[gemShapes[g][t]] = g;
+                }
+                welcomeEl.style.display = "none";
+                loseEl.style.display = "none";
+                gameEl.style.display = "block";
+                picksEl = document.getElementById("vl-ht-picks");
+                picksEl.textContent = picksLeft;
+                renderSlots();
+                renderGrid();
+            }
+    
+            function goToWelcome() {
+                loseEl.style.display = "none";
+                gameEl.style.display = "none";
+                welcomeEl.style.display = "block";
+            }
+    
+            function closePopup() {
+                if (popupEl && popupEl.parentNode) popupEl.parentNode.removeChild(popupEl);
+                if (styleEl && styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
+            }
+    
+            wrap.querySelector(".vl-ht-overlay").addEventListener("click", closePopup);
+            wrap.querySelector(".vl-ht-close").addEventListener("click", closePopup);
+            document.getElementById("vl-ht-basla").addEventListener("click", startGame);
+            document.getElementById("vl-ht-tekrar").addEventListener("click", goToWelcome);
+        }
+    
+        if (typeof hiddenTempleGame === "function") {
+            hiddenTempleGame();
+        }
+        if (typeof window.hiddenTempleGame === "undefined") {
+            window.hiddenTempleGame = hiddenTempleGame;
+        }
+    })();
+    
+    </script>
+    </body>
+    </html>

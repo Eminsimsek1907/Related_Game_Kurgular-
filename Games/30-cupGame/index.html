@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cup Game</title>
+</head>
+
+<body>
+    <script>
+        (function () {
+    'use strict';
+  
+    var CONFIG = {
+      numberOfCups: 3,
+      shuffleTotalMs: 15000,
+      shuffleSpeedMs: 950,
+      winRate: null,
+      couponText: '50% OFF',
+      ctaUrl: '#',
+      ctaText: 'Alışverişe Başla',
+      copyCodeText: 'Kodu Kopyala',
+      defaultCode: 'SAVE50',
+      theme: {
+        bg: '#a9e0e0',
+        cupColor: '#ff8c42',
+        cupHighlight: '#ffb366',
+        couponBg: '#ffffff',
+        couponBorder: '#b0b0b0',
+        couponText: '#2d6a6a',
+        ctaBg: '#1a1a1a',
+        ctaText: '#ffffff',
+        titleColor: '#333333'
+      },
+      font: "'Segoe UI', system-ui, sans-serif",
+      copy: {
+        title: 'Find the item',
+        subtitle: 'and get a chance to win the prize',
+        startBtn: "LET'S PLAY",
+        tryAgain: 'Tekrar Dene',
+        winMessage: 'Tebrikler! %50 indirim kazandınız.',
+        loseMessage: 'Bu sefer olmadı.'
+      },
+      revealDuration: 1500,
+      autoOpen: true,
+      allowRetry: true,
+      onOpen: null,
+      onStart: null,
+      onShuffleStart: null,
+      onShuffleEnd: null,
+      onPick: null,
+      onWin: null,
+      onLose: null,
+      onClose: null
+    };
+  
+    var ROOT_ID = 'cup-game-root';
+    var ROOT_CLASS = 'cup-game-widget';
+    var SCOPE = '.' + ROOT_CLASS;
+    var POPUP_SCOPE = '#cup-game-overlay ';
+  
+    var state = {
+      container: null,
+      styles: null,
+      cups: [],
+      slotAssignments: [],
+      winningIndex: -1,
+      phase: 'idle',
+      scrollLocked: false,
+      reducedMotion: false,
+      deviceType: 'desktop',
+      shuffleStartTime: 0
+    };
+  
+    function _extend(a, b) {
+      for (var k in b) if (b.hasOwnProperty(k)) a[k] = b[k];
+      return a;
+    }
+  
+    function _fire(hook, payload) {
+      var fn = CONFIG[hook];
+      if (typeof fn === 'function') {
+        try {
+          var p = { timestamp: Date.now(), deviceType: state.deviceType };
+          fn(_extend(p, payload || {}));
+        } catch (e) {}
+      }
+    }
+  
+    function _deviceType() {
+      var ua = navigator.userAgent || '';
+      if (/Mobile|Android|iPhone|iPad/i.test(ua)) return 'mobile';
+      if (/Tablet/i.test(ua)) return 'tablet';
+      return 'desktop';
+    }
+  
+    function _reducedMotion() {
+      return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+  
+    function _px(n) { return n + 'px'; }
+  
+    function _createEl(tag, attrs, children) {
+      var el = document.createElement(tag);
+      if (attrs) {
+        for (var k in attrs) {
+          if (k === 'style' && typeof attrs[k] === 'object') {
+            for (var s in attrs[k]) el.style[s] = attrs[k][s];
+          } else if (k === 'className') el.className = attrs[k];
+          else if (k === 'innerHTML') el.innerHTML = attrs[k];
+          else if (k === 'ariaLabel') el.setAttribute('aria-label', attrs[k]);
+          else if (k.substring(0, 2) === 'on' && typeof attrs[k] === 'function') el.addEventListener(k.substring(2).toLowerCase(), attrs[k]);
+          else if (k !== 'className' && k !== 'innerHTML' && k !== 'ariaLabel') el.setAttribute(k, attrs[k]);
+        }
+      }
+      if (children) (Array.isArray(children) ? children : [children]).forEach(function (c) {
+        if (typeof c === 'string') el.appendChild(document.createTextNode(c)); else if (c) el.appendChild(c);
+      });
+      return el;
+    }
+  
+    function _injectStyles() {
+      if (state.styles) return;
+      var t = CONFIG.theme;
+      var css = [
+        '@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");',
+        SCOPE + '{ all:initial; font-family:' + CONFIG.font + '; }',
+        SCOPE + ' *{ box-sizing:border-box; }',
+        '#cup-game-overlay{ position:fixed; top:0; left:0; right:0; bottom:0; z-index:2147483646; display:flex; align-items:center; justify-content:center; background:' + t.bg + '; padding:0; overflow:hidden; animation:cgf 0.4s ease-out; }',
+        '@keyframes cgf{ from{ opacity:0; } to{ opacity:1; } }',
+        SCOPE + ' .panel{ position:relative; width:100%; height:100%; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 40px 40px; overflow-x:hidden; overflow-y:auto; }',
+        SCOPE + ' .panel-inner{ width:100%; max-width:980px; display:flex; flex-direction:row; align-items:flex-start; justify-content:center; gap:56px; flex-wrap:wrap; }',
+        SCOPE + ' .left-col{ flex:0 1 auto; min-width:200px; max-width:340px; display:flex; flex-direction:column; align-items:flex-start; }',
+        SCOPE + ' .right-col{ flex:1 1 320px; min-width:300px; max-width:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-left:20px; }',
+        SCOPE + ' .deco{ position:fixed; pointer-events:none; }',
+        SCOPE + ' .deco-dot{ width:10px; height:10px; border-radius:50%; background:rgba(0,0,0,0.06); }',
+        SCOPE + ' .deco-circle{ border:2px solid rgba(0,0,0,0.05); border-radius:50%; }',
+        SCOPE + ' .title{ font-size:min(36px,7.5vw); font-weight:800; color:' + t.titleColor + '; margin:0 0 12px; text-align:left; line-height:1.15; }',
+        SCOPE + ' .subtitle{ font-size:min(17px,3.8vw); color:' + t.titleColor + '; opacity:0.88; margin:0 0 28px; text-align:left; line-height:1.4; }',
+        SCOPE + ' .coupon-preview{ padding:20px 24px; background:' + t.couponBg + '; border:2px dashed ' + t.couponBorder + '; border-radius:8px; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,0.1); transform:rotate(-3deg); min-width:120px; margin-bottom:8px; }',
+        SCOPE + ' .coupon-preview .big{ font-size:min(30px,6vw); font-weight:800; color:' + t.titleColor + '; line-height:1.1; }',
+        SCOPE + ' .coupon-preview .small{ font-size:min(15px,3vw); color:' + t.couponText + '; margin-top:6px; }',
+        SCOPE + ' .countdown{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:min(80px,18vw); font-weight:800; color:' + t.cupColor + '; z-index:5; opacity:0; pointer-events:none; text-shadow:0 4px 12px rgba(0,0,0,0.15); }',
+        SCOPE + ' .countdown.show{ animation:cgcount 0.9s ease-out forwards; }',
+        '@keyframes cgcount{ 0%{ opacity:0; transform:translate(-50%,-50%) scale(0.5); } 25%{ opacity:1; transform:translate(-50%,-50%) scale(1.15); } 70%{ opacity:1; transform:translate(-50%,-50%) scale(1); } 100%{ opacity:0; transform:translate(-50%,-50%) scale(1); } }',
+        SCOPE + ' .cups-row{ position:relative; width:100%; height:min(220px,40vw); max-height:260px; display:flex; justify-content:center; align-items:flex-end; padding:0 20px; }',
+        SCOPE + ' .cups-row.hidden{ opacity:0; pointer-events:none; transform:translateY(20px); transition:opacity 0.5s ease, transform 0.5s ease; }',
+        SCOPE + ' .cups-row.visible{ opacity:1; transform:translateY(0); }',
+        SCOPE + ' .cup-wrap{ position:absolute; bottom:0; width:calc((100% - 40px - 24px) / 3); max-width:150px; min-width:64px; height:100%; max-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1); will-change:transform; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; overflow:hidden; }',
+        SCOPE + ' .cup-wrap.pickable{ cursor:pointer; }',
+        SCOPE + ' .cup-wrap.pickable:hover{ transform:translateY(-6px) scale(1.03); }',
+        SCOPE + ' .cup-wrap.pickable:hover .cup-body{ box-shadow:0 14px 30px rgba(0,0,0,0.28); }',
+        SCOPE + ' .cup-wrap.no-pointer{ pointer-events:none; }',
+        SCOPE + ' .cup-wrap.revealed .cup-body{ transform:translateY(-55px) scale(1.08) rotateX(6deg); transition:transform 0.55s cubic-bezier(0.34,1.56,0.64,1); }',
+        SCOPE + ' .cup-wrap.revealed .cup-rim{ transform:translateY(-55px); transition:transform 0.55s cubic-bezier(0.34,1.56,0.64,1); }',
+        SCOPE + ' .cup-visual{ position:relative; width:95%; height:92%; max-width:140px; flex-shrink:0; z-index:1; display:flex; flex-direction:column; align-items:center; }',
+        SCOPE + ' .cup-rim{ width:106%; height:12%; min-height:14px; background:linear-gradient(180deg,' + t.cupHighlight + ' 0%,' + t.cupColor + ' 100%); border-radius:50% 50% 48% 48%; box-shadow:inset 0 2px 6px rgba(255,255,255,0.5), 0 4px 12px rgba(0,0,0,0.2); flex-shrink:0; transition:transform 0.5s cubic-bezier(0.34,1.56,0.64,1); transform-origin:center bottom; position:relative; }',
+        SCOPE + ' .cup-rim::before{ content:""; position:absolute; top:2px; left:8%; width:3px; height:60%; background:rgba(255,255,255,0.7); border-radius:2px; }',
+        SCOPE + ' .cup-rim::after{ content:""; position:absolute; top:2px; left:28%; width:2px; height:50%; background:rgba(255,255,255,0.5); border-radius:1px; }',
+        SCOPE + ' .cup-body{ width:100%; flex:1; min-height:56px; background:linear-gradient(98deg,' + t.cupHighlight + ' 0%,' + t.cupColor + ' 40%,' + t.cupColor + ' 75%,#e67a2e 100%); border-radius:0 0 16px 16px; box-shadow:inset 6px 0 16px rgba(255,255,255,0.3), inset -6px 0 16px rgba(0,0,0,0.2), 0 12px 32px rgba(0,0,0,0.22); transition:transform 0.5s cubic-bezier(0.34,1.56,0.64,1); transform-origin:center bottom; position:relative; }',
+        SCOPE + ' .cup-body::before{ content:""; position:absolute; top:0; left:0; right:0; bottom:0; border-radius:0 0 16px 16px; background:linear-gradient(90deg, transparent 0%, transparent 38%, rgba(255,255,255,0.22) 68%, rgba(255,255,255,0.05) 100%); pointer-events:none; }',
+        SCOPE + ' .cup-body::after{ content:""; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:28%; height:28%; min-width:22px; min-height:22px; background:#fff; border:3px solid ' + t.cupColor + '; border-radius:50%; box-shadow:inset 0 0 6px rgba(0,0,0,0.1); pointer-events:none; }',
+        SCOPE + ' .cup-base{ width:112%; height:11%; min-height:14px; background:linear-gradient(180deg,' + t.cupColor + ',#c96a28); border-radius:50%; box-shadow:0 6px 16px rgba(0,0,0,0.28); flex-shrink:0; position:relative; }',
+        SCOPE + ' .cup-base::before{ content:""; position:absolute; bottom:2px; left:15%; width:4px; height:4px; background:rgba(255,255,255,0.6); border-radius:50%; }',
+        SCOPE + ' .cup-base::after{ content:""; position:absolute; bottom:3px; left:45%; width:3px; height:3px; background:rgba(255,248,220,0.8); border-radius:50%; }',
+        SCOPE + ' .coupon{ position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:90%; max-width:100px; padding:8px 10px; background:' + t.couponBg + '; border:2px dashed ' + t.couponBorder + '; border-radius:10px; text-align:center; opacity:0; pointer-events:none; z-index:0; box-shadow:0 8px 24px rgba(0,0,0,0.2); transition:opacity 0.3s; }',
+        SCOPE + ' .cup-wrap.revealed .coupon{ opacity:1; pointer-events:auto; animation:cgcp 0.45s cubic-bezier(0.34,1.56,0.64,1) 0.15s both; }',
+        '@keyframes cgcp{ from{ opacity:0; transform:translateX(-50%) scale(0.85); } to{ opacity:1; transform:translateX(-50%) scale(1); } }',
+        SCOPE + ' .coupon .big{ font-size:min(18px,4vw); font-weight:800; color:' + t.couponText + '; }',
+        SCOPE + ' .coupon .small{ font-size:min(10px,2.2vw); color:' + t.couponText + '; margin-top:2px; }',
+        SCOPE + ' .btn{ display:inline-block; padding:18px 36px; font-size:min(17px,4vw); font-weight:600; border:none; border-radius:14px; cursor:pointer; transition:transform 0.15s, background 0.2s, box-shadow 0.2s; touch-action:manipulation; }',
+        SCOPE + ' .btn:active{ transform:scale(0.98); }',
+        SCOPE + ' .btn:focus{ outline:2px solid ' + t.couponText + '; outline-offset:3px; }',
+        SCOPE + ' .btn-cta{ background:' + t.ctaBg + '; color:' + t.ctaText + '; margin-top:28px; text-decoration:none; box-shadow:0 6px 20px rgba(0,0,0,0.2); }',
+        SCOPE + ' .btn-cta:hover{ background:#333; transform:translateY(-2px); }',
+        SCOPE + ' .btn-copy{ background:' + t.couponText + '; color:white; margin-right:10px; margin-top:10px; }',
+        SCOPE + ' .result{ margin-top:28px; padding:24px; border-radius:16px; text-align:center; display:none; width:100%; max-width:400px; }',
+        SCOPE + ' .result.win{ display:block; }',
+        SCOPE + ' .result.lose{ display:block; background:rgba(244,67,54,0.15); }',
+        SCOPE + ' .close-btn{ position:fixed; top:20px; right:20px; width:48px; height:48px; border:none; background:rgba(0,0,0,0.12); border-radius:50%; cursor:pointer; font-size:24px; line-height:1; color:#333; display:flex; align-items:center; justify-content:center; transition:background 0.2s, transform 0.2s; z-index:10; }',
+        SCOPE + ' .close-btn:hover{ background:rgba(0,0,0,0.25); transform:scale(1.06); }',
+        SCOPE + ' .close-btn:focus{ outline:2px solid ' + t.couponText + '; outline-offset:2px; }',
+        POPUP_SCOPE + '.popup-overlay{ position:fixed; top:0; left:0; right:0; bottom:0; z-index:200; background:rgba(0,0,0,0.5); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; padding:24px; animation:cgf 0.3s ease-out; }',
+        POPUP_SCOPE + '.popup{ font-family:"Plus Jakarta Sans",' + CONFIG.font + '; background:linear-gradient(180deg,#ffffff 0%,#f8fcff 100%); border-radius:32px; padding:48px 40px; max-width:420px; width:100%; text-align:center; box-shadow:0 40px 100px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.8) inset, 0 0 0 2px ' + t.couponText + '; animation:cgpop 0.45s cubic-bezier(0.34,1.56,0.64,1); position:relative; overflow:hidden; }',
+        POPUP_SCOPE + '.popup::before{ content:""; position:absolute; top:0; left:0; right:0; height:5px; background:linear-gradient(90deg,' + t.couponText + ',#3d8a8a); }',
+        '@keyframes cgpop{ from{ opacity:0; transform:scale(0.88) translateY(20px); } to{ opacity:1; transform:scale(1) translateY(0); } }',
+        POPUP_SCOPE + '.popup-title{ font-size:2.25rem; font-weight:800; color:#0d3d3d; margin:0 0 14px; line-height:1.1; letter-spacing:-0.03em; text-shadow:0 1px 2px rgba(0,0,0,0.06); }',
+        POPUP_SCOPE + '.popup-desc{ font-size:1.05rem; color:#4a5c5c; margin:0 0 28px; line-height:1.6; font-weight:500; max-width:320px; margin-left:auto; margin-right:auto; }',
+        POPUP_SCOPE + '.popup-coupon{ margin:0 auto 28px; padding:24px 40px; background:linear-gradient(135deg,' + t.couponText + ' 0%,#245555 100%); border:none; border-radius:20px; display:inline-block; box-shadow:0 16px 40px rgba(45,106,106,0.35), 0 0 0 3px rgba(255,255,255,0.4) inset; }',
+        POPUP_SCOPE + '.popup-coupon .big{ font-size:2.25rem; font-weight:800; color:#fff; letter-spacing:-0.02em; line-height:1; text-shadow:0 2px 8px rgba(0,0,0,0.15); }',
+        POPUP_SCOPE + '.popup-coupon .small{ font-size:1rem; color:rgba(255,255,255,0.95); margin-top:4px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; }',
+        POPUP_SCOPE + '.popup-code-wrap{ margin-bottom:32px; text-align:left; }',
+        POPUP_SCOPE + '.popup-code-label{ display:block; font-size:0.7rem; font-weight:700; color:#6b7c7c; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.15em; }',
+        POPUP_SCOPE + '.popup-code-box{ display:flex; align-items:center; gap:14px; background:#0d3d3d; border:none; border-radius:14px; padding:16px 20px; box-shadow:0 8px 24px rgba(13,61,61,0.25); }',
+        POPUP_SCOPE + '.popup-code-value{ font-size:1.35rem; font-weight:800; color:#fff; letter-spacing:0.2em; flex:1; font-family:ui-monospace,"SF Mono",Monaco,monospace; }',
+        POPUP_SCOPE + '.btn-copy-popup{ padding:14px 24px; font-size:0.95rem; font-weight:700; border:none; border-radius:12px; background:#fff; color:#0d3d3d; cursor:pointer; transition:all 0.2s ease; white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,0.15); }',
+        POPUP_SCOPE + '.btn-copy-popup:hover{ background:#e8f4f4; transform:translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,0.2); }',
+        POPUP_SCOPE + '.btn-copy-popup:active{ transform:scale(0.98); }',
+        POPUP_SCOPE + '.btn-copy-popup:disabled{ opacity:0.8; cursor:default; transform:none; }',
+        POPUP_SCOPE + '.btn-cta-popup{ display:block; width:100%; padding:22px 32px; font-size:1.1rem; font-weight:700; text-align:center; text-decoration:none; border-radius:16px; background:linear-gradient(180deg,#1a1a1a 0%,#0d0d0d 100%); color:#fff; box-shadow:0 10px 30px rgba(0,0,0,0.3); transition:all 0.25s ease; }',
+        POPUP_SCOPE + '.btn-cta-popup:hover{ background:linear-gradient(180deg,#2d2d2d 0%,#1a1a1a 100%); color:#fff; transform:translateY(-3px); box-shadow:0 16px 40px rgba(0,0,0,0.35); }',
+        POPUP_SCOPE + '.btn-cta-popup:active{ transform:scale(0.99); }',
+        '@media (max-width:520px){ ' + SCOPE + ' .panel{ padding:24px 20px 32px; } ' + SCOPE + ' .panel-inner{ flex-direction:column; align-items:center; gap:28px; } ' + SCOPE + ' .left-col{ align-items:center; max-width:100%; min-width:0; } ' + SCOPE + ' .right-col{ min-width:0; width:100%; flex:1 1 auto; padding-left:0; } ' + SCOPE + ' .title, .subtitle{ text-align:center; } ' + SCOPE + ' .title{ font-size:min(28px,7.5vw); margin-bottom:10px; } ' + SCOPE + ' .subtitle{ font-size:min(15px,4.2vw); margin-bottom:20px; } ' + SCOPE + ' .coupon-preview{ transform:rotate(-2deg); padding:18px 22px; margin-bottom:12px; } ' + SCOPE + ' .cups-row{ height:min(180px,42vw); padding:0 20px; } ' + SCOPE + ' .cup-wrap{ width:calc((100% - 40px - 24px) / 3); min-width:56px; max-width:120px; } ' + SCOPE + ' .btn-cta{ margin-top:24px; padding:16px 32px; } ' + SCOPE + ' .result{ margin-top:24px; padding:20px; } ' + POPUP_SCOPE + '.popup{ padding:36px 24px 40px; border-radius:24px; } ' + POPUP_SCOPE + '.popup-title{ font-size:1.85rem; } ' + POPUP_SCOPE + '.popup-coupon{ padding:20px 28px; } ' + POPUP_SCOPE + '.popup-coupon .big{ font-size:1.9rem; } ' + POPUP_SCOPE + '.popup-code-box{ flex-wrap:wrap; } ' + POPUP_SCOPE + '.btn-copy-popup{ width:100%; } }',
+        '@media (max-width:360px){ ' + SCOPE + ' .panel{ padding:20px 16px 28px; } ' + SCOPE + ' .panel-inner{ gap:24px; } ' + SCOPE + ' .cups-row{ height:min(160px,44vw); padding:0 16px; } ' + SCOPE + ' .cup-wrap{ width:calc((100% - 32px - 24px) / 3); min-width:52px; } }'
+      ].join('\n');
+  
+      if (state.reducedMotion) {
+        css += SCOPE + ' .cup-wrap{ transition-duration:0.15s; } ';
+        css += SCOPE + ' .cup-wrap.revealed .cup-body, .cup-wrap.revealed .cup-rim{ transition-duration:0.2s; } ';
+      }
+  
+      var styleEl = document.createElement('style');
+      styleEl.id = 'cup-game-styles';
+      styleEl.textContent = css;
+      (document.head || document.documentElement).appendChild(styleEl);
+      state.styles = styleEl;
+    }
+  
+    function _getCupWidth() {
+      var row = state.container && state.container.querySelector('.cups-row');
+      if (!row || !state.cups.length) return 100;
+      var w = row.offsetWidth;
+      var cupW = (w - 40 - 24) / 3;
+      if (cupW > 150) return 150;
+      if (cupW < 60) return 60;
+      return cupW;
+    }
+  
+    function _getSlotX(slotIndex, rowWidth) {
+      var n = CONFIG.numberOfCups;
+      var gap = 12;
+      var padding = 40;
+      var cupW = (rowWidth - padding - (n - 1) * gap) / n;
+      if (cupW > 150) cupW = 150;
+      if (cupW < 60) cupW = 60;
+      var totalW = n * cupW + (n - 1) * gap;
+      var start = (rowWidth - totalW) / 2 + cupW / 2;
+      return start + slotIndex * (cupW + gap);
+    }
+  
+    function _positionCups() {
+      var row = state.container && state.container.querySelector('.cups-row');
+      if (!row) return;
+      var w = row.offsetWidth;
+      var gap = 12;
+      var padding = 40;
+      var n = CONFIG.numberOfCups;
+      var cupW = (w - padding - (n - 1) * gap) / n;
+      if (cupW > 150) cupW = 150;
+      if (cupW < 60) cupW = 60;
+      var halfW = cupW / 2;
+      for (var i = 0; i < state.cups.length; i++) {
+        var slot = state.slotAssignments.indexOf(i);
+        if (slot === -1) slot = i;
+        var x = _getSlotX(slot, w);
+        state.cups[i].wrap.style.left = _px(x - halfW);
+        state.cups[i].wrap.style.transform = 'translateX(-50%)';
+      }
+    }
+  
+    function _createCupElement(index) {
+      var wrap = _createEl('div', {
+        className: 'cup-wrap no-pointer',
+        'aria-label': 'Kupa ' + (index + 1),
+        role: 'button',
+        tabIndex: -1
+      });
+      wrap.style.position = 'absolute';
+      wrap.style.left = '0';
+      wrap.style.bottom = '0';
+      wrap.style.overflow = 'hidden';
+      var visual = _createEl('div', { className: 'cup-visual' });
+      var rim = _createEl('div', { className: 'cup-rim' });
+      var body = _createEl('div', { className: 'cup-body' });
+      var base = _createEl('div', { className: 'cup-base' });
+      visual.appendChild(rim);
+      visual.appendChild(body);
+      visual.appendChild(base);
+      wrap.appendChild(visual);
+      return { wrap: wrap, coupon: null };
+    }
+  
+    function _lockScroll() {
+      if (state.scrollLocked) return;
+      state.scrollLocked = true;
+      document.body.style.overflow = 'hidden';
+    }
+  
+    function _unlockScroll() {
+      if (!state.scrollLocked) return;
+      state.scrollLocked = false;
+      document.body.style.overflow = '';
+    }
+  
+    function _pickWinningIndex() {
+      if (typeof CONFIG.winRate === 'number' && CONFIG.winRate >= 0 && CONFIG.winRate <= 1) {
+        return Math.random() < CONFIG.winRate ? 0 : Math.floor(Math.random() * CONFIG.numberOfCups);
+      }
+      return Math.floor(Math.random() * CONFIG.numberOfCups);
+    }
+  
+    function _animateSwap(slotA, slotB, duration, callback) {
+      var cups = state.cups;
+      var assigns = state.slotAssignments;
+      var cupA = assigns[slotA];
+      var cupB = assigns[slotB];
+      if (cupA === cupB) {
+        if (callback) callback();
+        return;
+      }
+      var row = state.container.querySelector('.cups-row');
+      var w = row ? row.offsetWidth : 300;
+      var xA = _getSlotX(slotA, w);
+      var xB = _getSlotX(slotB, w);
+      var elA = cups[cupA].wrap;
+      var elB = cups[cupB].wrap;
+      var halfW = _getCupWidth() / 2;
+      var ease = 'cubic-bezier(0.34,1.56,0.64,1)';
+      elA.style.transition = 'left ' + duration + 'ms ' + ease + ', transform ' + duration + 'ms ' + ease;
+      elB.style.transition = 'left ' + duration + 'ms ' + ease + ', transform ' + duration + 'ms ' + ease;
+      elA.style.transform = 'translateX(-50%) translateY(-14px)';
+      elB.style.transform = 'translateX(-50%) translateY(-14px)';
+      elA.style.left = _px(xB - halfW);
+      elB.style.left = _px(xA - halfW);
+      assigns[slotA] = cupB;
+      assigns[slotB] = cupA;
+      setTimeout(function () {
+        elA.style.transition = '';
+        elB.style.transition = '';
+        elA.style.transform = 'translateX(-50%)';
+        elB.style.transform = 'translateX(-50%)';
+        if (callback) callback();
+      }, duration);
+    }
+  
+    function _runShuffle(done) {
+      state.phase = 'shuffling';
+      state.shuffleStartTime = Date.now();
+      _fire('onShuffleStart');
+      var n = CONFIG.numberOfCups;
+      var totalMs = state.reducedMotion ? 5000 : CONFIG.shuffleTotalMs;
+      var duration = CONFIG.shuffleSpeedMs || 680;
+  
+      function next() {
+        var elapsed = Date.now() - state.shuffleStartTime;
+        if (elapsed >= totalMs) {
+          state.phase = 'picking';
+          _fire('onShuffleEnd');
+          _enablePicking();
+          if (done) done();
+          return;
+        }
+        var a = Math.floor(Math.random() * n);
+        var b = 0;
+        if (n >= 3 && Math.random() < 0.2) {
+          b = (a + 1) % n;
+          var c = (a + 2) % n;
+          _animateSwap(a, b, duration, function () {
+            _animateSwap(b, c, duration, function () { next(); });
+          });
+        } else {
+          while (b === a) b = Math.floor(Math.random() * n);
+          _animateSwap(a, b, duration, function () { next(); });
+        }
+      }
+      next();
+    }
+  
+    function _enablePicking() {
+      state.cups.forEach(function (c) {
+        c.wrap.classList.add('pickable');
+        c.wrap.classList.remove('no-pointer');
+        c.wrap.tabIndex = 0;
+        c.wrap.addEventListener('click', _onCupClick);
+        c.wrap.addEventListener('keydown', _onCupKeydown);
+      });
+    }
+  
+    function _disablePicking() {
+      state.cups.forEach(function (c) {
+        c.wrap.classList.remove('pickable');
+        c.wrap.classList.add('no-pointer');
+        c.wrap.tabIndex = -1;
+        c.wrap.removeEventListener('click', _onCupClick);
+        c.wrap.removeEventListener('keydown', _onCupKeydown);
+      });
+    }
+  
+    function _onCupClick(e) {
+      if (state.phase !== 'picking') return;
+      var wrap = e.currentTarget;
+      var idx = -1;
+      for (var i = 0; i < state.cups.length; i++) if (state.cups[i].wrap === wrap) { idx = i; break; }
+      if (idx === -1) return;
+      _handlePick(idx);
+    }
+  
+    function _onCupKeydown(e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      _onCupClick(e);
+    }
+  
+    function _handlePick(chosenIndex) {
+      _disablePicking();
+      state.phase = 'revealed';
+      _fire('onPick', { chosenIndex: chosenIndex });
+      var win = chosenIndex === state.winningIndex;
+      var chosenWrap = state.cups[chosenIndex].wrap;
+      chosenWrap.classList.add('revealed');
+      if (win) {
+        _fire('onWin', { chosenIndex: chosenIndex });
+        setTimeout(function () { _showWinPopup(); }, 500);
+      } else {
+        _fire('onLose', { chosenIndex: chosenIndex });
+        _showLoseResult();
+      }
+    }
+  
+    function _showWinPopup() {
+      var parts = CONFIG.couponText.split(' ');
+      var code = CONFIG.defaultCode || 'SAVE50';
+      var overlay = state.container && state.container.parentElement;
+      if (!overlay) overlay = document.body;
+      var pop = _createEl('div', { className: 'popup-overlay' });
+      pop.setAttribute('aria-label', 'Kazandınız');
+      var box = _createEl('div', { className: 'popup' });
+      box.innerHTML =
+        '<div class="popup-title">Tebrikler!</div>' +
+        '<p class="popup-desc">' + (parts[0] || '50%') + ' ' + (parts[1] || 'OFF') + ' kazandınız. Kodunuzu kopyalayıp alışverişe başlayabilirsiniz.</p>' +
+        '<div class="popup-coupon"><div class="big">' + (parts[0] || '50%') + '</div><div class="small">' + (parts[1] || 'OFF') + '</div></div>' +
+        '<div class="popup-code-wrap">' +
+          '<span class="popup-code-label">İndirim kodu</span>' +
+          '<div class="popup-code-box"><span class="popup-code-value">' + code + '</span><button type="button" class="btn btn-copy-popup" aria-label="' + CONFIG.copyCodeText + '">' + CONFIG.copyCodeText + '</button></div>' +
+        '</div>' +
+        '<a href="' + (CONFIG.ctaUrl || '#') + '" class="btn btn-cta-popup" target="_blank" rel="noopener">' + CONFIG.ctaText + '</a>';
+      box.querySelector('.btn-copy-popup').addEventListener('click', function () {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code);
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = code;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); } catch (e) {}
+          document.body.removeChild(ta);
+        }
+        var btn = box.querySelector('.btn-copy-popup');
+        var orig = btn.textContent;
+        btn.textContent = 'Kopyalandı!';
+        btn.disabled = true;
+        setTimeout(function () { btn.textContent = orig; btn.disabled = false; }, 2000);
+      });
+      pop.appendChild(box);
+      pop.addEventListener('click', function (e) {
+        if (e.target === pop) pop.remove();
+      });
+      overlay.appendChild(pop);
+    }
+  
+    function _showLoseResult() {
+      var res = state.container.querySelector('.result');
+      if (!res) return;
+      res.className = 'result lose';
+      res.innerHTML = '<div style="font-weight:600;margin-bottom:8px;">' + CONFIG.copy.loseMessage + '</div>';
+      if (CONFIG.allowRetry) {
+        var btn = _createEl('button', { className: 'btn btn-cta', innerHTML: CONFIG.copy.tryAgain });
+        btn.addEventListener('click', function () { destroy(); open(); start(); });
+        res.appendChild(btn);
+      }
+    }
+  
+    function _startSequence() {
+      if (state.phase !== 'idle') return;
+      state.phase = 'revealing';
+      _fire('onStart');
+      var winningIdx = _pickWinningIndex();
+      state.winningIndex = winningIdx;
+      state.slotAssignments = [];
+      for (var i = 0; i < CONFIG.numberOfCups; i++) state.slotAssignments[i] = i;
+      state.cups.forEach(function (c, i) {
+        c.wrap.classList.remove('revealed');
+        if (c.coupon) { c.coupon.remove(); c.coupon = null; }
+      });
+      var cupsRow = state.container.querySelector('.cups-row');
+      var countdownEl = state.container.querySelector('.countdown');
+      if (cupsRow) cupsRow.classList.add('hidden');
+      if (!countdownEl) return;
+  
+      function showCountdown(num, then) {
+        countdownEl.textContent = num;
+        countdownEl.classList.remove('show');
+        countdownEl.offsetHeight;
+        countdownEl.classList.add('show');
+        setTimeout(function () {
+          countdownEl.classList.remove('show');
+          if (then) setTimeout(then, 400);
+        }, 900);
+      }
+  
+      function afterCountdown() {
+        if (cupsRow) {
+          cupsRow.classList.remove('hidden');
+          cupsRow.classList.add('visible');
+        }
+        requestAnimationFrame(function () { _positionCups(); });
+        var parts = CONFIG.couponText.split(' ');
+        var coupon = _createEl('div', { className: 'coupon' });
+        coupon.innerHTML = '<div class="big">' + (parts[0] || '50%') + '</div><div class="small">' + (parts[1] || 'OFF') + '</div>';
+        coupon.style.opacity = '0';
+        state.cups[winningIdx].wrap.insertBefore(coupon, state.cups[winningIdx].wrap.firstChild);
+        state.cups[winningIdx].coupon = coupon;
+        setTimeout(function () {
+          state.cups[winningIdx].wrap.classList.add('revealed');
+          coupon.style.opacity = '1';
+        }, 400);
+        var liftDownMs = state.reducedMotion ? 800 : 2200;
+        setTimeout(function () {
+          state.cups[winningIdx].wrap.classList.remove('revealed');
+          coupon.style.opacity = '0';
+          setTimeout(function () { _runShuffle(); }, 500);
+        }, liftDownMs);
+      }
+  
+      showCountdown(3, function () {
+        showCountdown(2, function () {
+          showCountdown(1, afterCountdown);
+        });
+      });
+    }
+  
+    function _buildDOM() {
+      state.phase = 'idle';
+      state.slotAssignments = [];
+      for (var i = 0; i < CONFIG.numberOfCups; i++) state.slotAssignments[i] = i;
+  
+      var overlay = _createEl('div', { id: 'cup-game-overlay', 'aria-label': 'Bardak oyunu' });
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+      state.container = _createEl('div', { id: ROOT_ID, className: ROOT_CLASS });
+  
+      var panel = _createEl('div', { className: 'panel' });
+      panel.addEventListener('click', function (e) { e.stopPropagation(); });
+  
+      var dots = [
+        { top: '6%', left: '8%' }, { top: '12%', right: '10%' }, { top: '22%', left: '6%' }, { bottom: '18%', left: '12%' },
+        { bottom: '10%', right: '14%' }, { bottom: '28%', right: '6%' }, { top: '48%', left: '4%' }, { top: '58%', right: '5%' },
+        { top: '35%', left: '15%' }, { top: '70%', left: '10%' }, { bottom: '40%', right: '12%' }
+      ];
+      dots.forEach(function (p) {
+        var d = _createEl('div', { className: 'deco deco-dot' });
+        if (p.top) d.style.top = p.top;
+        if (p.left) d.style.left = p.left;
+        if (p.right) d.style.right = p.right;
+        if (p.bottom) d.style.bottom = p.bottom;
+        panel.appendChild(d);
+      });
+      var c1 = _createEl('div', { className: 'deco deco-circle' });
+      c1.style.cssText = 'width:100px; height:100px; top:18%; right:12%;';
+      panel.appendChild(c1);
+      var c2 = _createEl('div', { className: 'deco deco-circle' });
+      c2.style.cssText = 'width:60px; height:60px; bottom:22%; left:8%;';
+      panel.appendChild(c2);
+      var w1 = _createEl('div', { className: 'deco deco-wave' });
+      w1.style.cssText = 'top:75%; left:5%;';
+      panel.appendChild(w1);
+      var w2 = _createEl('div', { className: 'deco deco-wave' });
+      w2.style.cssText = 'bottom:15%; right:8%; width:60px;';
+      panel.appendChild(w2);
+  
+      var closeBtn = _createEl('button', { className: 'close-btn', innerHTML: '×', ariaLabel: 'Kapat', onClick: close });
+      panel.appendChild(closeBtn);
+  
+      var inner = _createEl('div', { className: 'panel-inner' });
+      inner.style.position = 'relative';
+  
+      var leftCol = _createEl('div', { className: 'left-col' });
+      leftCol.appendChild(_createEl('h1', { className: 'title' }, CONFIG.copy.title));
+      leftCol.appendChild(_createEl('p', { className: 'subtitle' }, CONFIG.copy.subtitle));
+      var parts = CONFIG.couponText.split(' ');
+      var preview = _createEl('div', { className: 'coupon-preview' });
+      preview.innerHTML = '<div class="big">' + (parts[0] || '50%') + '</div><div class="small">' + (parts[1] || 'OFF') + '</div>';
+      leftCol.appendChild(preview);
+  
+      var startBtn = _createEl('button', {
+        className: 'btn btn-cta cup-game-start-btn',
+        innerHTML: CONFIG.copy.startBtn,
+        ariaLabel: CONFIG.copy.startBtn,
+        onClick: function () {
+          startBtn.style.display = 'none';
+          _startSequence();
+        }
+      });
+      startBtn.style.marginTop = '32px';
+      leftCol.appendChild(startBtn);
+  
+      var rightCol = _createEl('div', { className: 'right-col' });
+      var cupsRow = _createEl('div', { className: 'cups-row hidden' });
+      state.cups = [];
+      for (var i = 0; i < CONFIG.numberOfCups; i++) {
+        var c = _createCupElement(i);
+        state.cups.push(c);
+        cupsRow.appendChild(c.wrap);
+      }
+      rightCol.appendChild(cupsRow);
+  
+      var countdownEl = _createEl('div', { className: 'countdown' });
+      countdownEl.setAttribute('aria-live', 'polite');
+      inner.appendChild(countdownEl);
+  
+      inner.appendChild(leftCol);
+      inner.appendChild(rightCol);
+  
+      var result = _createEl('div', { className: 'result' });
+      result.style.width = '100%';
+      inner.appendChild(result);
+  
+      panel.appendChild(inner);
+      state.container.appendChild(panel);
+      overlay.appendChild(state.container);
+      document.body.appendChild(overlay);
+  
+      requestAnimationFrame(function () { _positionCups(); });
+      window.addEventListener('resize', _positionCups);
+  
+      var esc = function (e) { if (e.key === 'Escape') close(); };
+      document.addEventListener('keydown', esc);
+      state.escapeHandler = esc;
+    }
+  
+    function _getOverlay() {
+      if (!state.container) return null;
+      var el = state.container.parentElement;
+      while (el && el.id !== 'cup-game-overlay') el = el.parentElement;
+      return el;
+    }
+  
+    function open() {
+      state.reducedMotion = _reducedMotion();
+      state.deviceType = _deviceType();
+      if (state.container) {
+        var overlay = _getOverlay();
+        if (overlay) overlay.style.display = 'flex';
+        state.phase = 'idle';
+        state.cups.forEach(function (c) {
+          c.wrap.classList.remove('revealed', 'pickable');
+          c.wrap.classList.add('no-pointer');
+          if (c.coupon) { c.coupon.remove(); c.coupon = null; }
+        });
+        var sb = state.container.querySelector('.cup-game-start-btn');
+        if (sb) sb.style.display = 'inline-block';
+        var cr = state.container.querySelector('.cups-row');
+        if (cr) { cr.classList.add('hidden'); cr.classList.remove('visible'); }
+        var res = state.container.querySelector('.result');
+        if (res) { res.className = 'result'; res.style.display = 'none'; res.innerHTML = ''; }
+        _lockScroll();
+        _fire('onOpen');
+        return;
+      }
+      _injectStyles();
+      _buildDOM();
+      _lockScroll();
+      _fire('onOpen');
+    }
+  
+    function close() {
+      if (!state.container) return;
+      var overlay = state.container && state.container.parentElement;
+      if (overlay) overlay.style.display = 'none';
+      _unlockScroll();
+      _fire('onClose');
+    }
+  
+    function destroy() {
+      _unlockScroll();
+      if (state.escapeHandler) {
+        document.removeEventListener('keydown', state.escapeHandler);
+        state.escapeHandler = null;
+      }
+      window.removeEventListener('resize', _positionCups);
+      var overlay = document.getElementById('cup-game-overlay');
+      if (overlay) overlay.remove();
+      var styleEl = document.getElementById('cup-game-styles');
+      if (styleEl) styleEl.remove();
+      state.container = null;
+      state.styles = null;
+      state.cups = [];
+      state.phase = 'idle';
+      state.winningIndex = -1;
+    }
+  
+    function start() {
+      if (!state.container) open();
+      var btn = state.container && state.container.querySelector('.cup-game-start-btn');
+      if (btn && btn.style.display !== 'none') btn.click();
+      else _startSequence();
+    }
+  
+    function setConfig(partial) {
+      for (var k in partial) {
+        if (!partial.hasOwnProperty(k)) continue;
+        if (k === 'theme' && typeof partial.theme === 'object') {
+          for (var t in partial.theme) CONFIG.theme[t] = partial.theme[t];
+        } else if (k === 'copy' && typeof partial.copy === 'object') {
+          for (var c in partial.copy) CONFIG.copy[c] = partial.copy[c];
+        } else if (CONFIG.hasOwnProperty(k)) CONFIG[k] = partial[k];
+      }
+    }
+  
+    var api = { open: open, close: close, destroy: destroy, start: start, setConfig: setConfig };
+    if (typeof window !== 'undefined') window.CupGame = api;
+  
+    if (CONFIG.autoOpen && typeof window !== 'undefined' && typeof document !== 'undefined') {
+      function _runOpen() {
+        if (document.body) { try { open(); } catch (err) { console.error('CupGame:', err); } }
+        else setTimeout(_runOpen, 50);
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _runOpen);
+      else _runOpen();
+    }
+  
+    return api;
+  })();
+    </script>
+</body>
+
+</html>

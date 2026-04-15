@@ -1,0 +1,685 @@
+<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Parfüm Kurgusu</title></head><body>
+    <script>
+    ; (function () {
+        "use strict";
+        try {
+            if (window.__vl_parfume_kurgusu_booted) return;
+            window.__vl_parfume_kurgusu_booted = true;
+    
+            var matchListErkek = {
+                "Bergamot|Adaçayı|Sedir": { name: "Prada L'Homme", char: "Ferah", sub: "Ofis" },
+                "Limon|Sardunya|Tonka Fasulyesi": { name: "Versace Eros", char: "Tatlı", sub: "Orta" },
+                "Greyfurt|Karabiber|Vetiver": { name: "Terre d'Hermès", char: "Odunsu", sub: "İmza" },
+                "Bergamot|Karabiber|Amber": { name: "Dior Sauvage", char: "Derin", sub: "Güçlü" },
+                "Nane|Adaçayı|Sandal Ağacı": { name: "Bleu de Chanel", char: "Ferah", sub: "Temiz" },
+                "Lavanta|Kakule|Misk": { name: "YSL La Nuit de l'Homme", char: "Gizemli", sub: "Sofistike" },
+                "Bergamot|Vetiver|Paçuli": { name: "Creed Aventus", char: "Derin", sub: "İmza" },
+                "Greyfurt|Kakule|Amber": { name: "D&G The One Royal Night", char: "Baharatlı", sub: "Yoğun" },
+                "Limon|Nane|Sedir": { name: "Acqua di Gio Profumo", char: "Ferah", sub: "Hafif" },
+                "Lavanta|Karabiber|Deri": { name: "Tom Ford Ombré Leather", char: "Derin", sub: "Maskülen" },
+                "Bergamot|Adaçayı|Paçuli": { name: "Giorgio Armani Acqua di Gio Profumo", char: "Sofistike", sub: "Odunsu" },
+                "Kakule|Sardunya|Sandal Ağacı": { name: "Paco Rabanne 1 Million Elixir", char: "Oryantal", sub: "Yoğun" },
+                "Nane|Karabiber|Tonka Fasulyesi": { name: "Viktor&Rolf Spicebomb Night Vision", char: "Tatlı", sub: "Baharatlı" },
+                "Lavanta|Adaçayı|Misk": { name: "Narciso Rodriguez For Him Bleu Noir", char: "Temiz", sub: "Gizemli" },
+                "Greyfurt|Vetiver|Deri": { name: "Hermès Terre d'Hermès Eau Givrée", char: "Odunsu", sub: "Gizemli" }
+            };
+    
+            var matchListKadin = {
+                "Bergamot|Gül|Paçuli": { name: "Chanel Coco Mademoiselle", char: "Sofistike", sub: "İmza" },
+                "Armut|Yasemin|Vanilya": { name: "Lancôme La Vie Est Belle", char: "Tatlı", sub: "Yoğun" },
+                "Mandalina|Portakal Çiçeği|Amber": { name: "YSL Libre", char: "Gizemli", sub: "Sofistike" },
+                "Kırmızı Meyveler|İris|Beyaz Misk": { name: "Glossier You", char: "Pudralı", sub: "Temiz" },
+                "Bergamot|Yasemin|Sandal Ağacı": { name: "Dior J'adore", char: "Çiçeksi", sub: "Lüks" },
+                "Armut|Portakal Çiçeği|Paçuli": { name: "Givenchy L'Interdit", char: "Derin", sub: "Gizemli" },
+                "Mandalina|Ylang Ylang|Vanilya": { name: "Armani Si Passione", char: "Oryantal", sub: "Tatlı" },
+                "Kırmızı Meyveler|Gül|Beyaz Misk": { name: "Miss Dior Blooming Bouquet", char: "Çiçeksi", sub: "Romantik" },
+                "Bergamot|İris|Amber": { name: "Prada Paradoxe", char: "Derin", sub: "Feminen" },
+                "Armut|Yasemin|Sandal Ağacı": { name: "Gucci Bloom Profumo di Fiori", char: "Tatlı", sub: "Çiçeksi" },
+                "Mandalina|Gül|Paçuli": { name: "Tom Ford Cafe Rose", char: "Oryantal", sub: "Gizemli" },
+                "Kırmızı Meyveler|Yasemin|Amber": { name: "MFK Baccarat Rouge 540", char: "Derin", sub: "Sofistike" },
+                "Bergamot|Portakal Çiçeği|Beyaz Misk": { name: "Chloé Signature", char: "Ferah", sub: "Temiz" },
+                "Armut|Gül|Vanilya": { name: "Idôle Lancôme", char: "Tatlı", sub: "Romantik" },
+                "Mandalina|Yasemin|Sandal Ağacı": { name: "Alien Mugler", char: "Oryantal", sub: "İmza" }
+            };
+    
+            var topNotesErkek = [
+                { value: "Bergamot", text: "Bergamot", desc: "Güneşli, hafif acımsı ve asil bir tazelik" },
+                { value: "Limon", text: "Limon", desc: "Keskin, canlandırıcı ve temiz bir enerji" },
+                { value: "Greyfurt", text: "Greyfurt", desc: "Modern, hafif tatlı-ekşi ve dinamik bir dokunuş" },
+                { value: "Nane", text: "Nane", desc: "Buz gibi bir ferahlık, adrenalin ve temizlik hissi" },
+                { value: "Lavanta", text: "Lavanta", desc: "Klasik, aromatik, güven veren bir centilmenlik" }
+            ];
+    
+            var topNotesKadin = [
+                { value: "Bergamot", text: "Bergamot", desc: "Şık, narenciye tazeliği ile gelen bir zarafet" },
+                { value: "Mandalina", text: "Mandalina", desc: "Enerjik, neşeli, sulu ve hafif tatlı bir açılış" },
+                { value: "Armut", text: "Armut", desc: "Modern, sulu, iştah açıcı ve kristalize bir tatlılık" },
+                { value: "Kırmızı Meyveler", text: "Kırmızı Meyveler", desc: "Flörtöz, enerjik, canlı ve meyvemsi bir cazibe" }
+            ];
+    
+            var midNotesErkek = [
+                { value: "Vetiver", text: "Vetiver", desc: "Topraksı, köksü, maskülen ve doğal bir derinlik" },
+                { value: "Karabiber", text: "Karabiber", desc: "Baharatlı, sıcak, enerjik ve dikkat çekici bir sertlik" },
+                { value: "Kakule", text: "Kakule", desc: "Egzotik, hafif tatlı-baharatlı, çekici ve sofistike" },
+                { value: "Sardunya", text: "Sardunya", desc: "Çiçeksi ama yeşil, ferah ve maskülen bir denge" },
+                { value: "Adaçayı", text: "Adaçayı", desc: "Bitkisel, aromatik ve modern bir berber dükkanı tazeliği" }
+            ];
+    
+            var midNotesKadin = [
+                { value: "Gül", text: "Gül", desc: "Aşkın ve romantizmin sembolü, klasik ve asil bir çiçeksilik" },
+                { value: "Yasemin", text: "Yasemin", desc: "Beyaz çiçeklerin kraliçesi; yoğun, feminen ve baş döndürücü" },
+                { value: "Portakal Çiçeği", text: "Portakal Çiçeği", desc: "Güneşli, temiz, ışıltılı ve lüks bir hava" },
+                { value: "Ylang Ylang", text: "Ylang Ylang", desc: "Egzotik, kremsi, zengin ve tropikal bir cazibe" },
+                { value: "İris", text: "İris", desc: "Pudralı, kadifemsi, çok lüks ve makyaj çantası nostaljisi" }
+            ];
+    
+            var bottomNotesErkek = [
+                { value: "Sandal Ağacı", text: "Sandal Ağacı" },
+                { value: "Sedir", text: "Sedir" },
+                { value: "Amber", text: "Amber" },
+                { value: "Paçuli", text: "Paçuli" },
+                { value: "Deri", text: "Deri" },
+                { value: "Misk", text: "Misk" },
+                { value: "Tonka Fasulyesi", text: "Tonka Fasulyesi" }
+            ];
+    
+            var bottomNotesKadin = [
+                { value: "Vanilya", text: "Vanilya" },
+                { value: "Beyaz Misk", text: "Beyaz Misk" },
+                { value: "Amber", text: "Amber" },
+                { value: "Sandal Ağacı", text: "Sandal Ağacı" },
+                { value: "Paçuli", text: "Paçuli" }
+            ];
+    
+            var characters = [
+                { value: "Ferah", text: "Ferah / Temiz", desc: "Yeni çıkmış bir duş etkisi, deniz esintisi veya beyaz sabun" },
+                { value: "Tatlı", text: "Tatlı", desc: "Gurme notalar, karamelize dokunuşlar ve sıcaklık" },
+                { value: "Baharatlı", text: "Baharatlı", desc: "Keskin, baskın, egzotik ve iddialı bir karakter" },
+                { value: "Odunsu", text: "Odunsu", desc: "Doğal, köklü, orman kokusu ve güven veren duruş" },
+                { value: "Çiçeksi", text: "Çiçeksi", desc: "Bahar bahçesi, romantizm ve doğal zarafet" },
+                { value: "Oryantal", text: "Oryantal / Amberli", desc: "Sıcak, mistik, yoğun ve geceye uygun" },
+                { value: "Derin", text: "Derin / Maskülen / Feminen", desc: "Güçlü bir imza, baskın bir otorite" },
+                { value: "Gizemli", text: "Gizemli / Sofistike", desc: "Niş, anlaşılması zor ama unutulmaz bir derinlik" }
+            ];
+    
+            var intensity = [
+                { value: "Hafif", text: "Hafif (Günlük / Ofis)", desc: "Teninize yakın, çevreyi rahatsız etmeyen taze bir aura" },
+                { value: "Orta", text: "Orta (Gün + Akşam)", desc: "İşten çıkıp yemeğe geçecek kadar dengeli ve kalıcı" },
+                { value: "Yoğun", text: "Yoğun (Gece / Özel Anlar)", desc: "En yüksek konsantrasyon, dominant bir yayılım" }
+            ];
+    
+            var sillage = [
+                { value: "Yakın", text: "Yakın Temas (Skin Scent)", desc: "Sadece size sarılanların duyabileceği mahrem bir koku" },
+                { value: "Orta", text: "Orta Yayılım", desc: "Karşınızda oturan kişinin kokunuzu hissedebileceği güvenli alan" },
+                { value: "Güçlü", text: "Güçlü / İmza Koku", desc: "Siz odaya girmeden kokunuzun girdiği, geçtiğiniz yerde iz bırakan güç" }
+            ];
+    
+            var steps = [
+                { id: 1, title: "Koku karakteriniz hangi enerjiyle bütünleşmeli?", options: [{ value: "Erkek", text: "Erkek" }, { value: "Kadın", text: "Kadın" }], type: "gender" },
+                { id: 2, title: "Üst Nota - Parfümün şişesi açıldığında duyulan ilk senfoni", options: null, type: "top" },
+                { id: 3, title: "Orta Nota - Parfümün asıl karakterini ortaya koyduğu kalp", options: null, type: "mid" },
+                { id: 4, title: "Alt Nota - Karakterinizin imzasını bırakan temel", options: null, type: "bottom" },
+                { id: 5, title: "Ruhunuzun kokusu hangi grupta?", options: characters, type: "char" },
+                { id: 6, title: "Yoğunluk Tercihiniz", options: intensity, type: "intensity" },
+                { id: 7, title: "Kalıcılık & Yayılım (Sillage)", options: sillage, type: "sillage" }
+            ];
+    
+            var state = { step: 1, gender: null, top: null, mid: null, bottom: null, char: null, intensity: null, sillage: null };
+            var styleEl, popupEl, contentEl, backBtn, closeBtn, loadingTimeout, isLoading = false;
+    
+            function getMatch() {
+                var list = state.gender === "Erkek" ? matchListErkek : matchListKadin;
+                var key = state.top + "|" + state.mid + "|" + state.bottom;
+                var match = list[key];
+                if (match) return match;
+                var keys = Object.keys(list);
+                return list[keys[Math.floor(Math.random() * keys.length)]];
+            }
+    
+            function getSimilarParfumes(currentName, limit) {
+                var list = state.gender === "Erkek" ? matchListErkek : matchListKadin;
+                var keys = Object.keys(list);
+                var out = [];
+                for (var i = 0; i < keys.length && out.length < limit; i++) {
+                    var item = list[keys[i]];
+                    if (item && item.name !== currentName) out.push(item);
+                }
+                return out;
+            }
+    
+            function getOptionsForStep(step) {
+                if (step.type === "gender") return steps[0].options;
+                if (step.type === "top") return state.gender === "Erkek" ? topNotesErkek : topNotesKadin;
+                if (step.type === "mid") return state.gender === "Erkek" ? midNotesErkek : midNotesKadin;
+                if (step.type === "bottom") return state.gender === "Erkek" ? bottomNotesErkek : bottomNotesKadin;
+                return step.options;
+            }
+    
+            function renderOptions(step) {
+                var opts = getOptionsForStep(step);
+                if (!opts) return "";
+                var html = "";
+                for (var i = 0; i < opts.length; i++) {
+                    var o = opts[i];
+                    var val = o.value || o.text;
+                    var txt = o.text || o.value;
+                    var desc = o.desc ? '<span class="vl-pf-desc">' + o.desc + '</span>' : '';
+                    var sel = (step.type === "gender" && state.gender === val) || (step.type === "top" && state.top === val) || (step.type === "mid" && state.mid === val) || (step.type === "bottom" && state.bottom === val) || (step.type === "char" && state.char === val) || (step.type === "intensity" && state.intensity === val) || (step.type === "sillage" && state.sillage === val) ? " vl-pf-selected" : "";
+                    html += '<button class="vl-pf-btn' + sel + '" data-value="' + val + '">' + txt + desc + '</button>';
+                }
+                return html;
+            }
+    
+            function renderStep() {
+                var step = steps[state.step - 1];
+                var progress = '<div class="vl-pf-progress"><span>' + state.step + '/' + steps.length + '</span></div>';
+                var title = '<h2 class="vl-pf-title">' + step.title + '</h2>';
+                var btns = '<div class="vl-pf-btns">' + renderOptions(step) + '</div>';
+                var nextHtml = state.step < steps.length ? '<button class="vl-pf-next">İleri</button>' : '<button class="vl-pf-next vl-pf-submit">Parfümümü Bul</button>';
+                var nav = '<div class="vl-pf-nav">' + nextHtml + '</div>';
+                contentEl.innerHTML = progress + title + btns + nav;
+    
+                contentEl.querySelectorAll(".vl-pf-btn").forEach(function (btn) {
+                    btn.addEventListener("click", function () {
+                        var v = btn.getAttribute("data-value");
+                        if (step.type === "gender") state.gender = v;
+                        else if (step.type === "top") state.top = v;
+                        else if (step.type === "mid") state.mid = v;
+                        else if (step.type === "bottom") state.bottom = v;
+                        else if (step.type === "char") state.char = v;
+                        else if (step.type === "intensity") state.intensity = v;
+                        else if (step.type === "sillage") state.sillage = v;
+                        contentEl.querySelectorAll(".vl-pf-btn").forEach(function (b) { b.classList.remove("vl-pf-selected"); });
+                        btn.classList.add("vl-pf-selected");
+                    });
+                });
+    
+                var nextBtn = contentEl.querySelector(".vl-pf-next");
+                if (nextBtn) {
+                    nextBtn.addEventListener("click", function () {
+                        if (state.step === 1 && !state.gender) return;
+                        if (state.step === 2 && !state.top) return;
+                        if (state.step === 3 && !state.mid) return;
+                        if (state.step === 4 && !state.bottom) return;
+                        if (state.step === 5 && !state.char) return;
+                        if (state.step === 6 && !state.intensity) return;
+                        if (state.step === 7 && !state.sillage) return;
+    
+                        if (nextBtn.classList.contains("vl-pf-submit")) {
+                            showLoading();
+                            return;
+                        }
+                        state.step++;
+                        renderStep();
+                        updateBackBtn();
+                    });
+                }
+    
+                updateBackBtn();
+            }
+    
+            function renderRecoWidget(products, recoCtaUrl) {
+                if (!products || products.length === 0) return "";
+                var recoCta = recoCtaUrl || "#";
+                var html = "";
+                for (var i = 0; i < products.length; i++) {
+                    var p = products[i];
+                    var img = (p && p.img) ? p.img : "";
+                    var title = (p && (p.title || p.name)) ? (p.title || p.name) : (typeof p === "string" ? p : "");
+                    var url = (p && (p.dest_url || p.url)) ? (p.dest_url || p.url) : recoCta;
+                    if (!title) continue;
+                    html += '<div class="vl-pf-reco-slide"><a href="' + url + '" title="' + title + '">';
+                    if (img) html += '<div class="vl-pf-reco-img"><img src="' + img + '" alt="' + title + '"/></div>';
+                    else html += '<div class="vl-pf-reco-placeholder"></div>';
+                    html += '<span class="vl-pf-reco-title">' + title + '</span></a></div>';
+                }
+                if (!html) return "";
+                return '<div class="vl-pf-reco"><div class="vl-pf-reco-header">Benzer diğer beğenebileceğiniz parfümler</div><div class="vl-pf-reco-track">' + html + '</div><a href="' + recoCta + '" class="vl-pf-reco-cta">Tümünü Görüntüle</a></div>';
+            }
+    
+            function showLoading() {
+                if (loadingTimeout) clearTimeout(loadingTimeout);
+                isLoading = true;
+                contentEl.innerHTML = '<div class="vl-pf-loading"><div class="vl-pf-bottles"><div class="vl-pf-bottle">🧴</div><div class="vl-pf-bottle">🧴</div><div class="vl-pf-bottle">🧴</div></div><p>Size özel parfümünüz analiz ediliyor...</p></div>';
+                backBtn.classList.remove("vl-pf-hidden");
+                loadingTimeout = setTimeout(function () {
+                    loadingTimeout = null;
+                    if (!isLoading) return;
+                    isLoading = false;
+                    var match = getMatch();
+                    var similar = getSimilarParfumes(match.name, 4);
+                    var widgetHtml = renderRecoWidget(similar);
+                    var resultHtml = '<div class="vl-pf-result"><div class="vl-pf-result-img"></div><h2>Sizin Parfümünüz</h2><p class="vl-pf-result-name">' + match.name + '</p><p class="vl-pf-result-combo">' + state.top + ' + ' + state.mid + ' + ' + state.bottom + '</p>' + widgetHtml + '</div>';
+                    contentEl.innerHTML = resultHtml;
+                    if (typeof Visilabs !== "undefined") {
+                        try {
+                            var vl = new Visilabs();
+                            vl.AddParameter("json", true);
+                            vl.Suggest(41, null, null, function (products) {
+                                if (products && products.length > 0) {
+                                    var recoEl = contentEl.querySelector(".vl-pf-reco");
+                                    if (recoEl) recoEl.outerHTML = renderRecoWidget(products, "https://www.chakra.com.tr/favori-urunler/");
+                                }
+                            });
+                        } catch (e) { }
+                    }
+                    updateBackBtn();
+                }, 2500);
+            }
+    
+            function updateBackBtn() {
+                if (state.step === 1) backBtn.classList.add("vl-pf-hidden"); else backBtn.classList.remove("vl-pf-hidden");
+            }
+    
+            function openPopup() {
+                if (popupEl) return;
+                var body = document.body || document.getElementsByTagName("body")[0];
+                if (!body) return;
+    
+                var wrap = document.createElement("div");
+                wrap.id = "vl-pf-popup";
+                wrap.innerHTML = '<div class="vl-pf-overlay"></div><div class="vl-pf-box"><button class="vl-pf-back" aria-label="Geri">←</button><button class="vl-pf-close" aria-label="Kapat">×</button><div class="vl-pf-content"></div></div>';
+                body.appendChild(wrap);
+                popupEl = wrap;
+                contentEl = wrap.querySelector(".vl-pf-content");
+                backBtn = wrap.querySelector(".vl-pf-back");
+                closeBtn = wrap.querySelector(".vl-pf-close");
+    
+                backBtn.addEventListener("click", function () {
+                    if (isLoading) {
+                        if (loadingTimeout) clearTimeout(loadingTimeout);
+                        loadingTimeout = null;
+                        isLoading = false;
+                        state.step = 7;
+                        renderStep();
+                    } else if (contentEl.querySelector(".vl-pf-result")) {
+                        state.step = 7;
+                        renderStep();
+                    } else if (state.step > 1) {
+                        state.step--;
+                        renderStep();
+                    }
+                    updateBackBtn();
+                });
+    
+                closeBtn.addEventListener("click", closePopup);
+                wrap.querySelector(".vl-pf-overlay").addEventListener("click", closePopup);
+    
+                state = { step: 1, gender: null, top: null, mid: null, bottom: null, char: null, intensity: null, sillage: null };
+                renderStep();
+            }
+    
+            function closePopup() {
+                if (popupEl) {
+                    popupEl.remove();
+                    popupEl = null;
+                }
+            }
+    
+            function initPopup() {
+                if (document.getElementById("vl-pf-popup")) return true;
+                var body = document.body || document.getElementsByTagName("body")[0];
+                if (!body) return false;
+    
+                if (!document.getElementById("vl-parfume-kurgusu-style")) {
+                    var style = document.createElement("style");
+                    style.id = "vl-parfume-kurgusu-style";
+                    style.innerHTML = `
+            #vl-pf-popup {
+                position: fixed;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                z-index: 2147483647;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                animation: vl-pf-fadeIn .3s ease;
+            }
+            #vl-pf-popup .vl-pf-overlay {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                background: rgba(0,0,0,.6);
+                cursor: pointer;
+            }
+            #vl-pf-popup .vl-pf-box {
+                position: relative;
+                z-index: 1;
+                width: 90%;
+                max-width: 520px;
+                max-height: 90vh;
+                overflow: hidden;
+                background: #fff;
+                border-radius: 16px;
+                padding: 32px;
+                box-shadow: 0 20px 60px rgba(0,0,0,.3);
+                animation: vl-pf-slideUp .4s ease;
+                display: flex;
+                flex-direction: column;
+            }
+            #vl-pf-popup .vl-pf-content {
+                flex: 1;
+                min-height: 0;
+            }
+            @keyframes vl-pf-fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes vl-pf-slideUp {
+                from { opacity: 0; transform: translateY(30px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .vl-pf-close {
+                position: absolute;
+                right: 12px;
+                top: 12px;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                border: none;
+                background: #eee;
+                cursor: pointer;
+                font-size: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background .2s;
+            }
+            .vl-pf-close:hover {
+                background: #ddd;
+            }
+            .vl-pf-back {
+                position: absolute;
+                left: 12px;
+                top: 12px;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                border: none;
+                background: #eee;
+                cursor: pointer;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background .2s;
+            }
+            .vl-pf-back:hover {
+                background: #ddd;
+            }
+            .vl-pf-back.vl-pf-hidden {
+                display: none;
+            }
+            .vl-pf-content {
+                padding-top: 44px;
+            }
+            .vl-pf-progress {
+                margin-bottom: 16px;
+                font-size: 13px;
+                color: #888;
+            }
+            .vl-pf-title {
+                font-size: 16px;
+                font-weight: 700;
+                color: #222;
+                margin: 0 0 16px;
+                line-height: 1.35;
+            }
+            .vl-pf-btns {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                margin-bottom: 20px;
+            }
+            .vl-pf-btn {
+                padding: 10px 12px;
+                border: 2px solid #ddd;
+                border-radius: 10px;
+                background: #fff;
+                text-align: left;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                color: #333;
+                transition: all .25s;
+            }
+            .vl-pf-btn:hover {
+                border-color: #c9a227;
+                background: #fefce8;
+            }
+            .vl-pf-btn.vl-pf-selected {
+                border-color: #c9a227;
+                background: linear-gradient(135deg, rgba(201,162,39,.15), rgba(139,105,20,.1));
+            }
+            .vl-pf-desc {
+                display: block;
+                font-size: 12px;
+                font-weight: 400;
+                color: #666;
+                margin-top: 4px;
+            }
+            .vl-pf-nav {
+                display: flex;
+                justify-content: flex-end;
+            }
+            .vl-pf-next {
+                padding: 12px 28px;
+                border: none;
+                border-radius: 10px;
+                background: linear-gradient(135deg, #8b6914, #c9a227);
+                color: #fff;
+                font-size: 15px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: opacity .2s;
+            }
+            .vl-pf-next:hover {
+                opacity: .9;
+            }
+            .vl-pf-loading {
+                text-align: center;
+                padding: 40px 20px;
+            }
+            .vl-pf-bottles {
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+                margin-bottom: 24px;
+            }
+            .vl-pf-bottle {
+                font-size: 48px;
+                animation: vl-pf-bottleSpin 1.2s ease-in-out infinite;
+            }
+            .vl-pf-bottle:nth-child(2) {
+                animation-delay: .2s;
+            }
+            .vl-pf-bottle:nth-child(3) {
+                animation-delay: .4s;
+            }
+            @keyframes vl-pf-bottleSpin {
+                0%, 100% { transform: rotate(-10deg); }
+                50% { transform: rotate(10deg); }
+            }
+            .vl-pf-loading p {
+                font-size: 16px;
+                color: #555;
+            }
+            .vl-pf-result {
+                text-align: center;
+                padding: 32px 20px;
+            }
+            .vl-pf-result-img {
+                width: 120px;
+                height: 120px;
+                margin: 0 auto 20px;
+                background: #f5f5f5;
+                border-radius: 12px;
+            }
+            .vl-pf-result h2 {
+                font-size: 20px;
+                color: #222;
+                margin: 0 0 12px;
+            }
+            .vl-pf-result-name {
+                font-size: 22px;
+                font-weight: 700;
+                color: #8b6914;
+                margin: 0 0 8px;
+            }
+            .vl-pf-result-combo {
+                font-size: 13px;
+                color: #888;
+            }
+            .vl-pf-reco {
+                margin-top: 16px;
+                padding-top: 16px;
+                border-top: 1px solid #eee;
+            }
+            .vl-pf-reco-header {
+                font-size: 16px;
+                font-weight: 600;
+                color: #474747;
+                margin-bottom: 16px;
+                text-align: center;
+            }
+            .vl-pf-reco-track {
+                display: flex;
+                gap: 12px;
+                overflow-x: auto;
+                padding-bottom: 8px;
+                -webkit-overflow-scrolling: touch;
+            }
+            .vl-pf-reco-track::-webkit-scrollbar {
+                height: 4px;
+            }
+            .vl-pf-reco-track::-webkit-scrollbar-thumb {
+                background: #ccc;
+                border-radius: 2px;
+            }
+            .vl-pf-reco-slide {
+                flex-shrink: 0;
+                width: calc(50% - 6px);
+                max-width: 120px;
+            }
+            .vl-pf-reco-slide a {
+                text-decoration: none;
+                color: #333;
+                display: block;
+            }
+            .vl-pf-reco-slide a:hover {
+                text-decoration: underline;
+            }
+            .vl-pf-reco-img {
+                width: 100%;
+                height: 60px;
+                background: #f5f5f5;
+                border-radius: 8px;
+                overflow: hidden;
+                margin-bottom: 8px;
+            }
+            .vl-pf-reco-img img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+            .vl-pf-reco-placeholder {
+                width: 100%;
+                height: 60px;
+                background: #f0f0f0;
+                border-radius: 8px;
+                margin-bottom: 8px;
+            }
+            .vl-pf-reco-title {
+                font-size: 12px;
+                font-weight: 500;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            .vl-pf-reco-cta {
+                display: block;
+                width: 100%;
+                max-width: 160px;
+                margin: 12px auto 0;
+                padding: 10px 16px;
+                background: linear-gradient(135deg, #8b6914, #c9a227);
+                color: #fff;
+                text-align: center;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 600;
+                text-decoration: none;
+            }
+            .vl-pf-reco-cta:hover {
+                opacity: 0.95;
+            }
+            @media (max-width: 768px) {
+                #vl-pf-popup .vl-pf-box {
+                    padding: 24px;
+                }
+            }
+            `;
+                    var head = document.head || document.getElementsByTagName("head")[0];
+                    if (head) head.appendChild(style);
+                }
+                openPopup();
+                return true;
+            }
+    
+            function run() {
+                if (!document.body && !document.getElementsByTagName("body")[0]) return false;
+                return initPopup();
+            }
+    
+            function start() {
+                var t = 0;
+                function loop() {
+                    try {
+                        if (run()) return;
+                        if (t++ > 200) return;
+                    } catch (e) { }
+                    if (typeof requestAnimationFrame !== "undefined") {
+                        requestAnimationFrame(loop);
+                    } else {
+                        setTimeout(loop, 50);
+                    }
+                }
+                loop();
+            }
+    
+            function onLoad() {
+                try {
+                    if (!document.getElementById("vl-pf-popup") && document.body) {
+                        initPopup();
+                    }
+                } catch (e) { }
+            }
+    
+            if (document.readyState === "loading") {
+                try {
+                    document.addEventListener("DOMContentLoaded", start, false);
+                } catch (e) {
+                    start();
+                }
+            } else {
+                start();
+            }
+            try {
+                if (window.addEventListener) {
+                    window.addEventListener("load", onLoad, false);
+                } else if (window.attachEvent) {
+                    window.attachEvent("onload", onLoad);
+                }
+            } catch (e) { }
+            setTimeout(onLoad, 2000);
+        } catch (e) { }
+    })();
+    
+    </script>
+    </body>
+    </html>

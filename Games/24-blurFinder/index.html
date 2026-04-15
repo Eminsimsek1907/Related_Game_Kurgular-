@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blur Finder</title>
+</head>
+
+<body>
+    <script>
+        (function () {
+            "use strict";
+            if (window.BlurFinderPopup) return;
+
+            var URUNLER = [
+                { img: "https://akn-gsstore.a-cdn.akinoncloud.com/cms/2026/01/13/2380274c-46f9-4fd3-a83b-ee6820aa2a80_size600x800.png", dogru: "Uğurcan Çakır", siklar: ["Uğurcan Çakır", "Icardi", "Kerem Aktürkoğlu", "Davinson Sánchez"] },
+                { img: "https://akn-gsstore.a-cdn.akinoncloud.com/cms/2026/01/13/1f2ba66a-9ad1-4f6b-aee6-ef500479dfc3_size600x800.png", dogru: "Icardi", siklar: ["Icardi", "Osimhen", "Barış Alper Yılmaz", "Yunus Akgün"] },
+                { img: "https://akn-gsstore.a-cdn.akinoncloud.com/cms/2026/01/13/c1aebed1-9ebb-4593-8d9f-0d62829fa3cf_size600x800.png", dogru: "Osimhen", siklar: ["Osimhen", "Uğurcan Çakır", "Lucas Torreira", "Hakim Ziyech"] }
+            ];
+
+            var currentSoru = 0;
+            var dogruSayisi = 0;
+            var yanlisHak = 3;
+            var blurPx = 24;
+            var popupEl = null;
+            var gameEl = null;
+            var resultEl = null;
+
+            function shuffle(arr) {
+                var a = arr.slice();
+                for (var i = a.length - 1; i > 0; i--) {
+                    var j = Math.floor(Math.random() * (i + 1));
+                    var t = a[i]; a[i] = a[j]; a[j] = t;
+                }
+                return a;
+            }
+
+            function getBody() {
+                return document.body || document.getElementsByTagName("body")[0] || null;
+            }
+
+            function injectStyles() {
+                if (document.getElementById("blur-finder-styles")) return;
+                var s = document.createElement("style");
+                s.id = "blur-finder-styles";
+                s.innerHTML = `
+            #blur-finder-popup {
+                position: fixed;
+                inset: 0;
+                z-index: 999999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(0,0,0,0.6);
+                padding: 16px;
+                box-sizing: border-box;
+            }
+            #blur-finder-popup .bf-box {
+                position: relative;
+                z-index: 1;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 24px;
+                max-width: 720px;
+                width: 100%;
+                background: #1a1a1a;
+                border: 3px solid #FDB813;
+                box-shadow: 0 0 0 2px #c8102e;
+                border-radius: 12px;
+                overflow: hidden;
+                padding: 28px;
+            }
+            #blur-finder-popup .bf-game {
+                display: flex;
+                flex: 1;
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 24px;
+            }
+            #blur-finder-popup .bf-close {
+                position: absolute;
+                right: 15px;
+                top: 15px;
+                width: 30px;
+                height: 30px;
+                border: none;
+                border-radius: 50%;
+                background: transparent;
+                color: #fff;
+                font-size: 24px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 5;
+                transition: all 0.3s ease;
+            }
+            #blur-finder-popup .bf-close:hover {
+                background: #c8102e;
+            }
+            #blur-finder-popup .bf-left {
+                flex: 1;
+                min-width: 240px;
+                position: relative;
+            }
+            #blur-finder-popup .bf-card {
+                background: rgba(255,255,255,0.08);
+                border-radius: 16px;
+                overflow: hidden;
+                border: 1px solid rgba(253,184,19,0.4);
+                aspect-ratio: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            #blur-finder-popup .bf-card img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+            }
+            #blur-finder-popup .bf-right {
+                flex: 1;
+                min-width: 260px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+            #blur-finder-popup .bf-title {
+                color: #FDB813;
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 8px;
+            }
+            #blur-finder-popup .bf-hak {
+                color: #888;
+                font-size: 13px;
+                margin-bottom: 12px;
+            }
+            #blur-finder-popup .bf-btn {
+                width: 100%;
+                padding: 14px 18px;
+                border: 2px solid #FDB813;
+                border-radius: 8px;
+                background: #1a1a1a;
+                color: #fff;
+                font-size: 15px;
+                text-align: left;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            #blur-finder-popup .bf-btn:hover:not(:disabled) {
+                background: #FDB813;
+                color: #1a1a1a;
+            }
+            #blur-finder-popup .bf-btn:disabled {
+                cursor: default;
+                opacity: 0.6;
+            }
+            #blur-finder-popup .bf-btn.correct {
+                background: #00c853;
+                border-color: #00c853;
+            }
+            #blur-finder-popup .bf-btn.wrong {
+                background: #ff5252;
+                border-color: #ff5252;
+            }
+            #blur-finder-popup .bf-result {
+                display: none;
+                text-align: center;
+                padding: 32px 24px;
+                width: 100%;
+            }
+            #blur-finder-popup .bf-result-title {
+                color: #FDB813;
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 12px;
+            }
+            #blur-finder-popup .bf-result-text {
+                color: #fff;
+                font-size: 16px;
+                margin-bottom: 20px;
+            }
+            #blur-finder-popup .bf-result-code {
+                display: inline-block;
+                width: 100%;
+                max-width: 280px;
+                padding: 16px 24px;
+                background: #FDB813;
+                color: #1a1a1a;
+                border: 2px solid #FDB813;
+                border-radius: 8px;
+                font-size: 18px;
+                font-weight: bold;
+                text-align: center;
+                margin-top: 8px;
+                transition: all 0.3s ease;
+                cursor: default;
+            }
+            #blur-finder-popup .bf-result-code:hover {
+                background: #c8102e;
+                border-color: #c8102e;
+                color: #fff;
+            }
+            @media (max-width: 600px) {
+                #blur-finder-popup .bf-box { flex-direction: column; padding: 25px 20px; }
+                #blur-finder-popup .bf-left,
+                #blur-finder-popup .bf-right { min-width: 100%; }
+                #blur-finder-popup .bf-result-title { font-size: 20px; }
+            }
+        `;
+                (document.head || document.documentElement).appendChild(s);
+            }
+
+            function buildPopup() {
+                var body = getBody();
+                if (!body) return null;
+                injectStyles();
+                var box = document.createElement("div");
+                box.id = "blur-finder-popup";
+                box.style.display = "none";
+                box.innerHTML =
+                    '<div class="bf-box" style="position:relative;">' +
+                    '<button type="button" class="bf-close" aria-label="Kapat">&times;</button>' +
+                    '<div class="bf-game">' +
+                    '<div class="bf-left">' +
+                    '<div class="bf-title">Ürünü tahmin et</div>' +
+                    '<div class="bf-card"><img id="bf-img" src="" alt="Ürün" /></div>' +
+                    '</div>' +
+                    '<div class="bf-right">' +
+                    '<div class="bf-hak" id="bf-hak">Kalan hak: 3</div>' +
+                    '<button type="button" class="bf-btn" data-sik="0"></button>' +
+                    '<button type="button" class="bf-btn" data-sik="1"></button>' +
+                    '<button type="button" class="bf-btn" data-sik="2"></button>' +
+                    '<button type="button" class="bf-btn" data-sik="3"></button>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="bf-result">' +
+                    '<div class="bf-result-title" id="bf-result-title"></div>' +
+                    '<div class="bf-result-text" id="bf-result-text"></div>' +
+                    '<div class="bf-result-code" id="bf-result-code"></div>' +
+                    '</div>' +
+                    '</div>';
+                box.querySelector(".bf-close").onclick = function () { box.style.display = "none"; };
+                box.querySelector(".bf-box").onclick = function (e) { e.stopPropagation(); };
+                box.onclick = function (e) { if (e.target === box) box.style.display = "none"; };
+                body.appendChild(box);
+                return box;
+            }
+
+            function getEl(id) {
+                return popupEl ? popupEl.querySelector("#" + id) : null;
+            }
+
+            function guncelleBlur(px) {
+                var img = getEl("bf-img");
+                if (img) img.style.filter = "blur(" + (px || 0) + "px)";
+            }
+
+            function sonucGoster(kazandi) {
+                if (!gameEl || !resultEl) return;
+                gameEl.style.display = "none";
+                resultEl.style.display = "block";
+                var title = getEl("bf-result-title");
+                var text = getEl("bf-result-text");
+                var code = getEl("bf-result-code");
+                if (kazandi) {
+                    if (title) title.textContent = "Tebrikler!";
+                    if (text) text.textContent = "%20 indirim kazandınız.";
+                    if (code) { code.style.display = "inline-block"; code.textContent = "%20 İNDİRİM"; }
+                } else {
+                    if (title) title.textContent = "Bu sefer olmadı";
+                    if (text) text.textContent = "3 soruyu da doğru bilmeniz gerekiyordu.";
+                    if (code) code.style.display = "none";
+                }
+            }
+
+            function soruGoster() {
+                var u = URUNLER[currentSoru];
+                var img = getEl("bf-img");
+                var hakEl = getEl("bf-hak");
+                if (img) { img.src = u.img; img.style.filter = "blur(" + blurPx + "px)"; }
+                if (hakEl) hakEl.textContent = "Kalan hak: " + yanlisHak;
+                var btns = popupEl.querySelectorAll(".bf-btn");
+                var siklar = shuffle(u.siklar);
+                for (var i = 0; i < btns.length; i++) {
+                    btns[i].textContent = siklar[i];
+                    btns[i].disabled = false;
+                    btns[i].className = "bf-btn";
+                    btns[i].dataset.cevap = siklar[i];
+                }
+            }
+
+            function tikla(cevap) {
+                var u = URUNLER[currentSoru];
+                var btns = popupEl.querySelectorAll(".bf-btn");
+                for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+                if (cevap === u.dogru) {
+                    var btn = popupEl.querySelector('[data-cevap="' + u.dogru + '"]');
+                    if (btn) btn.classList.add("correct");
+                    dogruSayisi++;
+                    if (dogruSayisi >= 3) {
+                        setTimeout(function () { sonucGoster(true); }, 600);
+                        return;
+                    }
+                    currentSoru++;
+                    yanlisHak = 3;
+                    blurPx = 24;
+                    setTimeout(function () { soruGoster(); }, 800);
+                } else {
+                    var wrongBtn = popupEl.querySelector('[data-cevap="' + cevap + '"]');
+                    if (wrongBtn) wrongBtn.classList.add("wrong");
+                    yanlisHak--;
+                    blurPx = Math.max(0, blurPx - 8);
+                    guncelleBlur(blurPx);
+                    var hakEl = getEl("bf-hak");
+                    if (hakEl) hakEl.textContent = "Kalan hak: " + yanlisHak;
+                    if (yanlisHak <= 0) {
+                        setTimeout(function () { sonucGoster(false); }, 800);
+                        return;
+                    }
+                    setTimeout(function () {
+                        for (var j = 0; j < btns.length; j++) btns[j].disabled = false;
+                        wrongBtn.classList.remove("wrong");
+                    }, 500);
+                }
+            }
+
+            function open() {
+                if (!popupEl) popupEl = buildPopup();
+                if (!popupEl) return;
+                gameEl = popupEl.querySelector(".bf-game");
+                resultEl = popupEl.querySelector(".bf-result");
+                currentSoru = 0;
+                dogruSayisi = 0;
+                yanlisHak = 3;
+                blurPx = 24;
+                if (gameEl) gameEl.style.display = "flex";
+                if (resultEl) resultEl.style.display = "none";
+                soruGoster();
+                var rightCol = popupEl.querySelector(".bf-right");
+                if (rightCol) {
+                    rightCol.onclick = function (e) {
+                        var btn = e.target && e.target.classList && e.target.classList.contains("bf-btn") ? e.target : null;
+                        if (btn && !btn.disabled) tikla(btn.dataset.cevap);
+                    };
+                }
+                popupEl.style.display = "flex";
+            }
+
+            window.BlurFinderPopup = { open: open };
+
+            function run() {
+                if (getBody()) open();
+                else setTimeout(run, 80);
+            }
+            if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);
+            else run();
+        })();
+    </script>
+</body>
+
+</html>

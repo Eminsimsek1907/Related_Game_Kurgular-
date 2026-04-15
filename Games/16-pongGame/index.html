@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pong Oyunu</title>
+</head>
+
+<body>
+  <script>
+    (function () {
+      if (window.__heartPongPinkTheme) return;
+      window.__heartPongPinkTheme = true;
+
+      document.body.style.margin = "0";
+      document.body.style.overflow = "hidden";
+
+      const GAME_DURATION = 30000;
+      const DISCOUNT_CODE = "LOVE14";
+
+      let gameStartTime = null;
+      let running = false;
+      let gameEnded = false;
+      let firstStart = true;
+
+      const keys = {};
+
+
+      const heartBtn = document.createElement("div");
+      heartBtn.textContent = "❤️";
+      Object.assign(heartBtn.style, {
+        position: "fixed",
+        right: "24px",
+        bottom: "24px",
+        fontSize: "38px",
+        cursor: "pointer",
+        zIndex: 9999,
+        animation: "heartbeat 1.1s infinite",
+        filter: "drop-shadow(0 0 12px rgba(255,0,80,.6))"
+      });
+      document.body.appendChild(heartBtn);
+
+
+      const overlay = document.createElement("div");
+      Object.assign(overlay.style, {
+        position: "fixed",
+        inset: 0,
+        background: "linear-gradient(180deg,#ffd1dc,#ff6f91)",
+        display: "none",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 9998
+      });
+      document.body.appendChild(overlay);
+
+      const container = document.createElement("div");
+      Object.assign(container.style, {
+        position: "relative",
+        padding: "32px",
+        borderRadius: "26px",
+        background: "rgba(255,255,255,.45)",
+        backdropFilter: "blur(10px)",
+        boxShadow: "0 30px 80px rgba(255,0,80,.35)"
+      });
+
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 900;
+      canvas.height = 450;
+      canvas.style.background =
+        "linear-gradient(135deg,#ffe6ec,#ffc1d1)";
+      canvas.style.borderRadius = "18px";
+      canvas.style.boxShadow =
+        "inset 0 0 0 3px rgba(255,105,135,.35)";
+      canvas.tabIndex = 1;
+
+      const ctx = canvas.getContext("2d");
+
+
+      const startText = document.createElement("div");
+      startText.textContent = "PRESS ANY KEY TO START 💗";
+      Object.assign(startText.style, {
+        position: "absolute",
+        top: "14px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        color: "#b3003c",
+        fontSize: "22px",
+        fontWeight: "600",
+        letterSpacing: "2px",
+        animation: "blink 1.3s infinite"
+      });
+
+      const resultBox = document.createElement("div");
+      Object.assign(resultBox.style, {
+        position: "absolute",
+        inset: 0,
+        display: "none",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        color: "#b3003c",
+        textAlign: "center"
+      });
+
+      const resultTitle = document.createElement("div");
+      resultTitle.style.fontSize = "42px";
+      resultTitle.style.fontWeight = "700";
+
+      const resultSub = document.createElement("div");
+      resultSub.style.marginTop = "16px";
+      resultSub.style.fontSize = "24px";
+
+      const actionBtn = document.createElement("button");
+      Object.assign(actionBtn.style, {
+        marginTop: "22px",
+        padding: "12px 32px",
+        fontSize: "16px",
+        borderRadius: "999px",
+        border: "none",
+        cursor: "pointer",
+        background: "linear-gradient(135deg,#ff4d6d,#ff758f)",
+        color: "#fff",
+        fontWeight: "600",
+        boxShadow: "0 10px 30px rgba(255,0,80,.35)"
+      });
+
+      resultBox.append(resultTitle, resultSub, actionBtn);
+
+
+      const style = document.createElement("style");
+      style.innerHTML = `
+      @keyframes blink {
+        0% { opacity:.3 }
+        50% { opacity:1 }
+        100% { opacity:.3 }
+      }
+      @keyframes heartbeat {
+        0% { transform:scale(1) }
+        25% { transform:scale(1.2) }
+        40% { transform:scale(1) }
+        60% { transform:scale(1.15) }
+        100% { transform:scale(1) }
+      }
+    `;
+      document.head.appendChild(style);
+
+      container.append(startText, resultBox, canvas);
+      overlay.append(container);
+
+
+      const paddleH = 90;
+      const paddleW = 10;
+
+      const player = { x: 20, y: 180 };
+      const ai = { x: 870, y: 180 };
+      const ball = { x: 450, y: 225, vx: 4, vy: 3, s: 10 };
+
+
+      document.addEventListener("keydown", e => {
+        if (["ArrowUp", "ArrowDown", "w", "s"].includes(e.key)) e.preventDefault();
+        keys[e.key] = true;
+
+        if (firstStart && overlay.style.display === "flex") {
+          firstStart = false;
+          startText.style.display = "none";
+          running = true;
+          gameStartTime = performance.now();
+        }
+      }, { passive: false });
+
+      document.addEventListener("keyup", e => (keys[e.key] = false));
+
+      heartBtn.onclick = () => {
+        heartBtn.style.animation = "none";
+        heartBtn.style.transform = "scale(1.6)";
+        setTimeout(() => heartBtn.remove(), 120);
+        overlay.style.display = "flex";
+        canvas.focus();
+        loop();
+      };
+
+
+      function resetGame() {
+        running = false;
+        gameEnded = false;
+        firstStart = true;
+        resultBox.style.display = "none";
+        startText.style.display = "block";
+        player.y = ai.y = 180;
+        ball.x = 450;
+        ball.y = 225;
+        ball.vx = 4 * (Math.random() > 0.5 ? 1 : -1);
+        ball.vy = 3;
+      }
+
+      function endGame(win) {
+        running = false;
+        gameEnded = true;
+        resultBox.style.display = "flex";
+
+        if (win) {
+          resultTitle.textContent = "💖 SEN KAZANDIN 💖";
+          resultSub.textContent = `İndirim Kodun: ${DISCOUNT_CODE}`;
+          actionBtn.textContent = "KOPYALA 💌";
+          actionBtn.onclick = () => {
+            navigator.clipboard.writeText(DISCOUNT_CODE);
+            actionBtn.textContent = "KOPYALANDI 💗";
+          };
+        } else {
+          resultTitle.textContent = "💔 KAYBETTİN";
+          resultSub.textContent = "Bu sefer olmadı";
+          actionBtn.textContent = "TEKRAR DENE";
+          actionBtn.onclick = resetGame;
+        }
+      }
+
+
+      function update() {
+        if (!running || gameEnded) return;
+
+        if (performance.now() - gameStartTime >= GAME_DURATION) {
+          endGame(false);
+        }
+
+        if (keys.w || keys.ArrowUp) player.y -= 6;
+        if (keys.s || keys.ArrowDown) player.y += 6;
+        player.y = Math.max(0, Math.min(canvas.height - paddleH, player.y));
+
+        ai.y += (ball.y - (ai.y + paddleH / 2)) * 0.06;
+        ai.y = Math.max(0, Math.min(canvas.height - paddleH, ai.y));
+
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+
+        if (ball.y <= 0 || ball.y >= canvas.height - ball.s) ball.vy *= -1;
+
+        if (
+          ball.x <= player.x + paddleW &&
+          ball.y + ball.s > player.y &&
+          ball.y < player.y + paddleH
+        ) ball.vx = Math.abs(ball.vx);
+
+        if (
+          ball.x + ball.s >= ai.x &&
+          ball.y + ball.s > ai.y &&
+          ball.y < ai.y + paddleH
+        ) ball.vx = -Math.abs(ball.vx);
+
+        if (ball.x > canvas.width) endGame(true);
+        if (ball.x < 0) endGame(false);
+      }
+
+      function drawNet() {
+        ctx.strokeStyle = "rgba(255,255,255,.6)";
+        ctx.setLineDash([6, 12]);
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawNet();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(player.x, player.y, paddleW, paddleH);
+        ctx.fillRect(ai.x, ai.y, paddleW, paddleH);
+        ctx.fillStyle = "#ff4d6d";
+        ctx.fillRect(ball.x, ball.y, ball.s, ball.s);
+      }
+
+      function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+      }
+    })();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mix the Right Food</title>
+</head>
+<body>
+<script>
+(function () {
+    if (window.__vl_mix_food_booted) return;
+    window.__vl_mix_food_booted = true;
+
+    const INGREDIENTS = [
+        { id: "pirinç", name: "Pirinç" },
+        { id: "tencere", name: "Tencere" },
+        { id: "su", name: "Su" },
+        { id: "mercimek", name: "Mercimek" },
+        { id: "tuz", name: "Tuz" },
+        { id: "süt", name: "Süt" },
+        { id: "şeker", name: "Şeker" },
+        { id: "kalem", name: "Kalem" },
+        { id: "araba", name: "Araba" },
+        { id: "defter", name: "Defter" }
+    ];
+
+    const DISHES = [
+        { id: "pilav", name: "Pilav", ingredientIds: ["pirinç", "tencere", "su"], hint: "Pilav için gerekli 3 malzemeyi sürükle." },
+        { id: "corba", name: "Mercimek Çorbası", ingredientIds: ["mercimek", "su", "tuz"], hint: "Çorba için gerekli 3 malzemeyi sürükle." },
+        { id: "tatli", name: "Sütlaç", ingredientIds: ["süt", "pirinç", "şeker"], hint: "Tatlı için gerekli 3 malzemeyi sürükle." }
+    ];
+
+    const WRONG_IDS = ["kalem", "araba", "defter"];
+    const TOTAL_TIME = 20;
+    const WIN_THRESHOLD = 3;
+    const DISCOUNT_CODE = "YEMEK20";
+
+    let state = { phase: "welcome", score: 0, timeLeft: TOTAL_TIME, currentTargetIndex: 0, droppedIds: [], timerId: null, currentOptions: [] };
+    let el = {};
+
+    const s = document.createElement("style");
+    s.innerHTML = `
+        #vl-popup-container {
+            z-index: 10000;
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #vl-popup-container .vl-overlay {
+            z-index: 10000;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            opacity: 0.6;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+        #vl-popup-container .vl-popup {
+            position: relative;
+            z-index: 100001;
+            width: 920px;
+            max-width: 95%;
+            background: #fff;
+            border: 3px solid #1a1a1a;
+            border-radius: 16px;
+            padding: 48px;
+            max-height: 92vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        #vl-popup-container .vl-strip {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #c41e3a 0%, #fff 35%, #1a1a1a 70%, #c41e3a 100%);
+            border-radius: 16px 16px 0 0;
+        }
+        .vl-popup .vl-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+        }
+        .vl-popup .vl-subtitle {
+            text-align: center;
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+        .vl-popup .vl-buttons {
+            margin: 24px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+        .vl-popup .vl-buttons button {
+            padding: 14px 28px;
+            border-radius: 10px;
+            border: 2px solid #c41e3a;
+            background: #fff;
+            color: #1a1a1a;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .vl-popup .vl-buttons button:hover {
+            background: #c41e3a;
+            color: #fff;
+        }
+        #vl-game-wrap {
+            display: flex;
+            gap: 32px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        #vl-left {
+            flex: 0 0 320px;
+        }
+        #vl-timer {
+            background: linear-gradient(135deg, #c41e3a, #1a1a1a);
+            color: #fff;
+            padding: 14px 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        #vl-ingredients {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .vl-ingredient-block {
+            min-width: 80px;
+            min-height: 80px;
+            padding: 12px;
+            border-radius: 12px;
+            border: 3px solid #1a1a1a;
+            background: #fff;
+            color: #1a1a1a;
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+        }
+        .vl-ingredient-block:hover { transform: scale(1.06); box-shadow: 0 8px 24px rgba(196,30,58,0.2); }
+        .vl-ingredient-block.dragging { opacity: 0.7; cursor: grabbing; }
+        .vl-ingredient-block.reject { animation: vl-shake 0.5s ease; }
+        @keyframes vl-shake {
+            0%,100% { transform: translateX(0); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-8px); }
+            80% { transform: translateX(8px); }
+        }
+        #vl-target-name {
+            font-size: 26px;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+        #vl-hint {
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 24px;
+        }
+        #vl-drop-zone {
+            flex: 1;
+            min-width: 260px;
+            min-height: 240px;
+            background: #fafafa;
+            border: 3px dashed #1a1a1a;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        #vl-drop-zone.drag-over { border-color: #c41e3a; background-color: #fff5f5; }
+        #vl-drop-zone .vl-mix-label { color: #666; font-size: 15px; }
+        .vl-dropped-item {
+            min-width: 56px;
+            min-height: 56px;
+            padding: 8px;
+            border-radius: 12px;
+            border: 2px solid #1a1a1a;
+            background: #fff;
+            color: #1a1a1a;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .vl-result-dish {
+            min-width: 140px;
+            min-height: 80px;
+            padding: 20px;
+            border-radius: 20px;
+            border: 4px solid #1a1a1a;
+            background: linear-gradient(135deg, #fff 0%, #f8f8f8 100%);
+            color: #c41e3a;
+            font-size: 22px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+            animation: vl-result-show 0.4s ease;
+        }
+        .vl-result-dish.vl-result-out {
+            animation: vl-result-out 0.6s ease forwards;
+        }
+        @keyframes vl-result-show {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        @keyframes vl-result-out {
+            to { transform: scale(0.3); opacity: 0; }
+        }
+        #vl-score-bar {
+            margin-top: 16px;
+            font-size: 15px;
+            color: #333;
+            text-align: center;
+        }
+        .vl-result-box {
+            text-align: center;
+            padding: 24px 0;
+        }
+        .vl-result-box .vl-title { margin-bottom: 12px; color: #1a1a1a; }
+        .vl-discount-code {
+            background: linear-gradient(135deg, #c41e3a, #1a1a1a);
+            color: #fff;
+            padding: 20px 32px;
+            border-radius: 12px;
+            font-size: 26px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            margin: 24px auto;
+            display: inline-block;
+            animation: vl-pulse 1s ease infinite;
+        }
+        @keyframes vl-pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(196,30,58,0.4); }
+            50% { transform: scale(1.03); box-shadow: 0 0 24px 8px rgba(196,30,58,0.25); }
+        }
+        .vl-tebrik-enter {
+            animation: vl-tebrik 0.6s ease;
+        }
+        @keyframes vl-tebrik {
+            0% { opacity: 0; transform: scale(0.8) translateY(-20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .vl-popup-close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            cursor: pointer;
+            font-size: 24px;
+            color: #1a1a1a;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            background: #f0f0f0;
+            border: 2px solid #1a1a1a;
+        }
+        .vl-popup-close:hover { background: #c41e3a; color: #fff; border-color: #c41e3a; }
+        @media only screen and (max-width: 768px) {
+            #vl-popup-container { align-items: center; justify-content: center; padding: 16px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+            #vl-popup-container .vl-popup { width: 100%; max-width: 100%; padding: 44px 20px 28px; margin: auto; border-radius: 12px; max-height: calc(100vh - 32px); overflow-y: auto; }
+            #vl-popup-container .vl-strip { border-radius: 12px 12px 0 0; }
+            .vl-popup .vl-title { font-size: 20px; margin-bottom: 12px; }
+            .vl-popup .vl-subtitle { font-size: 14px; margin-bottom: 20px; }
+            .vl-popup .vl-buttons { margin: 20px 0; gap: 10px; }
+            .vl-popup .vl-buttons button { padding: 14px 24px; font-size: 15px; min-height: 48px; -webkit-tap-highlight-color: transparent; }
+            #vl-game-wrap { flex-direction: column; gap: 20px; width: 100%; align-items: stretch; }
+            #vl-left { flex: 0 0 auto; width: 100%; max-width: 100%; }
+            #vl-timer { padding: 12px 16px; font-size: 18px; margin-bottom: 16px; }
+            #vl-ingredients { justify-content: center; gap: 14px; margin-bottom: 16px; }
+            .vl-ingredient-block { min-width: 72px; min-height: 72px; font-size: 13px; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+            #vl-target-name { font-size: 22px; margin-bottom: 8px; }
+            #vl-hint { font-size: 13px; margin-bottom: 16px; }
+            #vl-score-bar { margin-top: 12px; font-size: 14px; }
+            #vl-drop-zone { flex: 0 0 auto; width: 100%; min-width: 0; min-height: 180px; border-radius: 12px; -webkit-tap-highlight-color: transparent; }
+            .vl-dropped-item { min-width: 52px; min-height: 52px; font-size: 11px; }
+            .vl-result-dish { min-width: 120px; min-height: 70px; font-size: 18px; }
+            .vl-popup-close { right: 12px; top: 12px; width: 40px; height: 40px; font-size: 22px; }
+            .vl-result-box .vl-title { font-size: 20px; }
+            .vl-discount-code { font-size: 22px; padding: 16px 24px; }
+        }
+    `;
+    document.head.appendChild(s);
+
+    function getContainer() {
+        let c = document.getElementById("vl-popup-container");
+        if (!c) {
+            c = document.createElement("div");
+            c.id = "vl-popup-container";
+            c.innerHTML = '<div class="vl-overlay"></div><div class="vl-popup"><div class="vl-strip"></div><span class="vl-popup-close">✕</span><div class="vl-content"></div></div>';
+            document.body.appendChild(c);
+            c.querySelector(".vl-overlay").addEventListener("click", closeAll);
+            c.querySelector(".vl-popup-close").addEventListener("click", closeAll);
+        }
+        return c;
+    }
+
+    function closeAll() {
+        if (state.timerId) clearInterval(state.timerId);
+        const c = document.getElementById("vl-popup-container");
+        if (c) c.remove();
+    }
+
+    function getIngredientById(id) {
+        return INGREDIENTS.find(i => i.id === id);
+    }
+
+    function getCurrentOptions() {
+        const dish = DISHES[state.currentTargetIndex % DISHES.length];
+        const wrongId = WRONG_IDS[state.currentTargetIndex % WRONG_IDS.length];
+        const opts = [...dish.ingredientIds, wrongId];
+        for (let i = opts.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [opts[i], opts[j]] = [opts[j], opts[i]];
+        }
+        return opts;
+    }
+
+    function renderWelcome() {
+        state.phase = "welcome";
+        const container = getContainer();
+        const content = container.querySelector(".vl-content");
+        content.innerHTML = `
+            <div class="vl-title">Doğru Malzemeleri Seç</div>
+            <div class="vl-subtitle">Hedef yemek için 4 malzemeden doğru 3 tanesini sürükleyip sağdaki alana bırak. Alakasız malzemeyi bırakırsan kabul edilmez. 20 saniyede 3 yemeği doğru tamamlarsan indirim kodunu kazanırsın!</div>
+            <div class="vl-buttons">
+                <button id="vl-start-btn">Başla</button>
+            </div>
+        `;
+        content.querySelector("#vl-start-btn").addEventListener("click", startGame);
+    }
+
+    function startGame() {
+        state.phase = "game";
+        state.score = 0;
+        state.timeLeft = TOTAL_TIME;
+        state.currentTargetIndex = 0;
+        state.droppedIds = [];
+        state.currentOptions = getCurrentOptions();
+        const container = getContainer();
+        const content = container.querySelector(".vl-content");
+        const dish = DISHES[state.currentTargetIndex];
+        content.innerHTML = `
+            <div id="vl-game-wrap">
+                <div id="vl-left">
+                    <div id="vl-timer">Süre: <span id="vl-time-num">${state.timeLeft}</span></div>
+                    <div id="vl-ingredients"></div>
+                    <div id="vl-target-name">${dish.name}</div>
+                    <div id="vl-hint">${dish.hint}</div>
+                    <div id="vl-score-bar">Tamamlanan: 0</div>
+                </div>
+                <div id="vl-drop-zone">
+                    <span class="vl-mix-label">Malzemeleri buraya sürükle</span>
+                </div>
+            </div>
+        `;
+        el.timerNum = content.querySelector("#vl-time-num");
+        el.ingredientsWrap = content.querySelector("#vl-ingredients");
+        el.targetName = content.querySelector("#vl-target-name");
+        el.hint = content.querySelector("#vl-hint");
+        el.dropZone = content.querySelector("#vl-drop-zone");
+        el.scoreBar = content.querySelector("#vl-score-bar");
+        renderIngredientBlocks();
+        bindDropZone();
+        state.timerId = setInterval(tick, 1000);
+    }
+
+    function renderIngredientBlocks() {
+        state.currentOptions = getCurrentOptions();
+        el.ingredientsWrap.innerHTML = "";
+        state.currentOptions.forEach(ingId => {
+            const ing = getIngredientById(ingId);
+            if (!ing) return;
+            const block = document.createElement("div");
+            block.className = "vl-ingredient-block";
+            block.dataset.id = ing.id;
+            block.textContent = ing.name;
+            block.draggable = true;
+            block.addEventListener("dragstart", onDragStart);
+            block.addEventListener("dragend", onDragEnd);
+            block.addEventListener("drag", onDrag);
+            block.addEventListener("click", onIngredientClick);
+            el.ingredientsWrap.appendChild(block);
+        });
+    }
+
+    function onIngredientClick(ev) {
+        if (state.phase !== "game" || !el.dropZone) return;
+        const block = ev.currentTarget;
+        if (block.classList.contains("dragging")) return;
+        applyIngredientToZone(block.dataset.id, block);
+    }
+
+    function getTargetDish() {
+        return DISHES[state.currentTargetIndex % DISHES.length];
+    }
+
+    function onDragStart(ev) {
+        ev.dataTransfer.setData("text/plain", ev.currentTarget.dataset.id);
+        ev.dataTransfer.effectAllowed = "move";
+        ev.currentTarget.classList.add("dragging");
+    }
+
+    function onDragEnd(ev) {
+        ev.currentTarget.classList.remove("dragging");
+        el.dropZone.classList.remove("drag-over");
+    }
+
+    function onDrag(ev) {
+        ev.dataTransfer.dropEffect = "move";
+    }
+
+    function bindDropZone() {
+        el.dropZone.addEventListener("dragover", e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            el.dropZone.classList.add("drag-over");
+        });
+        el.dropZone.addEventListener("dragleave", () => el.dropZone.classList.remove("drag-over"));
+        el.dropZone.addEventListener("drop", onDrop);
+    }
+
+    function onDrop(ev) {
+        ev.preventDefault();
+        el.dropZone.classList.remove("drag-over");
+        if (state.phase !== "game") return;
+        const id = ev.dataTransfer.getData("text/plain");
+        const block = el.ingredientsWrap.querySelector(`[data-id="${id}"]`);
+        applyIngredientToZone(id, block);
+    }
+
+    function applyIngredientToZone(id, block) {
+        const dish = getTargetDish();
+        const allowed = dish.ingredientIds;
+        if (!allowed.includes(id)) {
+            if (block) {
+                block.classList.add("reject");
+                block.style.animation = "none";
+                block.offsetHeight;
+                block.style.animation = "";
+                block.classList.add("reject");
+                setTimeout(() => block.classList.remove("reject"), 500);
+            }
+            return;
+        }
+        if (state.droppedIds.includes(id)) return;
+        state.droppedIds.push(id);
+        const ing = getIngredientById(id);
+        const dot = document.createElement("div");
+        dot.className = "vl-dropped-item";
+        dot.textContent = ing.name;
+        dot.dataset.id = id;
+        el.dropZone.appendChild(dot);
+        if (state.droppedIds.length === 3) {
+            state.score++;
+            if (el.scoreBar) el.scoreBar.textContent = "Tamamlanan: " + state.score;
+            const dishCur = getTargetDish();
+            el.dropZone.querySelectorAll(".vl-dropped-item").forEach(n => n.remove());
+            const label = el.dropZone.querySelector(".vl-mix-label");
+            if (label) label.style.visibility = "hidden";
+            const resultBlock = document.createElement("div");
+            resultBlock.className = "vl-result-dish";
+            resultBlock.textContent = dishCur.name;
+            el.dropZone.appendChild(resultBlock);
+            state.droppedIds = [];
+            state.currentTargetIndex++;
+            setTimeout(() => {
+                resultBlock.classList.add("vl-result-out");
+                setTimeout(() => {
+                    resultBlock.remove();
+                    if (label) label.style.visibility = "";
+                    const next = getTargetDish();
+                    el.targetName.textContent = next.name;
+                    el.hint.textContent = next.hint;
+                    renderIngredientBlocks();
+                }, 600);
+            }, 2000);
+        }
+    }
+
+    function tick() {
+        state.timeLeft--;
+        if (el.timerNum) el.timerNum.textContent = state.timeLeft;
+        if (state.timeLeft <= 0) {
+            clearInterval(state.timerId);
+            state.timerId = null;
+            showResult();
+        }
+    }
+
+    function showResult() {
+        state.phase = "result";
+        const container = getContainer();
+        const content = container.querySelector(".vl-content");
+        const won = state.score >= WIN_THRESHOLD;
+        if (won) {
+            content.innerHTML = `
+                <div class="vl-result-box vl-tebrik-enter">
+                    <div class="vl-title">Tebrikler!</div>
+                    <div class="vl-subtitle">20 saniyede ${state.score} yemek tamamladın. İndirim kodun:</div>
+                    <div class="vl-discount-code">${DISCOUNT_CODE}</div>
+                    <div class="vl-buttons">
+                        <button id="vl-close-btn">Kapat</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            content.innerHTML = `
+                <div class="vl-result-box">
+                    <div class="vl-title">Süre Doldu!</div>
+                    <div class="vl-subtitle">En az 3 yemek tamamlaman gerekiyordu. (Tamamladığın: ${state.score})</div>
+                    <div class="vl-buttons">
+                        <button id="vl-try-again-btn">Tekrar Dene</button>
+                        <button id="vl-close-btn">Kapat</button>
+                    </div>
+                </div>
+            `;
+            content.querySelector("#vl-try-again-btn").addEventListener("click", () => { startGame(); });
+        }
+        content.querySelector("#vl-close-btn").addEventListener("click", closeAll);
+    }
+
+    renderWelcome();
+    window.vlMixTheFood = function () {
+        if (!document.getElementById("vl-popup-container")) getContainer();
+        renderWelcome();
+    };
+})();
+</script>
+</body>
+</html>
