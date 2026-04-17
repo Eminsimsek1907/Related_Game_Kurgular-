@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kargo Kulesi Oyunu</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f6f8;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      h1 {
+        color: #2c3e50;
+      }
+      p {
+        color: #7f8c8d;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>E-Ticaret Test Sayfası</h1>
+    <p>Oyunu test etmek için sağ alt köşedeki kargo ikonuna tıklayın.</p>
+
+    <script>
+      (function () {
+        if (document.getElementById("vl-gamification-root")) {
+          document.getElementById("vl-gamification-root").remove();
+        }
+
+        const config = {
+          targetScore: 6,
+          boxSpeedBase: 7,
+
+          maxCanvasWidth: 450,
+          maxCanvasHeight: 850,
+          mobileHeightRatio: 0.85,
+
+          widgetIcon: "📦",
+          widgetBgStart: "#d1a87b",
+          widgetBgEnd: "#a67c52",
+          widgetBorderColor: "#5c4026",
+          widgetTextColor: "#fff",
+          widgetTextBg: "#ff4757",
+
+          canvasBgStart: "#2c3e50",
+          canvasBgEnd: "#0f141e",
+
+          boxColorStart: "#d1a87b",
+          boxColorEnd: "#9e7349",
+          boxBorderColor: "#5c4026",
+
+          widgetText: "ÜCRETSİZ KARGO",
+          infoTextTarget: "Hedef:",
+          infoTextDesc: "Kargo Kutusunu Diz!",
+
+          winTitle: "TEBRİKLER!",
+          winDesc: "Kargoları başarıyla dizdin! İşte kargo bedava kuponun:",
+          copyBtnDefaultText: "Kodu Kopyala",
+          copyBtnSuccessText: "Kopyalandı! ",
+          continueBtnText: "Alışverişe Devam Et",
+
+          gameOverTitle: "OYUN BİTTİ",
+          gameOverDesc: "Tekrar denemek için ekrana dokun",
+          boxDroppedHtml:
+            "<span style='color:#ff4757; font-weight:bold;'>Kutu Düştü!</span> Tekrar denemek için tıkla.",
+        };
+
+        const runtimeConfig = {
+          canvasWidth: config.maxCanvasWidth,
+          canvasHeight: config.maxCanvasHeight,
+          boxHeight: 90,
+        };
+
+        const root = document.createElement("div");
+        root.id = "vl-gamification-root";
+        document.body.appendChild(root);
+
+        const style = document.createElement("style");
+        style.innerHTML = `
+                @keyframes vl-wiggle {
+                    0%, 20%, 100% { transform: translateY(0) rotate(0); }
+                    4% { transform: translateY(-5px) rotate(-5deg); }
+                    8% { transform: translateY(-5px) rotate(5deg); }
+                    12% { transform: translateY(-5px) rotate(-5deg); }
+                    16% { transform: translateY(-5px) rotate(5deg); }
+                    20% { transform: translateY(0) rotate(0); }
+                }
+
+                #vl-shipping-widget {
+                    position: fixed; bottom: 25px; right: 25px;
+                    background: linear-gradient(135deg, ${config.widgetBgStart}, ${config.widgetBgEnd});
+                    border: 2px solid ${config.widgetBorderColor}; border-radius: 14px; padding: 10px 15px;
+                    cursor: pointer; z-index: 999998; box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+                    display: flex; flex-direction: column; align-items: center;
+                    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    animation: vl-wiggle 4s ease-in-out infinite;
+                }
+                
+                #vl-shipping-widget:hover {
+                    animation: none; transform: scale(1.08) translateY(-5px);
+                    box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+                }
+
+                .vl-widget-icon { font-size: 32px; line-height: 1; margin-bottom: 6px; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3)); }
+                .vl-widget-text {
+                    font-size: 12px; font-weight: 800; color: ${config.widgetTextColor}; background: ${config.widgetTextBg};
+                    padding: 5px 12px; border-radius: 20px; text-align: center;
+                    letter-spacing: 0.5px; box-shadow: 0 3px 8px rgba(255, 71, 87, 0.6); text-transform: uppercase;
+                }
+                
+                #vl-game-overlay {
+                    display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                    background: rgba(15, 20, 25, 0.9); z-index: 999999;
+                    flex-direction: column; align-items: center; justify-content: center;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+                }
+                
+                #vl-close-btn {
+                    position: absolute; top: 20px; right: 20px; width: 40px; height: 40px;
+                    font-size: 22px; display: flex; align-items: center; justify-content: center;
+                    cursor: pointer; background-color: rgba(255, 255, 255, 0.1); color: #fff;
+                    border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; transition: all 0.2s;
+                }
+                #vl-close-btn:hover { background-color: #ff4757; border-color: #ff4757; transform: rotate(90deg); }
+                
+                #vl-game-canvas {
+                    background-color: #1e272e; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8);
+                    border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); max-width: 95vw;
+                }
+                
+                #vl-game-info {
+                    color: rgba(255,255,255,0.8); margin-top: 20px; font-size: 16px;
+                    font-weight: 500; letter-spacing: 0.5px; text-align: center; padding: 0 20px;
+                }
+                
+                #vl-win-popup {
+                    position: absolute; display: none; flex-direction: column; align-items: center;
+                    justify-content: center; background: #ffffff; padding: 35px 25px;
+                    border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+                    text-align: center; z-index: 1000000; width: 85%; max-width: 340px;
+                }
+                
+                .vl-popup-title { color: #2ed573; margin: 0 0 10px 0; font-size: 26px; font-weight: 800; }
+                .vl-popup-desc { color: #57606f; margin: 0 0 20px 0; line-height: 1.5; font-size: 15px; }
+                
+                .vl-coupon-box {
+                    background-color: #f8f9fa; padding: 15px; border-radius: 12px;
+                    border: 2px dashed #2ed573; font-size: 24px; font-weight: 900;
+                    color: #2f3542; letter-spacing: 2px; width: 100%; box-sizing: border-box; margin-bottom: 10px;
+                }
+
+                .vl-copy-btn {
+                    width: 100%; padding: 10px; background-color: #fff; color: #57606f;
+                    border: 2px solid #dfe4ea; border-radius: 10px; font-size: 15px; font-weight: bold;
+                    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+                }
+                .vl-copy-btn:hover { background-color: #f1f2f6; border-color: #ced6e0; }
+                .vl-copy-btn.copied { background-color: #2ed573; color: #fff; border-color: #2ed573; }
+                
+                .vl-continue-btn {
+                    margin-top: 15px; padding: 15px 0; width: 100%; background: linear-gradient(135deg, #1e90ff, #3742fa);
+                    color: #fff; border: none; border-radius: 12px; font-size: 16px;
+                    font-weight: bold; cursor: pointer; transition: opacity 0.2s, transform 0.2s;
+                    box-shadow: 0 8px 15px rgba(30, 144, 255, 0.4);
+                }
+                .vl-continue-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+            `;
+        root.appendChild(style);
+
+        const widget = document.createElement("div");
+        widget.id = "vl-shipping-widget";
+        widget.innerHTML = `
+                <div class="vl-widget-icon">${config.widgetIcon}</div>
+                <div class="vl-widget-text">${config.widgetText}</div>
+            `;
+        root.appendChild(widget);
+
+        const overlay = document.createElement("div");
+        overlay.id = "vl-game-overlay";
+        root.appendChild(overlay);
+
+        const closeBtn = document.createElement("button");
+        closeBtn.id = "vl-close-btn";
+        closeBtn.innerText = "✕";
+        closeBtn.onclick = () => {
+          overlay.style.display = "none";
+          isGameRunning = false;
+        };
+        overlay.appendChild(closeBtn);
+
+        const canvas = document.createElement("canvas");
+        canvas.id = "vl-game-canvas";
+        const ctx = canvas.getContext("2d");
+        overlay.appendChild(canvas);
+
+        const popup = document.createElement("div");
+        popup.id = "vl-win-popup";
+        popup.innerHTML = `
+                <h2 class="vl-popup-title">${config.winTitle}</h2>
+                <p class="vl-popup-desc">${config.winDesc}</p>
+                <div id="vl-coupon-code" class="vl-coupon-box"></div>
+                <button id="vl-copy-btn" class="vl-copy-btn"><span>${config.copyBtnDefaultText}</span></button>
+                <button id="vl-continue-btn" class="vl-continue-btn">${config.continueBtnText}</button>
+            `;
+        overlay.appendChild(popup);
+
+        const info = document.createElement("div");
+        info.id = "vl-game-info";
+        overlay.appendChild(info);
+
+        document.getElementById("vl-copy-btn").onclick = (e) => {
+          const code = document.getElementById("vl-coupon-code").innerText;
+          const btn = document.getElementById("vl-copy-btn");
+
+          navigator.clipboard
+            .writeText(code)
+            .then(() => {
+              btn.innerHTML = `<span>${config.copyBtnSuccessText}</span>`;
+              btn.classList.add("copied");
+
+              window.dataLayer = window.dataLayer || [];
+              window.dataLayer.push({
+                event: "gamification_interaction",
+                action: "coupon_copied",
+                coupon_code: code,
+              });
+
+              setTimeout(() => {
+                btn.innerHTML = `<span>${config.copyBtnDefaultText}</span>`;
+                btn.classList.remove("copied");
+              }, 2500);
+            })
+            .catch((err) => {
+              console.error(err);
+            });
+        };
+
+        document.getElementById("vl-continue-btn").onclick = () => {
+          overlay.style.display = "none";
+          isGameRunning = false;
+          widget.style.display = "none";
+        };
+
+        let state = "playing";
+        let boxes = [];
+        let currentBox = null;
+        let isGameRunning = false;
+        let animationId = null;
+        let lastTouchTime = 0;
+
+        function resizeCanvas() {
+          const screenW = window.innerWidth;
+          const screenH = window.innerHeight;
+
+          runtimeConfig.canvasWidth = Math.min(
+            config.maxCanvasWidth,
+            screenW * 0.95,
+          );
+          runtimeConfig.canvasHeight = Math.min(
+            config.maxCanvasHeight,
+            screenH * config.mobileHeightRatio,
+          );
+
+          canvas.width = runtimeConfig.canvasWidth;
+          canvas.height = runtimeConfig.canvasHeight;
+
+          const optimalBoxHeight =
+            runtimeConfig.canvasHeight / (config.targetScore + 2);
+          runtimeConfig.boxHeight = Math.max(
+            50,
+            Math.min(100, optimalBoxHeight),
+          );
+        }
+
+        function initGame() {
+          resizeCanvas();
+
+          const initialBoxWidth = runtimeConfig.canvasWidth * 0.65;
+          const groundY =
+            runtimeConfig.canvasHeight - runtimeConfig.boxHeight - 15;
+
+          boxes = [
+            {
+              x: (runtimeConfig.canvasWidth - initialBoxWidth) / 2,
+              y: groundY,
+              width: initialBoxWidth,
+            },
+          ];
+
+          state = "playing";
+          popup.style.display = "none";
+          info.innerHTML = `${config.infoTextTarget} <strong style="color:#2ed573">${config.targetScore}</strong> ${config.infoTextDesc}`;
+          spawnBox();
+        }
+
+        function spawnBox() {
+          const lastBox = boxes[boxes.length - 1];
+          currentBox = {
+            x: 0,
+            y: lastBox.y - runtimeConfig.boxHeight,
+            width: lastBox.width,
+            speed: config.boxSpeedBase + boxes.length * 0.7,
+            direction: 1,
+          };
+        }
+
+        function drawKargoKutusu(ctx, x, y, w, h) {
+          const gradient = ctx.createLinearGradient(x, y, x, y + h);
+          gradient.addColorStop(0, config.boxColorStart);
+          gradient.addColorStop(1, config.boxColorEnd);
+          ctx.fillStyle = gradient;
+          ctx.fillRect(x, y, w, h);
+
+          ctx.strokeStyle = config.boxBorderColor;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x, y, w, h);
+
+          ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+          ctx.fillRect(x, y, w, 4);
+
+          ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
+          ctx.fillRect(x, y + h - 5, w, 5);
+
+          ctx.fillStyle = "rgba(230, 210, 180, 0.5)";
+          ctx.fillRect(x + w / 2 - 15, y, 30, h);
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.1)";
+          ctx.strokeRect(x + w / 2 - 15, y, 30, h);
+
+          if (w > 50) {
+            const labelW = 32;
+            const labelH = 22;
+            const labelY = y + h / 2 - labelH / 2;
+
+            ctx.fillStyle = "#f5f6fa";
+            ctx.fillRect(x + 10, labelY, labelW, labelH);
+
+            ctx.strokeStyle = "rgba(0,0,0,0.1)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x + 10, labelY, labelW, labelH);
+
+            const bY = labelY + 4;
+            const bH = 14;
+            ctx.fillStyle = "#2f3542";
+            ctx.fillRect(x + 13, bY, 2, bH);
+            ctx.fillRect(x + 17, bY, 4, bH);
+            ctx.fillRect(x + 23, bY, 1, bH);
+            ctx.fillRect(x + 26, bY, 5, bH);
+            ctx.fillRect(x + 33, bY, 2, bH);
+          }
+        }
+
+        const handleInteraction = (e) => {
+          if (
+            ["vl-close-btn", "vl-continue-btn", "vl-copy-btn"].includes(
+              e.target.id,
+            ) ||
+            e.target.closest("#vl-copy-btn")
+          )
+            return;
+
+          if (e.type === "touchstart") {
+            lastTouchTime = Date.now();
+          } else if (e.type === "mousedown") {
+            if (Date.now() - lastTouchTime < 500) return;
+          }
+
+          if (state === "gameover") {
+            initGame();
+            return;
+          }
+
+          if (state === "playing") {
+            const lastBox = boxes[boxes.length - 1];
+            const overlapStart = Math.max(currentBox.x, lastBox.x);
+            const overlapEnd = Math.min(
+              currentBox.x + currentBox.width,
+              lastBox.x + lastBox.width,
+            );
+            const overlapWidth = overlapEnd - overlapStart;
+
+            if (overlapWidth > 0) {
+              currentBox.x = overlapStart;
+              currentBox.width = overlapWidth;
+              boxes.push({ ...currentBox });
+
+              if (boxes.length - 1 >= config.targetScore) {
+                state = "win";
+                triggerWinEvent();
+              } else {
+                spawnBox();
+              }
+            } else {
+              state = "gameover";
+              info.innerHTML = config.boxDroppedHtml;
+            }
+          }
+        };
+
+        overlay.addEventListener("mousedown", handleInteraction);
+        overlay.addEventListener("touchstart", handleInteraction, {
+          passive: false,
+        });
+
+        function triggerWinEvent() {
+          const couponCode = "KARGO" + Math.floor(1000 + Math.random() * 9000);
+          document.getElementById("vl-coupon-code").innerText = couponCode;
+          popup.style.display = "flex";
+          info.innerText = "";
+
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({
+            event: "gamification_win",
+            game_name: "tower_builder",
+            coupon_code: couponCode,
+            vl_action: "coupon_generated",
+          });
+        }
+
+        function loop() {
+          if (!isGameRunning) return;
+
+          const bgGradient = ctx.createLinearGradient(
+            0,
+            0,
+            0,
+            runtimeConfig.canvasHeight,
+          );
+          bgGradient.addColorStop(0, config.canvasBgStart);
+          bgGradient.addColorStop(1, config.canvasBgEnd);
+          ctx.fillStyle = bgGradient;
+          ctx.fillRect(
+            0,
+            0,
+            runtimeConfig.canvasWidth,
+            runtimeConfig.canvasHeight,
+          );
+
+          if (state === "playing" && currentBox) {
+            currentBox.x += currentBox.speed * currentBox.direction;
+            if (
+              currentBox.x <= 0 ||
+              currentBox.x + currentBox.width >= runtimeConfig.canvasWidth
+            ) {
+              currentBox.direction *= -1;
+            }
+          }
+
+          boxes.forEach((box) =>
+            drawKargoKutusu(
+              ctx,
+              box.x,
+              box.y,
+              box.width,
+              runtimeConfig.boxHeight,
+            ),
+          );
+          if ((state === "playing" || state === "gameover") && currentBox) {
+            drawKargoKutusu(
+              ctx,
+              currentBox.x,
+              currentBox.y,
+              currentBox.width,
+              runtimeConfig.boxHeight,
+            );
+          }
+
+          ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+          ctx.beginPath();
+          ctx.roundRect(15, 15, 110, 36, 18);
+          ctx.fill();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = 'bold 16px "Segoe UI", sans-serif';
+          ctx.textAlign = "center";
+          ctx.fillText(
+            `Skor: ${boxes.length - 1} / ${config.targetScore}`,
+            70,
+            38,
+          );
+          ctx.textAlign = "left";
+
+          if (state === "gameover") {
+            ctx.fillStyle = "rgba(15, 20, 30, 0.85)";
+            ctx.fillRect(
+              0,
+              0,
+              runtimeConfig.canvasWidth,
+              runtimeConfig.canvasHeight,
+            );
+
+            ctx.fillStyle = "#ff4757";
+            ctx.font = '900 38px "Segoe UI", sans-serif';
+            ctx.textAlign = "center";
+            ctx.fillText(
+              config.gameOverTitle,
+              runtimeConfig.canvasWidth / 2,
+              runtimeConfig.canvasHeight / 2 - 15,
+            );
+
+            ctx.fillStyle = "#f1f2f6";
+            ctx.font = '16px "Segoe UI", sans-serif';
+            ctx.fillText(
+              config.gameOverDesc,
+              runtimeConfig.canvasWidth / 2,
+              runtimeConfig.canvasHeight / 2 + 25,
+            );
+            ctx.textAlign = "left";
+          }
+
+          animationId = requestAnimationFrame(loop);
+        }
+
+        window.addEventListener("resize", () => {
+          if (isGameRunning && state === "playing" && boxes.length === 1) {
+            initGame();
+          }
+        });
+
+        widget.addEventListener("click", () => {
+          overlay.style.display = "flex";
+          isGameRunning = true;
+          initGame();
+          cancelAnimationFrame(animationId);
+          loop();
+        });
+      })();
+    </script>
+  </body>
+</html>
