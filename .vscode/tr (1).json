@@ -1,0 +1,957 @@
+[
+	{
+		"id": "1",
+		"icon": "✨",
+		"title": "Scratch to Win",
+		"category": "Dönüşüm",
+		"description": "Kazı-kazan mekaniğiyle gizli ödülü açığa çıkarır. Target modülünde mobil veya web aksiyonu olarak tanımlanır. Kullanıcı yüzeyi kazır ve gizli ödülü ortaya çıkarır.",
+		"user_experience": [
+			"Kullanıcı ekrandaki kazı alanını parmağıyla veya fare ile kazır.",
+			"Altından çıkan ödül (kupon, indirim, puan) anında gösterilir.",
+			"Kazanılan ödül otomatik olarak kullanıcının hesabına tanımlanır.",
+			"Exit-intent, sayfa yüklenme veya belirli bir süre sonra tetiklenebilir."
+		],
+		"features": [
+			"Tamamen özelleştirilebilir kazı alanı ve arka plan tasarımı",
+			"Farklı ödül dilimleri ve kazanma olasılıkları ayarlanabilir",
+			"Kazanma sonrası otomatik kupon atama ve yönlendirme",
+			"Mobil ve masaüstü uyumlu dokunmatik kazıma desteği",
+			"Target modülü ile segment bazlı gösterim kontrolü"
+		],
+		"use_cases": "Mobil app ilk açılış bonusu, checkout son hamle indirimi, referans kampanyası ödülü.",
+		"performance": {
+			"purchase_rate": "16-20%",
+			"revenue_increase": "12-16%",
+			"participation_rate": "45-55%",
+			"completion_rate": "24-28%"
+		},
+		"tags": ["Satış Artırma", "Kupon Dağıtımı", "Geri Döndürme"],
+		"estimated_time": "2 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "2",
+		"icon": "🍀",
+		"title": "Clover",
+		"category": "Dönüşüm",
+		"description": "Tek tıkla şans oyunuyla anında promosyon dağıtımı. Kullanıcı yonca yaprağı seçer ve altındaki ödülü anında görür.",
+		"user_experience": [
+			"Kullanıcıya dört yapraklı yonca gösterilir, her yaprak farklı ödül barındırır.",
+			"Tek tıkla seçim yapılır, sonuç anında açıklanır.",
+			"Basit mekanik sayesinde yüksek katılım oranı sağlar."
+		],
+		"features": [
+			"Tek tıkla oynanan basit ve hızlı mekanik",
+			"Her yaprak için farklı ödül ve olasılık tanımlama",
+			"Kazanma animasyonu ve konfeti efekti",
+			"Segment bazlı farklı ödül havuzları oluşturma"
+		],
+		"use_cases": "Günün fırsatı aksiyonu, exit-intent tetikleyici, SMS ile trafik çekme.",
+		"performance": {
+			"purchase_rate": "15-19%",
+			"revenue_increase": "10-14%",
+			"participation_rate": "50-60%",
+			"completion_rate": "20-24%"
+		},
+		"tags": ["Kupon Dağıtımı", "Geri Döndürme", "Satış Artırma"],
+		"estimated_time": "2 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "3",
+		"icon": "🌀",
+		"title": "Spin the Win",
+		"category": "Dönüşüm",
+		"description": "Çark mekaniğiyle görsel heyecan ve şans faktörünü birleştirir. Kullanıcı butona basar, çark döner ve durduğu dilime göre ödül kazanır.",
+		"user_experience": [
+			"Kullanıcı 'Çevir' butonuna basar ve çark dönmeye başlar.",
+			"Çark durduğunda ok işaretinin gösterdiği dilim ödülü belirler.",
+			"Ödül otomatik olarak tanımlanır ve kullanıcı yönlendirilir."
+		],
+		"features": [
+			"Tamamen özelleştirilebilir çark grafikleri ve dilim renkleri",
+			"Ayarlanabilir ödül mantığı: anında kazanma veya çekiliş havuzu",
+			"Çoklu döndürme denemeleri ve 'ekstra tur' seçenekleri",
+			"Ödül dağılımının doğruluğu için kilitlenebilir ödül bölümleri",
+			"İşaretleyici konumu ve dönme animasyonu hızı ayarlanabilir"
+		],
+		"use_cases": "Hoş geldin e-postasından oyuna yönlendirme, doğum günü aktivasyonu.",
+		"performance": {
+			"purchase_rate": "12-15%",
+			"revenue_increase": "8-12%",
+			"participation_rate": "35-45%",
+			"completion_rate": "18-22%"
+		},
+		"tags": ["Potansiyel Müşteri Kazanımı", "Kupon Dağıtımı", "Satış Artırma"],
+		"estimated_time": "5 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "4",
+		"icon": "🎁",
+		"title": "Gift Catch",
+		"category": "Dönüşüm",
+		"description": "Düşen hediyeleri yakalama mekaniğiyle aciliyet hissi yaratır. Belirlenen sürede ekrandan düşen hediyeleri kullanıcı yakalar.",
+		"user_experience": [
+			"Belirli süre içinde ekrandan düşen hediye kutuları kullanıcı tarafından yakalanır.",
+			"Yakalanan her kutu farklı bir ödüle karşılık gelir.",
+			"Süre bitiminde toplam skor üzerinden final ödülü belirlenir."
+		],
+		"features": [
+			"Ayarlanabilir oyun süresi ve düşme hızı",
+			"Farklı hediye kutusu tipleri ve ödül kademeleri",
+			"Geri sayım sayacı ile aciliyet hissi yaratma",
+			"Skor bazlı kademeli ödül sistemi"
+		],
+		"use_cases": "Kampanya başlangıcında push ile yönlendirme, Black Friday aktivasyonu.",
+		"performance": {
+			"purchase_rate": "14-18%",
+			"revenue_increase": "12-16%",
+			"participation_rate": "35-45%",
+			"completion_rate": "22-26%"
+		},
+		"tags": ["Satış Artırma", "Sepet Değeri Artırma", "Müşteri Etkileşimi"],
+		"estimated_time": "4 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "5",
+		"icon": "🎰",
+		"title": "Jackpot",
+		"category": "Dönüşüm",
+		"description": "Slot mekaniğiyle şans ve heyecanı ön plana çıkarır. Üç sembol hizalandığında büyük ödül kazanılır.",
+		"user_experience": [
+			"Kullanıcı kolu çeker veya butona basar, üç sütun dönmeye başlar.",
+			"Semboller sırayla durur, üçü eşleşirse büyük ödül kazanılır.",
+			"Her denemede küçük ödüller de dağıtılabilir."
+		],
+		"features": [
+			"Casino tarzı görsel tasarım ve ses efektleri",
+			"Özelleştirilebilir semboller (marka logoları, ürün görselleri)",
+			"Kazanma olasılığı ve ödül dağılımı tam kontrol altında",
+			"Belirli sipariş tutarı eşiğine bağlanabilir tetikleme"
+		],
+		"use_cases": "Belirli sipariş tutarını geçen kullanıcılara otomatik tetiklenir.",
+		"performance": {
+			"purchase_rate": "14-18%",
+			"revenue_increase": "12-16%",
+			"participation_rate": "35-45%",
+			"completion_rate": "22-26%"
+		},
+		"tags": ["Sepet Değeri Artırma", "Satış Artırma", "Kupon Dağıtımı"],
+		"estimated_time": "2 iş günü",
+		"channels": ["Web"]
+	},
+	{
+		"id": "6",
+		"icon": "🎅",
+		"title": "Santa Deer",
+		"category": "Dönüşüm",
+		"description": "Dilek mekaniğiyle mevsimsel satın alma motivasyonu yaratır. Kullanıcı dilek listesini seçer; Noel Baba kişiselleştirilmiş ödülle yanıt verir.",
+		"user_experience": [
+			"Kullanıcı ürün veya kategori bazlı dilek listesini oluşturur.",
+			"Noel Baba animasyonlu bir yanıtla kişiselleştirilmiş ödül sunar.",
+			"Dilek listesi Recommend modülüne aktarılarak öneri üretilir."
+		],
+		"features": [
+			"Mevsimsel tema ve animasyonlar",
+			"Dilek listesi ile Recommend entegrasyonu",
+			"Kişiselleştirilmiş ödül mesajları",
+			"Sosyal paylaşım butonu ile viral yayılım"
+		],
+		"use_cases": "1 Aralık'tan itibaren Target'ta aktive edilir.",
+		"performance": {
+			"purchase_rate": "14-18%",
+			"revenue_increase": "12-16%",
+			"participation_rate": "45-55%",
+			"completion_rate": "20-24%"
+		},
+		"tags": ["Potansiyel Müşteri Kazanımı", "Satış Artırma", "Marka Farkındalığı"],
+		"estimated_time": "2 iş günü",
+		"channels": ["Web", "App"]
+	},
+{
+		"id": "7",
+		"icon": "-",
+		"title": "Find to Win",
+		"category": "Dönüşüm",
+		"description": "Dilek mekaniğiyle mevsimsel satın alma motivasyonu yaratır. Kullanıcı dilek listesini seçer; Noel Baba kişiselleştirilmiş ödülle yanıt verir.",
+		"user_experience": [
+			"Kullanıcı ürün veya kategori bazlı dilek listesini oluşturur.",
+			"Noel Baba animasyonlu bir yanıtla kişiselleştirilmiş ödül sunar.",
+			"Dilek listesi Recommend modülüne aktarılarak öneri üretilir."
+		],
+		"features": [
+			"Mevsimsel tema ve animasyonlar",
+			"Dilek listesi ile Recommend entegrasyonu",
+			"Kişiselleştirilmiş ödül mesajları",
+			"Sosyal paylaşım butonu ile viral yayılım"
+		],
+		"use_cases": "1 Aralık'tan itibaren Target'ta aktive edilir.",
+		"performance": {
+			"purchase_rate": "14-18%",
+			"revenue_increase": "12-16%",
+			"participation_rate": "45-55%",
+			"completion_rate": "20-24%"
+		},
+		"tags": ["Potansiyel Müşteri Kazanımı", "Satış Artırma", "Marka Farkındalığı"],
+		"estimated_time": "2 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "8",
+		"icon": "🍾",
+		"title": "Şişe Çevirme",
+		"category": "Dönüşüm",
+		"description": "Sosyal oyun mekaniğiyle referral ve ödül dağıtımını birleştirir. Şişe döner ve rastgele ödüle işaret eder.",
+		"user_experience": [
+			"Kullanıcı şişeyi çevirir, şişe dönmeye başlar.",
+			"Durduğunda işaret ettiği ödül segmenti kazanılır.",
+			"Arkadaş daveti mekaniğiyle her iki tarafa da ödül verilebilir."
+		],
+		"features": [
+			"Referral mekanizması ile entegre çalışma",
+			"Her segment için farklı ödül tanımlama",
+			"Sosyal paylaşım ve davet linkleri",
+			"Çevirme animasyonu ve ses efektleri"
+		],
+		"use_cases": "\"Arkadaşını davet et, ikisi de çevirsin\" kampanyası.",
+		"performance": {
+			"purchase_rate": "13-16%",
+			"revenue_increase": "10-13%",
+			"participation_rate": "40-50%",
+			"completion_rate": "19-22%"
+		},
+		"tags": ["Potansiyel Müşteri Kazanımı", "Kupon Dağıtımı", "Satış Artırma"],
+		"estimated_time": "5 iş günü",
+		"channels": ["Web", "App"]
+	},
+{
+		"id": "9",
+		"icon": "🎅",
+		"title": "Carnival Game",
+		"category": "Dönüşüm",
+		"description": "Dilek mekaniğiyle mevsimsel satın alma motivasyonu yaratır. Kullanıcı dilek listesini seçer; Noel Baba kişiselleştirilmiş ödülle yanıt verir.",
+		"user_experience": [
+			"Kullanıcı ürün veya kategori bazlı dilek listesini oluşturur.",
+			"Noel Baba animasyonlu bir yanıtla kişiselleştirilmiş ödül sunar.",
+			"Dilek listesi Recommend modülüne aktarılarak öneri üretilir."
+		],
+		"features": [
+			"Mevsimsel tema ve animasyonlar",
+			"Dilek listesi ile Recommend entegrasyonu",
+			"Kişiselleştirilmiş ödül mesajları",
+			"Sosyal paylaşım butonu ile viral yayılım"
+		],
+		"use_cases": "1 Aralık'tan itibaren Target'ta aktive edilir.",
+		"performance": {
+			"purchase_rate": "14-18%",
+			"revenue_increase": "12-16%",
+			"participation_rate": "45-55%",
+			"completion_rate": "20-24%"
+		},
+		"tags": ["Potansiyel Müşteri Kazanımı", "Satış Artırma", "Marka Farkındalığı"],
+		"estimated_time": "2 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "10",
+		"icon": "☕",
+		"title": "Cup Game",
+		"category": "Dönüşüm",
+		"description": "Hızlı bardak takip oyunuyla anlık etkileşim ve dönüşüm. Kullanıcı karışan bardaklar arasında topun yerini takip eder.",
+		"user_experience": [
+			"Üç bardak gösterilir, topun altında olduğu bardak belirlenir.",
+			"Bardaklar karışır, kullanıcı doğru bardağı seçmeye çalışır.",
+			"Doğru tahmin eden kullanıcı ödülünü kazanır."
+		],
+		"features": [
+			"Ayarlanabilir karıştırma hızı ve zorluk seviyesi",
+			"Doğru/yanlış sonuç animasyonları",
+			"Exit-intent tetikleyicisi olarak kullanılabilir",
+			"Hızlı yükleme ve düşük bant genişliği kullanımı"
+		],
+		"use_cases": "Exit-intent tetikleyicisi.",
+		"performance": {
+			"purchase_rate": "13-16%",
+			"revenue_increase": "10-13%",
+			"participation_rate": "50-60%",
+			"completion_rate": "18-22%"
+		},
+		"tags": ["Geri Döndürme", "Kupon Dağıtımı", "Satış Artırma"],
+		"estimated_time": "2 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "11",
+		"icon": "🦾",
+		"title": "Claw Machine",
+		"category": "Dönüşüm",
+		"description": "Dijital pençe makinesiyle nostalji ve beceri birleşir. Kullanıcı sanal pençeyi kontrol ederek ödül kutusunu yakalar.",
+		"user_experience": [
+			"Kullanıcı pençeyi yatay olarak konumlandırır ve bırakır.",
+			"Pençe aşağı iner ve hedeflenen ödül kutusunu yakalamaya çalışır.",
+			"Başarılı yakalama sonrasında ödül tanımlanır."
+		],
+		"features": [
+			"3D animasyonlu pençe makinesi görünümü",
+			"Beceri bazlı oyun deneyimi",
+			"QR kod ile fiziksel mağaza entegrasyonu",
+			"Yakalanan ödülün otomatik hesaba tanımlanması"
+		],
+		"use_cases": "QR kodla mağazadan dijital deneyime köprü.",
+		"performance": {
+			"purchase_rate": "13-16%",
+			"revenue_increase": "10-13%",
+			"participation_rate": "40-50%",
+			"completion_rate": "19-22%"
+		},
+		"tags": ["Potansiyel Müşteri Kazanımı", "Müşteri Etkileşimi", "Satış Artırma"],
+		"estimated_time": "4 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "12",
+		"icon": "🏹",
+		"title": "Okçuluk",
+		"category": "Etkileşim",
+		"description": "Hedef vurma mekaniğiyle rekabet duygusu yaratır. Kullanıcılar hedefi vurmaya çalışır ve skor kazanır.",
+		"user_experience": [
+			"Kullanıcı hedef tahtasına ok atar, merkeze yakınlık skoru belirler.",
+			"Birden fazla atış hakkı ile toplam skor hesaplanır.",
+			"Liderlik tablosunda sıralama yapılır."
+		],
+		"features": [
+			"Haftalık turnuva ve liderlik tablosu desteği",
+			"Skor bazlı kademeli ödüller",
+			"Autopilot ile turnuva hatırlatmaları",
+			"Sosyal medya paylaşım entegrasyonu"
+		],
+		"use_cases": "Haftalık turnuva formatında Autopilot journey.",
+		"performance": {
+			"purchase_rate": "7-10%",
+			"revenue_increase": "6-9%",
+			"participation_rate": "35-45%",
+			"completion_rate": "13-16%"
+		},
+		"tags": ["Müşteri Etkileşimi", "Geri Döndürme", "Marka Farkındalığı"],
+		"estimated_time": "4 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "13",
+		"icon": "🏀",
+		"title": "Basket Atma",
+		"category": "Etkileşim",
+		"description": "Zamana karşı basket atma mekaniğiyle rekabetçi deneyim. Belirlenen sürede kullanıcı potaya basket atar.",
+		"user_experience": [
+			"Kullanıcı süre dolmadan mümkün olduğunca çok basket atar.",
+			"Her sayı skoru artırır, combo sistemiyle bonus puanlar kazanılır.",
+			"Süre bitiminde toplam skor üzerinden ödül belirlenir."
+		],
+		"features": [
+			"Gerçekçi fizik motoru ile basket atma deneyimi",
+			"Zamanlayıcı ve combo skoru sistemi",
+			"Liderlik tablosu ve sosyal paylaşım",
+			"Spor etkinlikleri ile bağlantılı kampanya desteği"
+		],
+		"use_cases": "Maç dönemi veya spor sponsorluğu kampanyası.",
+		"performance": {
+			"purchase_rate": "7-10%",
+			"revenue_increase": "6-9%",
+			"participation_rate": "40-50%",
+			"completion_rate": "13-16%"
+		},
+		"tags": ["Müşteri Etkileşimi", "Marka Farkındalığı", "Geri Döndürme"],
+		"estimated_time": "4 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "14",
+		"icon": "🍬",
+		"title": "Candy Crush",
+		"category": "Etkileşim",
+		"description": "3-match mekaniğiyle uzun oturum ve günlük geri dönüş. Renkli şekerleri eşleştirerek puan kazanılır.",
+		"user_experience": [
+			"Kullanıcı yan yana veya üst üste aynı renk şekerleri eşleştirir.",
+			"3 veya daha fazla eşleşme puan kazandırır.",
+			"Seviye atlama ile kupon veya puan ödülleri verilir."
+		],
+		"features": [
+			"Seviye sistemi ile günlük geri dönüş teşviki",
+			"Autopilot ile günlük hatırlatma bildirimleri",
+			"VIP oyuncu segmentasyonu",
+			"Sadakat programı puan entegrasyonu"
+		],
+		"use_cases": "Autopilot günlük hatırlatma bildirimi.",
+		"performance": {
+			"purchase_rate": "6-9%",
+			"revenue_increase": "5-8%",
+			"participation_rate": "50-60%",
+			"completion_rate": "10-14%"
+		},
+		"tags": ["Müşteri Sadakati", "Müşteri Etkileşimi", "Geri Döndürme"],
+		"estimated_time": "6 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "15",
+		"icon": "🎵",
+		"title": "Emoji ile Şarkı",
+		"category": "Etkileşim",
+		"description": "Emoji kombinasyonundan şarkı tahminiyle viral etkileşim. Kullanıcı emoji dizisinden şarkı tahmin eder.",
+		"user_experience": [
+			"Ekranda emoji dizisi gösterilir, kullanıcı şarkıyı tahmin eder.",
+			"Doğru cevap veren kullanıcı ödülünü alır.",
+			"Sosyal medyada paylaşım ile viral yayılım sağlanır."
+		],
+		"features": [
+			"Sosyal medya challenge formatında tasarım",
+			"Viral paylaşım mekanizması",
+			"Marka mesajları ile özelleştirilebilir emoji dizileri",
+			"Katılımcı verisi Segment'e otomatik aktarma"
+		],
+		"use_cases": "TikTok/Instagram challenge.",
+		"performance": {
+			"purchase_rate": "4-7%",
+			"revenue_increase": "3-6%",
+			"participation_rate": "55-65%",
+			"completion_rate": "8-11%"
+		},
+		"tags": ["Marka Farkındalığı", "Potansiyel Müşteri Kazanımı", "Müşteri Etkileşimi"],
+		"estimated_time": "2 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "16",
+		"icon": "🏓",
+		"title": "Pong",
+		"category": "Etkileşim",
+		"description": "Retro ping-pong nostaljisiyle casual gaming. Kullanıcı raketi kontrol ederek skor biriktirir.",
+		"user_experience": [
+			"Kullanıcı raketi hareket ettirerek topu karşılar.",
+			"Her başarılı karşılama skoru artırır.",
+			"Belirli skor eşiklerinde ödüller açılır."
+		],
+		"features": [
+			"Retro pixel tasarım ile nostalji deneyimi",
+			"Artan zorluk seviyesi",
+			"Skor eşiği bazlı ödül kademeleri",
+			"Düşük bant genişliği ile her cihazda çalışma"
+		],
+		"use_cases": "Sipariş onay sayfasında 'Beklerken oyna'.",
+		"performance": {
+			"purchase_rate": "6-9%",
+			"revenue_increase": "5-8%",
+			"participation_rate": "40-50%",
+			"completion_rate": "11-14%"
+		},
+		"tags": ["Müşteri Etkileşimi", "Geri Döndürme"],
+		"estimated_time": "2 iş günü",
+		"channels": ["Web"]
+	},
+	{
+		"id": "17",
+		"icon": "🎯",
+		"title": "Self Bingo",
+		"category": "Etkileşim",
+		"description": "Kişisel bingo kartlarıyla sosyal paylaşım ve UGC. Kullanıcı marka deneyimlerini bingo kartına işaretler.",
+		"user_experience": [
+			"Kullanıcıya marka deneyimlerinden oluşan bingo kartı sunulur.",
+			"Gerçekleştirdiği deneyimleri işaretleyerek ilerleme kaydeder.",
+			"Bingo tamamlandığında özel ödül kazanılır."
+		],
+		"features": [
+			"Kişiselleştirilebilir bingo kartı içerikleri",
+			"İlerleme takibi ve hatırlatma bildirimleri",
+			"Sosyal paylaşım ile UGC üretimi",
+			"Tamamlama bazlı ödül otomasyonu"
+		],
+		"use_cases": "Yıl sonu kampanyasında kişiselleştirilmiş kart.",
+		"performance": {
+			"purchase_rate": "6-9%",
+			"revenue_increase": "5-8%",
+			"participation_rate": "55-65%",
+			"completion_rate": "10-13%"
+		},
+		"tags": ["Müşteri Etkileşimi", "Müşteri Sadakati", "Marka Farkındalığı"],
+		"estimated_time": "5 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "18",
+		"icon": "💝",
+		"title": "Kalp Vurma",
+		"category": "Etkileşim",
+		"description": "Ritim eşliğinde kalp yakalama mekaniğiyle duygusal deneyim. Kullanıcı ekrandaki kalpleri yakalar.",
+		"user_experience": [
+			"Ekranda uçan kalpler belirir, kullanıcı zamanında tıklayarak yakalar.",
+			"Her yakalanan kalp puan kazandırır.",
+			"Toplam puan üzerinden kademeli ödüller verilir."
+		],
+		"features": [
+			"Sevgililer Günü temalı özel animasyonlar",
+			"Ritim bazlı zamanlama mekaniği",
+			"Recommend entegrasyonu ile hediye önerileri",
+			"Mevsimsel kampanya şablonları"
+		],
+		"use_cases": "14 Şubat kampanyası ana aktivasyonu.",
+		"performance": {
+			"purchase_rate": "7-10%",
+			"revenue_increase": "6-9%",
+			"participation_rate": "45-55%",
+			"completion_rate": "12-15%"
+		},
+		"tags": ["Satış Artırma", "Müşteri Etkileşimi", "Marka Farkındalığı"],
+		"estimated_time": "4 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "19",
+		"icon": "🔍",
+		"title": "Blur Finder",
+		"category": "Etkileşim",
+		"description": "Giderek netleşen görseli tahmin ederek merak yaratır. Kullanıcı netleşen görseldeki ürünü tahmin eder.",
+		"user_experience": [
+			"Bulanık bir görsel gösterilir, zaman ilerledikçe netleşir.",
+			"Kullanıcı görseldeki ürünü ne kadar erken tahmin ederse o kadar çok puan alır.",
+			"Doğru tahmin edenlere erken erişim veya ödül verilir."
+		],
+		"features": [
+			"Teaser kampanyaları için ideal mekanik",
+			"Kademeli netleşme hızı ayarlanabilir",
+			"Erken tahmin bonusu sistemi",
+			"Ürün lansmanı ile entegre çalışma"
+		],
+		"use_cases": "Teaser e-postası olarak lansmandan 2-3 gün önce.",
+		"performance": {
+			"purchase_rate": "5-8%",
+			"revenue_increase": "4-7%",
+			"participation_rate": "45-55%",
+			"completion_rate": "9-12%"
+		},
+		"tags": ["Marka Farkındalığı", "Potansiyel Müşteri Kazanımı", "Müşteri Etkileşimi"],
+		"estimated_time": "2 iş günü",
+		"channels": ["Web"]
+	},
+	{
+		"id": "20",
+		"icon": "🎨",
+		"title": "Mix Right Color",
+		"category": "Etkileşim",
+		"description": "Renk karıştırma mekaniğiyle marka paletini tanıtır. Kullanıcı doğru rengi elde etmek için boyaları karıştırır.",
+		"user_experience": [
+			"Hedef renk gösterilir, kullanıcı boya renklerini karıştırarak eşleştirmeye çalışır.",
+			"Doğru karışım oranı yakalandığında eşleşen ürünler önerilir.",
+			"Seçilen renk profili Audience'a yazılır."
+		],
+		"features": [
+			"İnteraktif renk karıştırma arayüzü",
+			"Recommend modülü ile ürün eşleştirme",
+			"Renk tercihi bazlı kişiselleştirme",
+			"Kozmetik ve moda markalarına özel şablonlar"
+		],
+		"use_cases": "Yeni sezon renk paleti tanıtımı.",
+		"performance": {
+			"purchase_rate": "5-8%",
+			"revenue_increase": "4-7%",
+			"participation_rate": "45-55%",
+			"completion_rate": "9-12%"
+		},
+		"tags": ["Marka Farkındalığı", "Müşteri Etkileşimi", "Potansiyel Müşteri Kazanımı"],
+		"estimated_time": "2 iş günü",
+		"channels": ["Web"]
+	},
+	{
+		"id": "21",
+		"icon": "🍳",
+		"title": "Mix Right Food",
+		"category": "Etkileşim",
+		"description": "Malzeme karıştırma mekaniğiyle gıda ürün keşfi. Kullanıcı malzemeleri seçip doğru tarifi oluşturur.",
+		"user_experience": [
+			"Kullanıcıya malzeme seçenekleri sunulur.",
+			"Doğru kombinasyonu bulan kullanıcı tarifi ve ilgili ürünleri görür.",
+			"Malzeme listesi sepete ekleme butonuyla sunulur."
+		],
+		"features": [
+			"Tarif bazlı ürün keşfi ve cross-sell",
+			"Sepete toplu ekleme CTA entegrasyonu",
+			"Gıda markalarına özel tasarım şablonları",
+			"Recommend modülü ile ilgili ürün önerileri"
+		],
+		"use_cases": "Yemek tarifi sayfasına entegre.",
+		"performance": {
+			"purchase_rate": "5-8%",
+			"revenue_increase": "4-7%",
+			"participation_rate": "45-55%",
+			"completion_rate": "9-12%"
+		},
+		"tags": ["Satış Artırma", "Müşteri Etkileşimi", "Sepet Değeri Artırma"],
+		"estimated_time": "2 iş günü",
+		"channels": ["Web"]
+	},
+	{
+		"id": "22",
+		"icon": "🌙",
+		"title": "Ramadan Ball",
+		"category": "Etkileşim",
+		"description": "Ramazan temalı top oyunuyla mevsimsel kültürel bağ. Kullanıcı Ramazan temalı topları hedefe gönderir.",
+		"user_experience": [
+			"Ramazan temalı toplar hedefe fırlatılır.",
+			"Her gün farklı hedefler ve ödüller sunulur.",
+			"30 günlük sürede tüm günlere katılan kullanıcıya özel ödül verilir."
+		],
+		"features": [
+			"30 günlük Ramazan journey entegrasyonu",
+			"Günlük farklı ödül ve hedefler",
+			"İftar saati bazlı push tetikleme",
+			"Rozet ve tamamlama ödülleri"
+		],
+		"use_cases": "Autopilot ile 30 gün journey.",
+		"performance": {
+			"purchase_rate": "8-11%",
+			"revenue_increase": "7-10%",
+			"participation_rate": "45-55%",
+			"completion_rate": "14-17%"
+		},
+		"tags": ["Müşteri Sadakati", "Müşteri Etkileşimi", "Kupon Dağıtımı"],
+		"estimated_time": "4 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "23",
+		"icon": "📦",
+		"title": "Box Game",
+		"category": "Etkileşim",
+		"description": "Denge kurma mekaniğiyle uzun oturum ve ürün keşfi. Kullanıcı kutuları dengeli yığar.",
+		"user_experience": [
+			"Ekrana gelen kutuları dengeli şekilde üst üste yığmak gerekir.",
+			"Her kutu bir ürün kategorisini temsil eder.",
+			"Dengede tutulan kategorilere cross-sell tetiklenir."
+		],
+		"features": [
+			"Fizik motoru bazlı denge mekaniği",
+			"Kategori bazlı kutu içerikleri",
+			"Cross-sell ve upsell tetikleme",
+			"Skor bazlı ödül kademeleri"
+		],
+		"use_cases": "Kategori sayfasına gömülü çalışır.",
+		"performance": {
+			"purchase_rate": "7-10%",
+			"revenue_increase": "6-9%",
+			"participation_rate": "35-45%",
+			"completion_rate": "12-15%"
+		},
+		"tags": ["Müşteri Etkileşimi", "Sepet Değeri Artırma", "Satış Artırma"],
+		"estimated_time": "4 iş günü",
+		"channels": ["Web"]
+	},
+	{
+		"id": "24",
+		"icon": "🐍",
+		"title": "Snake Game",
+		"category": "Etkileşim",
+		"description": "Klasik yılan mekaniğiyle nostalji ve uzun oturum. Kullanıcı yılanı kontrol ederek büyütür.",
+		"user_experience": [
+			"Kullanıcı yılanı yön tuşlarıyla kontrol eder.",
+			"Yılanın yediği objeler ürün görsellerine dönüşür.",
+			"Belirli skor eşiklerinde kupon ödülleri açılır."
+		],
+		"features": [
+			"Retro tasarım ile nostalji deneyimi",
+			"Ürün görselleri ile marka entegrasyonu",
+			"Skor rekoru bazlı kupon dağıtımı",
+			"Kargo takip gibi bekleme sayfalarına entegre"
+		],
+		"use_cases": "Kargo takip sayfasında 'beklerken oyna'.",
+		"performance": {
+			"purchase_rate": "6-9%",
+			"revenue_increase": "5-8%",
+			"participation_rate": "40-50%",
+			"completion_rate": "11-14%"
+		},
+		"tags": ["Müşteri Etkileşimi", "Geri Döndürme"],
+		"estimated_time": "4 iş günü",
+		"channels": ["Web"]
+	},
+	{
+		"id": "25",
+		"icon": "👆",
+		"title": "Swiping",
+		"category": "Etkileşim",
+		"description": "Sağa-sola kaydırmayla kullanıcı tercihleri toplanır. Kullanıcı ürünleri sağa veya sola kaydırır.",
+		"user_experience": [
+			"Ürünler teker teker gösterilir, kullanıcı sağa (beğen) veya sola (geç) kaydırır.",
+			"Tercihler Segment'e yazılarak kişiselleştirme sağlanır.",
+			"Beğenilen ürünler öneri listesine eklenir."
+		],
+		"features": [
+			"Tinder tarzı tanıdık kaydırma deneyimi",
+			"Tercih verisi ile Recommend motoru besleme",
+			"Onboarding sürecine entegre edilebilir",
+			"Kişiselleştirilmiş ürün önerisi akışı başlatma"
+		],
+		"use_cases": "Yeni üye onboarding tercih toplama.",
+		"performance": {
+			"purchase_rate": "6-9%",
+			"revenue_increase": "5-8%",
+			"participation_rate": "40-50%",
+			"completion_rate": "12-15%"
+		},
+		"tags": ["Potansiyel Müşteri Kazanımı", "Müşteri Etkileşimi", "Marka Farkındalığı"],
+		"estimated_time": "5 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "26",
+		"icon": "📅",
+		"title": "Advent Calendar",
+		"category": "Sadakat",
+		"description": "Günlük sürpriz ödüller açma mekaniğiyle uzun vadeli bağlılık. Her gün bir kapı açılır ve sürpriz ödül kazanılır.",
+		"user_experience": [
+			"Her gün yeni bir takvim kapısı aktif olur.",
+			"Kullanıcı kapıyı açarak günün sürpriz ödülünü keşfeder.",
+			"Tüm günleri tamamlayan kullanıcıya büyük final ödülü verilir."
+		],
+		"features": [
+			"24 veya 30 günlük takvim şablonları",
+			"Günlük Autopilot hatırlatma bildirimleri",
+			"Kaçırılan günler için catch-up mekanizması",
+			"VIP tamamlama ödülü sistemi"
+		],
+		"use_cases": "24 günlük yılbaşı takvimi veya 30 günlük Ramazan programı.",
+		"performance": {
+			"purchase_rate": "11-14%",
+			"revenue_increase": "10-13%",
+			"participation_rate": "60-70%",
+			"completion_rate": "16-19%"
+		},
+		"tags": ["Müşteri Sadakati", "Kupon Dağıtımı", "Geri Döndürme"],
+		"estimated_time": "6 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "27",
+		"icon": "🏛️",
+		"title": "Hidden Temple",
+		"category": "Sadakat",
+		"description": "Çok aşamalı macera deneyimiyle premium kullanıcı bağlılığı. Kullanıcı bölümler halinde ilerleyerek hazineleri keşfeder.",
+		"user_experience": [
+			"Kullanıcı bölüm bölüm ilerleyerek tapınağı keşfeder.",
+			"Her bölümde farklı görevler ve ödüller bulunur.",
+			"Final bölümünde büyük hazine ödülü kazanılır."
+		],
+		"features": [
+			"Çok bölümlü hikaye anlatımı",
+			"VIP milestone ödül sistemi",
+			"Recommend modülü ile bölüm bazlı ürün önerileri",
+			"İlerleme çubuğu ve başarı rozetleri"
+		],
+		"use_cases": "VIP programı milestone ödülü.",
+		"performance": {
+			"purchase_rate": "16-20%",
+			"revenue_increase": "14-18%",
+			"participation_rate": "25-35%",
+			"completion_rate": "26-30%"
+		},
+		"tags": ["Müşteri Sadakati", "Satış Artırma", "Müşteri Etkileşimi"],
+		"estimated_time": "4 iş günü",
+		"channels": ["Web"]
+	},
+	{
+		"id": "28",
+		"icon": "📖",
+		"title": "Flip Book",
+		"category": "Sadakat",
+		"description": "Sayfa çevirme mekaniğiyle marka hikayesini aktarır. Kullanıcı sayfaları çevirerek ilerler.",
+		"user_experience": [
+			"Dijital katalog veya marka hikayesi sayfa sayfa sunulur.",
+			"Kullanıcı sayfaları çevirerek keşfeder.",
+			"Beğenilen ürünler tek tıkla favorilere veya sepete eklenir."
+		],
+		"features": [
+			"Sinematik sayfa çevirme animasyonu",
+			"Ürün etiketleme ve sepete ekleme entegrasyonu",
+			"Sezonluk katalog şablonları",
+			"Recommend motoru ile favori ürün besleme"
+		],
+		"use_cases": "Sezonluk katalog e-postasına flipbook linki.",
+		"performance": {
+			"purchase_rate": "9-12%",
+			"revenue_increase": "8-11%",
+			"participation_rate": "35-45%",
+			"completion_rate": "15-18%"
+		},
+		"tags": ["Marka Farkındalığı", "Müşteri Sadakati", "Satış Artırma"],
+		"estimated_time": "7 iş günü",
+		"channels": ["Web"]
+	},
+	{
+		"id": "29",
+		"icon": "🚀",
+		"title": "Space",
+		"category": "Sadakat",
+		"description": "Uzay temalı görevlerle premium marka deneyimi. Kullanıcı galaksiler arasında görevler tamamlar.",
+		"user_experience": [
+			"Kullanıcı uzay temalı görevleri sırayla tamamlar.",
+			"Her galaksi yeni bir görev seti ve ödül kademesi sunar.",
+			"Tüm galaksileri keşfeden kullanıcıya özel rozet ve ödül verilir."
+		],
+		"features": [
+			"Çok katmanlı görev ve kademe sistemi",
+			"Liderlik tablosu ve rekabet mekaniği",
+			"Sadakat programı puan entegrasyonu",
+			"Her kademe için otomatik ödül atama"
+		],
+		"use_cases": "Sadakat programı ilerleme sistemi.",
+		"performance": {
+			"purchase_rate": "14-18%",
+			"revenue_increase": "12-16%",
+			"participation_rate": "25-35%",
+			"completion_rate": "22-28%"
+		},
+		"tags": ["Müşteri Sadakati", "Müşteri Etkileşimi", "Satış Artırma"],
+		"estimated_time": "6 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "30",
+		"icon": "✈️",
+		"title": "Aviator",
+		"category": "Sadakat",
+		"description": "Yükselen uçak geriliminin belirsizliğiyle yoğun etkileşim. Uçak her an düşebilir; kullanıcı doğru anda ödülünü alır.",
+		"user_experience": [
+			"Uçak yükselmeye başlar, çarpan değeri artar.",
+			"Kullanıcı 'Al' butonuna basarak o anki çarpan değerinde ödülünü kilitler.",
+			"Uçak düşerse basamamış kullanıcılar kaybeder."
+		],
+		"features": [
+			"Gerilim bazlı bağımlılık yapıcı mekanik",
+			"Günlük 'bugünkü uçuş' push tetikleme",
+			"Haftalık skor tablosu e-posta özeti",
+			"Risk-ödül dengesi ile tekrar oynama teşviki"
+		],
+		"use_cases": "Günlük 'bugünkü uçuş' push bildirimi.",
+		"performance": {
+			"purchase_rate": "12-15%",
+			"revenue_increase": "10-13%",
+			"participation_rate": "30-40%",
+			"completion_rate": "18-22%"
+		},
+		"tags": ["Müşteri Sadakati", "Geri Döndürme", "Müşteri Etkileşimi"],
+		"estimated_time": "6 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "31",
+		"icon": "🚪",
+		"title": "Odadan Kaçış",
+		"category": "Sadakat",
+		"description": "Bulmaca çözme mekaniğiyle premium marka bağlılığı. Kullanıcılar oda bulmacalarını çözer.",
+		"user_experience": [
+			"Kullanıcı dijital bir oda içinde bulmacaları çözerek ilerler.",
+			"Her çözülen bulmaca yeni ipuçları ve ödüller açar.",
+			"Odadan kaçış başarıldığında büyük ödül kazanılır."
+		],
+		"features": [
+			"Çok odalı bulmaca senaryoları",
+			"VIP müşterilere özel davet mekanizması",
+			"Marka hikayesi ile entegre oda temaları",
+			"Recommend modülü ile bulmaca sonrası ürün önerileri"
+		],
+		"use_cases": "VIP müşteri daveti olarak Autopilot e-postası.",
+		"performance": {
+			"purchase_rate": "18-22%",
+			"revenue_increase": "15-20%",
+			"participation_rate": "20-30%",
+			"completion_rate": "28-32%"
+		},
+		"tags": ["Müşteri Sadakati", "Müşteri Etkileşimi", "Satış Artırma"],
+		"estimated_time": "6 iş günü",
+		"channels": ["Web"]
+	},
+	{
+		"id": "32",
+		"icon": "💖",
+		"title": "Kalp Sıralama",
+		"category": "Farkındalık",
+		"description": "Ürün sıralama mekaniğiyle kişiselleştirilmiş keşif. Kullanıcı ürünleri kalp vererek sıralar.",
+		"user_experience": [
+			"Ürünler gösterilir, kullanıcı beğendiklerine kalp verir.",
+			"Beğeni verileri ile kişiselleştirilmiş öneri listesi oluşturulur.",
+			"Sıralama sonucu hediye önerisi e-postası tetiklenir."
+		],
+		"features": [
+			"Kolay ve sezgisel kalp verme mekaniği",
+			"Tercih verisi ile Audience profili zenginleştirme",
+			"Özel gün kampanyalarına özel şablonlar",
+			"Kişiselleştirilmiş e-posta akışı tetikleme"
+		],
+		"use_cases": "Sevgililer Günü, Anneler Günü, Yılbaşı.",
+		"performance": {
+			"purchase_rate": "5-8%",
+			"revenue_increase": "4-7%",
+			"participation_rate": "50-60%",
+			"completion_rate": "9-12%"
+		},
+		"tags": ["Marka Farkındalığı", "Potansiyel Müşteri Kazanımı", "Müşteri Etkileşimi"],
+		"estimated_time": "4 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "33",
+		"icon": "🌸",
+		"title": "Kendi Parfümünü Tasarla",
+		"category": "Farkındalık",
+		"description": "Quiz tabanlı ürün keşfiyle bilinçli satın alma kararı. Kullanıcı tercih sorularını yanıtlar; Recommend ile ürünler önerilir.",
+		"user_experience": [
+			"Kullanıcıya koku ailesi ve tercih soruları sorulur.",
+			"Yanıtlara göre Recommend modülü eşleşen parfümleri önerir.",
+			"Sonuç sayfasında direkt satın alma imkanı sunulur."
+		],
+		"features": [
+			"Quiz bazlı ürün eşleştirme motoru",
+			"Recommend modülü entegrasyonu",
+			"Görsel ve interaktif soru tasarımı",
+			"Sonuç sayfasında direkt sepete ekleme CTA"
+		],
+		"use_cases": "Parfüm, kozmetik kategorisinde ürün bulucu.",
+		"performance": {
+			"purchase_rate": "9-12%",
+			"revenue_increase": "8-11%",
+			"participation_rate": "40-50%",
+			"completion_rate": "15-18%"
+		},
+		"tags": ["Potansiyel Müşteri Kazanımı", "Marka Farkındalığı", "Satış Artırma"],
+		"estimated_time": "4 iş günü",
+		"channels": ["Web", "App"]
+	},
+	{
+		"id": "34",
+		"icon": "❄️",
+		"title": "Kar Yağışı",
+		"category": "Farkındalık",
+		"description": "Mevsimsel kar yağışı atmosferiyle marka görünürlüğü. Ekranda düşen kar taneleri arasında marka objeleri yakalanır.",
+		"user_experience": [
+			"Sayfada kar yağışı efekti başlar, aralarında marka objeleri düşer.",
+			"Kullanıcı özel objeleri yakalayarak ödül kazanır.",
+			"Yakalanmayan objeler için tekrar oynama teşviki yapılır."
+		],
+		"features": [
+			"Mevsimsel atmosfer oluşturan görsel efektler",
+			"Marka logo ve ürünleri ile özelleştirme",
+			"Hızlı entegrasyon (2 iş günü)",
+			"Kampanya landing page yönlendirme"
+		],
+		"use_cases": "Ana sayfa veya kategori sayfasına 2 günde entegre.",
+		"performance": {
+			"purchase_rate": "5-8%",
+			"revenue_increase": "4-7%",
+			"participation_rate": "45-55%",
+			"completion_rate": "10-13%"
+		},
+		"tags": ["Marka Farkındalığı", "Kupon Dağıtımı", "Potansiyel Müşteri Kazanımı"],
+		"estimated_time": "2 iş günü",
+		"channels": ["Web"]
+	}
+]

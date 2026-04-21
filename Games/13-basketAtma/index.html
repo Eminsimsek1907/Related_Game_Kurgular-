@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Basketball Game</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #2d3436;
+        }
+    </style>
+</head>
+<body>
+
+<script>
+(function () {
+  const CONFIG = {
+    Z_INDEX: 999999,
+    SENSITIVITY: 5.0,
+    GRAVITY: 2000,
+    BOUNCE_FACTOR: 0.65,
+    FLOOR_BOUNCE: 0.5,
+    FRICTION_AIR: 0.998,
+    FRICTION_FLOOR: 0.96,
+    ROTATION_FACTOR: 0.04,
+
+    RIM_WIDTH: 98,
+    RIM_THICKNESS: 10,
+    RIM_Y: 270,
+    RIM_X_END: 668,
+    RIM_X_START: 570,
+    NET_HEIGHT: 105,
+    BALL_RADIUS: 22,
+    HOOP_CENTER_X: (570 + 668) / 2,
+
+    BOARD_X: 680,
+    BOARD_Y: 170,
+    BOARD_W: 22,
+    BOARD_H: 160,
+
+    AUDIO: {
+      FLOOR: "https://res.cloudinary.com/dtxvw1eu3/video/upload/v1770812052/mixkit-basketball-ball-hard-hit-2093_qsx1rc.wav",
+      NET: "https://res.cloudinary.com/dtxvw1eu3/video/upload/v1770812885/mixkit-basketball-ball-hitting-the-net-2084_f2oeiv.wav",
+      RIM: "https://res.cloudinary.com/dtxvw1eu3/video/upload/v1770812916/mixkit-quick-hit-of-a-basketball-2087_ptddc6.wav",
+      SHOOT: "https://res.cloudinary.com/dtxvw1eu3/video/upload/v1770813628/mixkit-fast-sword-whoosh-2792_gznki7.wav",
+    },
+
+    NET_PHYSICS: {
+      ROWS: 7,
+      COLS: 10,
+      GRAVITY: 0.6,
+      FRICTION: 0.96,
+      ITERATIONS: 5,
+      BALL_PUSH: 1.2,
+      DRAG: 0.992,
+    },
+
+    CDN: {
+      gsap: "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js",
+    },
+  };
+
+  let state = {
+    score: 0,
+    isFlying: false,
+    isDragging: false,
+    hasHit: false,
+    isPhysicsActive: false,
+    isScored: false,
+    isRoundOver: false,
+    startMouse: { x: 0, y: 0 },
+    ballStart: { x: 120, y: 360 },
+    velocity: { x: 0, y: 0 },
+    angularVelocity: 0,
+    lastPos: { x: 0, y: 0 },
+    currentRotation: 0,
+    rimColliders: [],
+    pathString: "",
+    flightTime: 0,
+    lastCollisionTime: 0,
+    netPoints: [],
+    netConstraints: [],
+    viewBox: { x: 0, y: 0, w: 800, h: 600 },
+  };
+
+  let els = {};
+  let audioCtx = null;
+  let buffers = { floor: null, net: null, rim: null, shoot: null };
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const loadSound = async (url, key) => {
+        try {
+          const res = await fetch(url);
+          const arrayBuffer = await res.arrayBuffer();
+          buffers[key] = await audioCtx.decodeAudioData(arrayBuffer);
+        } catch (e) {
+          console.error(`Ses hatası (${key}):`, e);
+        }
+      };
+      loadSound(CONFIG.AUDIO.FLOOR, "floor");
+      loadSound(CONFIG.AUDIO.NET, "net");
+      loadSound(CONFIG.AUDIO.RIM, "rim");
+      loadSound(CONFIG.AUDIO.SHOOT, "shoot");
+    }
+  }
+
+  function playTone(type, intensity = 1) {
+    if (!audioCtx) return;
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const now = audioCtx.currentTime;
+    const masterGain = audioCtx.createGain();
+    masterGain.connect(audioCtx.destination);
+
+    if (type === "win") {
+      const notes = [523.25, 659.25, 783.99, 1046.5];
+      masterGain.gain.setValueAtTime(0.5, now);
+      notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        const noteGain = audioCtx.createGain();
+        noteGain.connect(masterGain);
+        const startTime = now + 0.1 + i * 0.08;
+        noteGain.gain.setValueAtTime(0, startTime);
+        noteGain.gain.linearRampToValueAtTime(0.2, startTime + 0.05);
+        noteGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.8);
+        osc.connect(noteGain);
+        osc.start(startTime);
+        osc.stop(startTime + 1);
+      });
+      return;
+    }
+
+    let bufferToPlay = null;
+    let baseVolume = 1.0;
+    let pitchVar = 0.1;
+
+    if (type === "shoot") {
+      bufferToPlay = buffers.shoot;
+      baseVolume = 0.1;
+      pitchVar = 0.05;
+    } else if (type === "hit") {
+      bufferToPlay = buffers.net;
+      baseVolume = 0.1;
+    } else if (type === "metal" || type === "board") {
+      bufferToPlay = buffers.rim;
+      baseVolume = 0.8;
+    } else if (type === "floor") {
+      bufferToPlay = buffers.floor;
+      baseVolume = 0.8;
+    } else if (type === "net_graze") {
+      const osc = audioCtx.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(100, now);
+      masterGain.gain.setValueAtTime(0.1 * intensity, now);
+      masterGain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+      osc.connect(masterGain);
+      osc.start(now);
+      osc.stop(now + 0.2);
+      return;
+    }
+
+    if (bufferToPlay) {
+      const source = audioCtx.createBufferSource();
+      source.buffer = bufferToPlay;
+      const vol = Math.min(1.0, intensity) * baseVolume;
+      masterGain.gain.setValueAtTime(vol, now);
+      source.playbackRate.value = 0.95 + Math.random() * pitchVar;
+      source.connect(masterGain);
+      source.start(now);
+    }
+  }
+
+  async function init() {
+    if (document.getElementById("bskt-v66")) return;
+    createUI();
+    const load = (src) =>
+      new Promise((r) => {
+        if (document.querySelector(`script[src="${src}"]`)) return r();
+        const s = document.createElement("script");
+        s.src = src;
+        s.onload = r;
+        document.head.appendChild(s);
+      });
+    await load(CONFIG.CDN.gsap);
+
+    window.addEventListener("resize", handleResize);
+
+    document.addEventListener("click", function (e) {
+      if (
+        e.target &&
+        (e.target.id === "bskt-btn" || e.target.closest("#bskt-btn"))
+      ) {
+        startGame();
+      }
+
+      if (e.target && e.target.id === "copy-btn") {
+        const codeText = document.getElementById("coupon-code").innerText;
+        navigator.clipboard.writeText(codeText).then(() => {
+          const originalText = e.target.innerText;
+          e.target.innerText = "KOPYALANDI! ✅";
+          e.target.style.background = "#27ae60";
+          setTimeout(() => {
+            e.target.innerText = originalText;
+            e.target.style.background = "#f39c12";
+          }, 2000);
+        });
+      }
+
+      if (
+        e.target &&
+        (e.target.id === "close-game-btn-modal" ||
+          e.target.id === "bskt-close-main")
+      ) {
+        closeGame();
+      }
+    });
+
+    gsap.ticker.add(updateNetPhysics);
+  }
+
+  function createUI() {
+    const d = document.createElement("div");
+    d.id = "bskt-v66";
+
+    d.style.cssText = `position:fixed; inset:0; z-index:${CONFIG.Z_INDEX}; pointer-events:none; font-family:'Segoe UI', sans-serif; overflow:hidden;`;
+    d.innerHTML = `
+            <style>
+                #bskt-ov{position:absolute; width:100%; height:100%; background:#2d3436; display:none; pointer-events:auto; touch-action:none; user-select:none;}
+                #bskt-ui{position:absolute; bottom:30px; right:30px; pointer-events:auto; z-index:99999;}
+                
+                @keyframes bskt-pulse {
+                    0% { box-shadow: 0 0 0 0 rgba(229, 80, 57, 0.7); }
+                    70% { box-shadow: 0 0 0 15px rgba(229, 80, 57, 0); }
+                    100% { box-shadow: 0 0 0 0 rgba(229, 80, 57, 0); }
+                }
+                .b-btn {
+                    background: #4d3a45; color: #fff; border: none; width: 70px; height: 70px;
+                    border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+                    font-size: 40px; padding: 0; line-height: 1; animation: bskt-pulse 1.5s infinite; transition: transform 0.2s;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+                }
+                .b-btn:active { transform: scale(0.95); animation: none; }
+
+                #bskt-close-main {
+                    position: absolute; top: 15px; right: 20px; z-index: 10000000;
+                    padding: 8px 20px; background: rgb(231, 76, 60); color: white; border: none;
+                    cursor: pointer; font-size: 14px; font-weight: bold; border-radius: 20px;
+                    box-shadow: 0 4px 0 rgb(192, 57, 43); user-select: none;
+                }
+                #bskt-close-main:active { transform: translateY(4px); box-shadow: none; }
+                
+                #bskt-score {
+                    position:absolute; top:15px; left:20px; font-size:clamp(40px, 8vw, 60px); 
+                    color:#ffffff; font-weight:900; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); pointer-events:none;
+                }
+
+                #bskt-mod{position:absolute;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:0.3s; z-index:20;}
+                .b-card{background:white;padding:30px;border-radius:20px;text-align:center;transform:scale(0.8);transition:0.3s; width: 85%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.4);}
+                
+                #bskt-rotate-msg {
+                    position: fixed; inset: 0; background: #2d3436; color: white; z-index: 9999999;
+                    display: flex; flex-direction: column; align-items: center; justify-content: center;
+                    text-align: center; padding: 20px; pointer-events: auto;
+                }
+                #bskt-rotate-icon { font-size: 60px; margin-bottom: 20px; animation: rotatePhone 2s infinite; }
+                
+                @keyframes rotatePhone {
+                    0% { transform: rotate(0deg); }
+                    50% { transform: rotate(90deg); }
+                    100% { transform: rotate(0deg); }
+                }
+
+                @media screen and (orientation: landscape) {
+                    #bskt-rotate-msg { display: none !important; }
+                }
+                @media screen and (orientation: portrait) {
+                    #bskt-ov svg { opacity: 0.1; }
+                }
+            </style>
+            
+            <div id="bskt-ui">
+                <button id="bskt-btn" class="b-btn" title="Oyunu Başlat">🏀</button>
+            </div>
+            
+            <div id="bskt-ov">
+                <div id="bskt-rotate-msg">
+                    <div id="bskt-rotate-icon">📱</div>
+                    <h2>Lütfen Telefonu Yan Çevirin</h2>
+                </div>
+
+                <button id="bskt-close-main" title="Oyundan Çık">ÇIKIŞ</button>
+                <div id="bskt-score">0 / 3</div>
+                
+                <div id="bskt-feedback" style="position:absolute; top:40%; left:50%; transform:translate(-50%, -50%); pointer-events:none; z-index:10; text-align:center;">
+                    <h1 id="bskt-feedback-text" style="font-size:80px; margin:0; opacity:0; text-shadow: 2px 2px 0 #000; font-family: 'Segoe UI', sans-serif; font-weight:900;"></h1>
+                </div>
+
+                <div id="bskt-mod">
+                    <div class="b-card">
+                        <h2 style="color:#2ecc71; margin-top:0; font-size:28px;">TEBRİKLER!</h2>
+                        <p style="color:#333; font-size:16px; margin-bottom:20px;">3 Puanı topladın ve<br><strong>250 TL İndirim Kuponu</strong> kazandın!</p>
+                        <div style="background:#f1f2f6; border:2px dashed #bdc3c7; padding:10px; font-size:22px; font-weight:bold; letter-spacing:2px; color:#2c3e50; margin-bottom:20px; border-radius:8px;" id="coupon-code">250indirim</div>
+                        <button id="copy-btn" style="background:#f39c12; color:white; border:none; padding:12px 30px; font-size:16px; font-weight:bold; border-radius:50px; cursor:pointer; width:100%; transition:transform 0.2s, background 0.2s;">KODU KOPYALA</button>
+                        <button id="close-game-btn-modal" style="background:transparent; color:#7f8c8d; border:none; margin-top:15px; cursor:pointer; font-size:14px; text-decoration:underline;">Oyunu Kapat</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    document.body.appendChild(d);
+  }
+
+  function showFeedback(text, color) {
+    const el = document.getElementById("bskt-feedback-text");
+    if (!el) return;
+    el.innerText = text;
+    el.style.color = color;
+    gsap.killTweensOf(el);
+    gsap.fromTo(
+      el,
+      { scale: 0, opacity: 0, rotation: -10 },
+      {
+        duration: 0.5,
+        scale: 1.2,
+        opacity: 1,
+        rotation: 0,
+        ease: "back.out(1.7)",
+      },
+    );
+    gsap.to(el, { duration: 0.3, delay: 1, opacity: 0, scale: 0.5 });
+  }
+
+  function closeGame() {
+    const ui = document.getElementById("bskt-ui");
+    const ov = document.getElementById("bskt-ov");
+    const mod = document.getElementById("bskt-mod");
+
+    if (ov) ov.style.display = "none";
+    if (ui) ui.style.display = "block";
+
+    if (mod) {
+      mod.style.opacity = 0;
+      mod.style.pointerEvents = "none";
+    }
+
+    state.isPhysicsActive = false;
+    gsap.ticker.remove(purePhysicsTick);
+
+    state.score = 0;
+    document.getElementById("bskt-score").innerText = "0 / 3";
+    reset();
+  }
+
+  function startGame() {
+    const ui = document.getElementById("bskt-ui");
+    const ov = document.getElementById("bskt-ov");
+    if (ui) ui.style.display = "none";
+    if (ov) ov.style.display = "block";
+
+    state.score = 0;
+    document.getElementById("bskt-score").innerText = "0 / 3";
+
+    initAudio();
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    if (!document.getElementById("game-svg")) {
+      createScene();
+      initNetSystem();
+      handleResize();
+    } else {
+      reset();
+      handleResize();
+    }
+  }
+
+  function handleResize() {
+    const svg = document.getElementById("game-svg");
+    if (!svg) return;
+
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    const aspect = w / h;
+    const newViewWidth = 600 * aspect;
+
+    const viewX = -(newViewWidth - 800) / 2;
+
+    state.viewBox = { x: viewX, y: 0, w: newViewWidth, h: 600 };
+    svg.setAttribute("viewBox", `${viewX} 0 ${newViewWidth} 600`);
+  }
+
+  function createScene() {
+    state.rimColliders = [
+      { x: CONFIG.RIM_X_END, y: CONFIG.RIM_Y, r: CONFIG.RIM_THICKNESS },
+      { x: CONFIG.RIM_X_START, y: CONFIG.RIM_Y, r: CONFIG.RIM_THICKNESS },
+    ];
+
+    const ov = document.getElementById("bskt-ov");
+
+    ov.innerHTML += `
+        <svg id="game-svg" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%; display:block; cursor:grab;">
+            <rect x="-2000" y="0" width="6000" height="600" fill="#2d3436"/>
+            
+            <path id="game-traj" stroke="rgba(255,255,255,0.4)" stroke-width="4" stroke-dasharray="0, 12" stroke-linecap="round" fill="none" opacity="0" d="" />
+            
+            <g>
+                <rect x="${CONFIG.BOARD_X}" y="${CONFIG.BOARD_Y}" width="${CONFIG.BOARD_W}" height="${CONFIG.BOARD_H}" rx="6" fill="#F0F0F0" stroke="#454547" stroke-width="6"/>
+                <rect x="685" y="327" width="12" height="560" fill="#636e72" stroke-width="6"/>
+                <rect x="668" y="270" width="12" height="10" fill="transparent" />
+                <path d="M 680 300 L 680 340 L 730 340 Z" fill="#c0392b" stroke="#454547" stroke-width="6" opacity=".9" transform="translate(680 300) rotate(180) scale(0.7) translate(-680 -300)"/>
+            </g>
+
+            <path id="game-net-back" fill="none" stroke="#FFFFFF" stroke-opacity="0.8" stroke-width="1.5" d="" />
+
+            <g id="game-ball"><g transform="scale(0.3) translate(-73, -73)"><g transform="translate(-165.77 -450.94)"><g transform="matrix(1.3304 0 0 1.3304 -103.13 -148.96)"><g transform="matrix(.94554 .32550 -.32550 .94554 178.67 -56.15)"><path d="m317.86 503.08c0 28.995-23.505 52.5-52.5 52.5s-52.5-23.505-52.5-52.5 23.505-52.5 52.5-52.5 52.5 23.505 52.5 52.5z" style="stroke:#000000;stroke-width:5;fill:#ea8e0b" transform="translate(-8.2143 2.8571)"/><path d="m251.07 452.36c13.67 21.37 31.69 32.56 53.93 33.93" style="stroke:#000000;stroke-width:3;fill:none"/><path d="m211.79 479.51c41.883-8.77 75.922 0.43681 95 43.929" style="stroke:#000000;stroke-width:3;fill:none"/><path d="m207.5 523.79c51.186-44.221 82.415-49.421 70 30.714" style="stroke:#000000;stroke-width:3;fill:none"/><path d="m282.86 459.86c-8.953 35.104-28.318 63.961-46.429 93.571" style="stroke:#000000;stroke-width:3;fill:none"/></g></g></g></g></g>
+
+            <g>
+                <path id="game-net" fill="none" stroke="#FFFFFF" stroke-width="1.5" d="" />
+                <rect x="570" y="270" width="98" height="10" rx="6" fill="#c0392b"/>
+            </g>
+            
+            <g pointer-events="none"><rect x="570" y="270" stroke="#454547" stroke-width="3" width="98" height="10" rx="6" fill="#ea4f4d" /></g>
+        </svg>`;
+
+    els.svg = document.getElementById("game-svg");
+    els.ball = document.getElementById("game-ball");
+    els.traj = document.getElementById("game-traj");
+    els.net = document.getElementById("game-net");
+    els.netBack = document.getElementById("game-net-back");
+    gsap.set(els.ball, {
+      x: state.ballStart.x,
+      y: state.ballStart.y,
+      transformOrigin: "50% 50%",
+    });
+
+    els.svg.addEventListener("mousedown", onStart);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onEnd);
+    els.svg.addEventListener("touchstart", onStart, { passive: false });
+    window.addEventListener("touchmove", onMove, { passive: false });
+    window.addEventListener("touchend", onEnd);
+  }
+
+  function initNetSystem() {
+    state.netPoints = [];
+    state.netConstraints = [];
+    const rows = CONFIG.NET_PHYSICS.ROWS;
+    const cols = CONFIG.NET_PHYSICS.COLS;
+    const topW = CONFIG.RIM_WIDTH - 4;
+    const botW = CONFIG.RIM_WIDTH * 0.4;
+    for (let r = 0; r < rows; r++) {
+      const t = r / (rows - 1);
+      const w = topW - (topW - botW) * t;
+      const y = CONFIG.RIM_Y + 5 + CONFIG.NET_HEIGHT * t;
+      for (let c = 0; c < cols; c++) {
+        const u = c / (cols - 1);
+        const x = CONFIG.RIM_X_START + 2 + (topW - w) / 2 + w * u;
+        state.netPoints.push({
+          x: x,
+          y: y,
+          oldx: x,
+          oldy: y,
+          pinned: r === 0,
+          r: r,
+          c: c,
+        });
+      }
+    }
+    const getIdx = (r, c) => r * cols + c;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        let p1 = getIdx(r, c);
+        if (c < cols - 1) addConstraint(p1, getIdx(r, c + 1));
+        if (r < rows - 1) addConstraint(p1, getIdx(r + 1, c));
+      }
+    }
+  }
+  function addConstraint(idx1, idx2) {
+    const p1 = state.netPoints[idx1];
+    const p2 = state.netPoints[idx2];
+    const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    state.netConstraints.push({ p1: idx1, p2: idx2, len: dist });
+  }
+
+  function updateNetPhysics() {
+    if (!state.netPoints.length) return;
+    const { GRAVITY, FRICTION, ITERATIONS, BALL_PUSH } = CONFIG.NET_PHYSICS;
+    const bx = gsap.getProperty(els.ball, "x");
+    const by = gsap.getProperty(els.ball, "y");
+    const br = CONFIG.BALL_RADIUS;
+
+    for (let p of state.netPoints) {
+      if (p.pinned) continue;
+      const vx = (p.x - p.oldx) * FRICTION;
+      const vy = (p.y - p.oldy) * FRICTION;
+      p.oldx = p.x;
+      p.oldy = p.y;
+      p.x += vx;
+      p.y += vy + GRAVITY;
+      const dx = p.x - bx;
+      const dy = p.y - by;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist < br + 5) {
+        const force = ((br + 5 - dist) / dist) * BALL_PUSH;
+        p.x += dx * force;
+        p.y += dy * force;
+
+        if (state.isPhysicsActive) {
+          p.oldx -= dx * 0.1;
+          p.oldy -= dy * 0.1;
+        }
+      }
+    }
+    for (let i = 0; i < ITERATIONS; i++) {
+      for (let c of state.netConstraints) {
+        const p1 = state.netPoints[c.p1];
+        const p2 = state.netPoints[c.p2];
+        const dx = p1.x - p2.x;
+        const dy = p1.y - p2.y;
+        const dist = Math.hypot(dx, dy);
+        const diff = (dist - c.len) / dist;
+        const offsetX = dx * diff * 0.5;
+        const offsetY = dy * diff * 0.5;
+        if (!p1.pinned) {
+          p1.x -= offsetX;
+          p1.y -= offsetY;
+        }
+        if (!p2.pinned) {
+          p2.x += offsetX;
+          p2.y += offsetY;
+        }
+      }
+    }
+    renderNet();
+  }
+  function renderNet() {
+    if (!els.net) return;
+    const pts = state.netPoints;
+    const cols = CONFIG.NET_PHYSICS.COLS;
+    const rows = CONFIG.NET_PHYSICS.ROWS;
+    let pathFront = "";
+    let pathBack = "";
+    for (let c = 0; c < cols; c++) {
+      let d = "";
+      for (let r = 0; r < rows; r++) {
+        const p = pts[r * cols + c];
+        d += (r === 0 ? "M" : "L") + ` ${p.x.toFixed(1)} ${p.y.toFixed(1)} `;
+      }
+      if (c < cols / 2) pathBack += d;
+      else pathFront += d;
+    }
+    for (let r = 0; r < rows; r++) {
+      let d = "";
+      for (let c = 0; c < cols; c++) {
+        const p = pts[r * cols + c];
+        d += (c === 0 ? "M" : "L") + ` ${p.x.toFixed(1)} ${p.y.toFixed(1)} `;
+      }
+      pathFront += d;
+    }
+    els.net.setAttribute("d", pathFront);
+    els.netBack.setAttribute("d", pathBack);
+  }
+
+  const getSVGPos = (evt) => {
+    const pt = els.svg.createSVGPoint();
+    pt.x = evt.changedTouches ? evt.changedTouches[0].clientX : evt.clientX;
+    pt.y = evt.changedTouches ? evt.changedTouches[0].clientY : evt.clientY;
+    return pt.matrixTransform(els.svg.getScreenCTM().inverse());
+  };
+  const onStart = (e) => {
+    if (state.isFlying) return;
+    e.preventDefault();
+    state.isDragging = true;
+    state.startMouse = getSVGPos(e);
+    els.svg.style.cursor = "grabbing";
+  };
+  const onMove = (e) => {
+    if (!state.isDragging || state.isFlying) return;
+    e.preventDefault();
+    const pos = getSVGPos(e);
+    updateTrajectory(pos.x, pos.y);
+  };
+  const onEnd = (e) => {
+    if (!state.isDragging) return;
+    state.isDragging = false;
+    els.svg.style.cursor = "grab";
+    els.traj.style.opacity = 0;
+    if (state.velocity.y < 0) shoot();
+  };
+
+  function updateTrajectory(mx, my) {
+    const diffX = state.startMouse.x - mx;
+    const diffY = state.startMouse.y - my;
+
+    let vx = (diffX + 60) * CONFIG.SENSITIVITY;
+    let vy = (diffY - 100) * CONFIG.SENSITIVITY;
+
+    state.velocity = { x: vx, y: vy };
+    if (vy > 0) {
+      els.traj.style.opacity = 0;
+      return;
+    }
+
+    let simX = state.ballStart.x;
+    let simY = state.ballStart.y;
+    let simVx = vx;
+    let simVy = vy;
+    let pathStr = `M ${simX} ${simY}`;
+
+    const dt = 0.025;
+
+    for (let i = 0; i < 50; i++) {
+      simVy += CONFIG.GRAVITY * dt;
+      simVx *= CONFIG.FRICTION_AIR;
+
+      simX += simVx * dt;
+      simY += simVy * dt;
+
+      pathStr += ` L ${simX} ${simY}`;
+      if (simY > 600) break;
+    }
+
+    els.traj.setAttribute("d", pathStr);
+    els.traj.style.opacity = 1;
+  }
+
+  function shoot() {
+    state.isFlying = true;
+    state.hasHit = false;
+    state.isScored = false;
+    state.isRoundOver = false;
+    state.angularVelocity = -(state.velocity.x * 0.02);
+    playTone("shoot");
+    state.lastPos = { x: state.ballStart.x, y: state.ballStart.y };
+    startPhysicsEngine();
+  }
+
+  function purePhysicsTick() {
+    if (!state.isPhysicsActive) return;
+    const dt = 0.016;
+
+    applyNetForcesToBall();
+
+    state.velocity.y += CONFIG.GRAVITY * dt;
+    state.velocity.x *= CONFIG.FRICTION_AIR;
+
+    let bx = gsap.getProperty(els.ball, "x");
+    let by = gsap.getProperty(els.ball, "y");
+
+    bx += state.velocity.x * dt;
+    by += state.velocity.y * dt;
+
+    if (by > 580) {
+      state.angularVelocity = state.velocity.x * CONFIG.ROTATION_FACTOR;
+    }
+    state.currentRotation += state.angularVelocity;
+
+    const floorY = 600;
+    if (by + CONFIG.BALL_RADIUS > floorY) {
+      by = floorY - CONFIG.BALL_RADIUS;
+      state.velocity.y *= -CONFIG.FLOOR_BOUNCE;
+
+      state.velocity.x += state.angularVelocity * 0.5;
+
+      let friction = state.isScored ? 0.9 : CONFIG.FRICTION_FLOOR;
+      state.velocity.x *= friction;
+      state.angularVelocity *= friction;
+
+      const speed = Math.abs(state.velocity.y);
+      if (speed > 100) playTone("floor", speed / 1000);
+
+      let stopThreshold = state.isScored ? 150 : 20;
+      if (speed < 50 && Math.abs(state.velocity.x) < stopThreshold) {
+        if (state.isScored) {
+          checkWinCondition();
+        } else {
+          if (!state.isRoundOver) {
+            state.isRoundOver = true;
+            showFeedback("ISKA!", "#e74c3c");
+            setTimeout(reset, 1500);
+          }
+        }
+        return;
+      }
+    }
+
+    gsap.set(els.ball, { x: bx, y: by, rotation: state.currentRotation });
+    state.lastPos = { x: bx, y: by };
+
+    if (by < 600 - 10) {
+      checkCollisions(bx, by, state.velocity.x, state.velocity.y);
+      checkInteractions(bx, by);
+    }
+
+    const leftBound = state.viewBox.x - 200;
+    const rightBound = state.viewBox.x + state.viewBox.w + 200;
+
+    if (bx < leftBound || bx > rightBound || by > 700) {
+      if (state.isScored) {
+        checkWinCondition();
+      } else {
+        if (!state.isRoundOver) {
+          state.isRoundOver = true;
+          showFeedback("ISKA!", "#e74c3c");
+          setTimeout(reset, 1000);
+        }
+      }
+    }
+  }
+
+  function applyNetForcesToBall() {
+    const bx = gsap.getProperty(els.ball, "x");
+    const by = gsap.getProperty(els.ball, "y");
+
+    if (by > CONFIG.RIM_Y && by < CONFIG.RIM_Y + CONFIG.NET_HEIGHT) {
+      const centerX = CONFIG.HOOP_CENTER_X;
+      const distFromCenter = bx - centerX;
+      const progress = (by - CONFIG.RIM_Y) / CONFIG.NET_HEIGHT;
+      const currentHalfWidth = 50 - 30 * progress + CONFIG.BALL_RADIUS;
+
+      if (state.isScored) {
+        const distanceToEdge = currentHalfWidth - Math.abs(distFromCenter);
+        if (distanceToEdge < 15) {
+          state.velocity.x *= 0.94;
+          state.velocity.y *= 0.9;
+          state.angularVelocity *= 0.9;
+        } else {
+          state.velocity.x *= 0.995;
+        }
+        if (progress > 0.3)
+          state.velocity.x += (centerX - bx) * (progress * 8.0);
+      } else if (
+        Math.abs(distFromCenter) > currentHalfWidth &&
+        Math.abs(distFromCenter) < currentHalfWidth + 10
+      ) {
+        playTone("net_graze", 0.5);
+        state.velocity.x *= 0.95;
+        state.velocity.y *= 0.95;
+      }
+    }
+  }
+
+  function checkCollisions(bx, by, vx, vy) {
+    const now = Date.now();
+    if (now - state.lastCollisionTime < 80) return;
+    const r = CONFIG.BALL_RADIUS;
+
+    const bX = CONFIG.BOARD_X;
+    const bY = CONFIG.BOARD_Y;
+    const bW = CONFIG.BOARD_W;
+    const bH = CONFIG.BOARD_H;
+
+    if (vx > 0 && bx + r > bX && bx < bX + 10 && by > bY && by < bY + bH) {
+      state.lastCollisionTime = now;
+      triggerPhysicsBounce({ x: -1, y: 0 }, "board");
+      return;
+    }
+
+    if (
+      vy > 0 &&
+      by + r > bY &&
+      by - r < bY &&
+      bx > bX - 5 &&
+      bx < bX + bW + 5
+    ) {
+      state.lastCollisionTime = now;
+      triggerPhysicsBounce({ x: 0, y: -1 }, "board");
+      return;
+    }
+
+    if (bx > 668 && bx < 680 && Math.abs(by - CONFIG.RIM_Y) < r + 5) {
+      state.lastCollisionTime = now;
+      triggerPhysicsBounce({ x: 0, y: -1 }, "metal");
+      return;
+    }
+
+    for (let rim of state.rimColliders) {
+      const dx = bx - rim.x;
+      const dy = by - rim.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < r + rim.r) {
+        const nx = dx / dist;
+        const ny = dy / dist;
+        if (vx * nx + vy * ny < -10) {
+          state.lastCollisionTime = now;
+          triggerPhysicsBounce({ x: nx, y: ny }, "metal");
+          return;
+        }
+      }
+    }
+  }
+
+  function triggerPhysicsBounce(normal, type) {
+    gsap.killTweensOf(els.ball);
+    const speed = Math.sqrt(state.velocity.x ** 2 + state.velocity.y ** 2);
+    playTone(type, Math.min(1, speed / 1500));
+    const v = state.velocity;
+
+    const dot = v.x * normal.x + v.y * normal.y;
+    state.velocity = {
+      x: (v.x - 2 * dot * normal.x) * CONFIG.BOUNCE_FACTOR,
+      y: (v.y - 2 * dot * normal.y) * CONFIG.BOUNCE_FACTOR,
+    };
+    state.angularVelocity *= -0.5;
+  }
+
+  function startPhysicsEngine() {
+    if (!state.isPhysicsActive) {
+      state.isPhysicsActive = true;
+      state.currentRotation = gsap.getProperty(els.ball, "rotation");
+      gsap.ticker.add(purePhysicsTick);
+    }
+  }
+
+  function checkInteractions(bx, by) {
+    const dist = Math.abs(bx - CONFIG.HOOP_CENTER_X);
+    if (
+      dist < 30 &&
+      by >= CONFIG.RIM_Y &&
+      by <= CONFIG.RIM_Y + 50 &&
+      state.velocity.y > 0
+    ) {
+      if (!state.isScored) success();
+    }
+  }
+
+  function success() {
+    if (!state.isScored) {
+      showFeedback("BASKET!", "#2ecc71");
+    }
+    state.isScored = true;
+    state.score++;
+    document.getElementById("bskt-score").innerText = `${state.score} / 3`;
+    playTone("hit");
+    state.velocity.x *= 0.3;
+    state.velocity.y *= 0.6;
+  }
+
+  function checkWinCondition() {
+    state.isPhysicsActive = false;
+    gsap.ticker.remove(purePhysicsTick);
+    if (state.score >= 3) {
+      const mod = document.querySelector("#bskt-mod");
+      mod.style.opacity = 1;
+      mod.style.pointerEvents = "auto";
+      document.querySelector(".b-card").style.transform = "scale(1)";
+      playTone("win");
+    } else {
+      reset();
+    }
+  }
+
+  function reset() {
+    state.isFlying = false;
+    state.isPhysicsActive = false;
+    state.hasHit = false;
+    state.isScored = false;
+    state.isRoundOver = false;
+    gsap.ticker.remove(purePhysicsTick);
+    gsap.killTweensOf(els.ball);
+    gsap.to(els.ball, {
+      opacity: 0,
+      duration: 0.1,
+      onComplete: () => {
+        gsap.set(els.ball, {
+          x: state.ballStart.x,
+          y: state.ballStart.y,
+          rotation: 0,
+        });
+        state.currentRotation = 0;
+        state.velocity = { x: 0, y: 0 };
+        state.angularVelocity = 0;
+        gsap.to(els.ball, { opacity: 1 });
+        initNetSystem();
+      },
+    });
+  }
+  init();
+})();
+</script>
+
+</body>
+</html>

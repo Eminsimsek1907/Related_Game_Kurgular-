@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carnival Game</title>
+</head>
+<body>
+
+<script>
+(() => {
+  if (window.__CV_CARNIVAL__) {
+    window.__CV_CARNIVAL__.open();
+    return;
+  }
+
+  const NS = "cv";
+  const GAME_SECONDS = 15;
+
+  const isSmall = window.matchMedia("(max-width: 768px)").matches;
+  const CELLS = isSmall ? 6 : 9;
+
+  const HIT_COOLDOWN_MS = 900;
+  const RESPAWN_DELAY_MS = 750;
+
+  const REWARDS = [
+    { min: 15, title: "🎁 1000 TL Hediye Çeki!", desc: "15 hedefi vurdun — kasada 1000 TL hediye çeki seni bekliyor." },
+    { min: 10, title: "🏷️ %5 İndirim!", desc: "10 hedefi vurdun — sepette ekstra %5 indirim kazandın." },
+    { min: 5, title: "🚚 Kargo Bedava!", desc: "5 hedefi vurdun — kargon bizden, keyfin senden." }
+  ];
+
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+  const now = () => Date.now();
+
+  function getReward(score) {
+    return REWARDS.find((r) => score >= r.min) || null;
+  }
+
+  function getRewardText(score) {
+    const r = getReward(score);
+    if (!r) return { title: "🔥 Bir tur daha!", desc: "Bu sefer 5 hedefi vurup kargo bedavayı kap!" };
+    return r;
+  }
+
+  const css = `
+  :root { --${NS}-font: 'Open Sans', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+
+  #${NS}-start-btn {
+    position: fixed; right: 18px; bottom: 18px; z-index: 2147483646;
+    border: 0; border-radius: 999px; padding: 12px 16px;
+    font: 800 14px/1 var(--${NS}-font); cursor: pointer;
+    background: #2196f3; color: #fff; box-shadow: 0 10px 24px rgba(0,0,0,.18);
+    display: inline-flex; align-items: center; gap: 10px; letter-spacing: .2px;
+  }
+  #${NS}-start-btn:hover { transform: translateY(-1px); }
+  #${NS}-start-btn:active { transform: translateY(0); }
+  #${NS}-start-btn .${NS}-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #c9ff00; box-shadow: 0 0 0 4px rgba(201,255,0,.18);
+  }
+
+  #${NS}-overlay { position: fixed; inset: 0; z-index: 2147483647; display: none; }
+  #${NS}-overlay.${NS}-open { display: block; }
+  #${NS}-overlay .${NS}-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(2px); }
+  #${NS}-overlay .${NS}-stage { position: absolute; inset: 0; display: grid; place-items: center; }
+  #${NS}-overlay .${NS}-panel {
+    width: min(980px, calc(100vw - 28px));
+    height: min(760px, calc(100vh - 28px));
+    border-radius: 18px; overflow: hidden;
+    background: #e9b58b; font-family: var(--${NS}-font); color: #333;
+    box-shadow: 0 28px 80px rgba(0,0,0,.35); position: relative;
+  }
+
+  .${NS}-header { padding: 18px 18px 10px; display: grid; gap: 8px; }
+  .${NS}-header h1 { margin: 0; font-size: 18px; }
+  .${NS}-header h2 { margin: 0; font-weight: 600; font-size: 13px; opacity: .95; line-height: 1.35; }
+
+  .${NS}-hud { position: absolute; left: 0; right: 0; top: 10px; display: flex; justify-content: center; z-index: 30; pointer-events: none; }
+  .${NS}-hud-inner {
+    pointer-events: auto; display: inline-flex; gap: 10px; align-items: center;
+    background: rgba(255,255,255,.85); border: 1px solid rgba(255,255,255,.7);
+    padding: 8px 10px; border-radius: 999px; backdrop-filter: blur(4px);
+  }
+  .${NS}-pill { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 800; }
+  .${NS}-timerbar { width: 240px; height: 10px; border-radius: 999px; overflow: hidden; background: rgba(0,0,0,.10); }
+  .${NS}-timerbar > i { display: block; height: 100%; width: 100%; background: #20c0ff; transform-origin: left center; transform: scaleX(1); }
+
+  .${NS}-controls { position: absolute; top: 12px; right: 12px; z-index: 40; display: flex; gap: 8px; }
+  .${NS}-iconbtn {
+    border: 0; cursor: pointer;
+    background: rgba(255,255,255,.88); border: 1px solid rgba(255,255,255,.7);
+    border-radius: 10px; padding: 10px 12px;
+    font: 800 12px/1 var(--${NS}-font); color: #222;
+  }
+  .${NS}-iconbtn:hover { background: rgba(255,255,255,.98); }
+
+  .${NS}-wrap { padding: 0 18px 18px; height: calc(100% - 94px); display: grid; grid-template-rows: 1fr auto; gap: 12px; }
+
+  ul.${NS}-area {
+    margin: 0 auto; padding: 0; list-style: none;
+    width: min(700px, 100%); height: 100%;
+    display: flex; flex-flow: row wrap; gap: 12px;
+    align-content: center; justify-content: center;
+  }
+
+  ul.${NS}-area li.${NS}-cell {
+    width: calc(33.333% - 12px);
+    min-width: 180px; max-width: 220px; height: 170px;
+    position: relative; outline: 4px solid rgba(255,255,255,.92);
+    background: #64ddf3; border-radius: 14px; overflow: hidden;
+  }
+
+  .${NS}-target {
+    width: 56px; height: 56px; position: absolute; left: 0; right: 0; margin: 0 auto;
+    cursor: crosshair;
+    background: radial-gradient(red 10%, white 10%, white 30%, red 30%, red 50%, white 50%, white 80%, red 80%, red 100%);
+    border-radius: 999px; border: 6px solid red; appearance: none; outline: none; top: 0; z-index: 2;
+    transition: filter .2s ease, opacity .2s ease;
+  }
+  .${NS}-target::before {
+    content: ''; display: block; background: #111; height: 50%; width: 6px;
+    position: absolute; left: 0; right: 0; top: calc(100% + 6px); margin: 0 auto; z-index: -1; border-radius: 6px;
+  }
+
+  .${NS}-shield { background: #724c20; width: 100%; height: 60%; margin: 0 auto; bottom: 0; left: 0; right: 0; position: absolute; z-index: 3; pointer-events: auto; }
+
+  .${NS}-target.${NS}-hit { pointer-events: none; filter: grayscale(1) opacity(.75); }
+  .${NS}-plusone {
+    position: absolute; z-index: 4; font: 900 28px/1 var(--${NS}-font);
+    color: rgba(0,0,0,.78); left: 50%; top: 40%; transform: translate(-10%, -50%);
+    pointer-events: none; animation: ${NS}-pop .55s ease-out forwards; text-shadow: 0 8px 18px rgba(0,0,0,.15);
+  }
+  @keyframes ${NS}-pop {
+    from { transform: translate(-10%,-50%) scale(.7); opacity: 0; }
+    30% { opacity: 1; }
+    to { transform: translate(-10%,-85%) scale(1); opacity: 0; }
+  }
+
+  .${NS}-footer {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    width: min(700px, 100%); margin: 0 auto; padding: 10px 0 0;
+    color: rgba(0,0,0,.78); font-size: 12px;
+  }
+  .${NS}-footer b { font-weight: 900; }
+  .${NS}-footer a { color: #222; font-weight: 900; text-decoration: none; }
+
+  .${NS}-intro {
+    position: absolute; inset: 0; display: none; z-index: 70; align-items: center; justify-content: center; padding: 18px;
+    background: rgba(0,0,0,.25);
+  }
+  .${NS}-intro.${NS}-show { display: flex; }
+  .${NS}-intro .${NS}-card { width: min(560px, 100%); }
+
+  .${NS}-gameover {
+    position: absolute; inset: 0; display: none; z-index: 60; align-items: center; justify-content: center; padding: 18px;
+    background: repeating-linear-gradient(-45deg, #c9ff00 0, #c9ff00 5em, #20c0ff 5em, #20c0ff 10em);
+  }
+  .${NS}-gameover.${NS}-show { display: flex; }
+
+  .${NS}-card { width: min(560px, 100%); border-radius: 18px; overflow: hidden; box-shadow: 0 24px 70px rgba(0,0,0,.28); }
+  .${NS}-card h1 { margin: 0; background: #fff; padding: 18px; font-size: 26px; }
+  .${NS}-card .${NS}-card-body { background: rgba(255,255,255,.92); padding: 16px 18px 18px; display: grid; gap: 10px; }
+  .${NS}-scoreline { font-size: 18px; font-weight: 900; }
+  .${NS}-rewardtitle { font-size: 16px; font-weight: 900; }
+  .${NS}-rewarddesc { font-size: 13px; font-weight: 700; opacity: .9; line-height: 1.35; }
+  .${NS}-btnrow { display: flex; gap: 10px; flex-wrap: wrap; }
+  .${NS}-cta { border: 0; border-radius: 12px; padding: 12px 14px; font: 900 14px/1 var(--${NS}-font); cursor: pointer; background: #fff; color: #20c0ff; }
+  .${NS}-cta.${NS}-primary { background: #2196f3; color: #fff; }
+
+  @media (max-width: 768px) {
+    #${NS}-overlay .${NS}-panel {height:650px;}
+    .${NS}-controls { position: absolute; bottom: 12px !important; right: 12px; z-index: 40; display: flex; gap: 8px; top: auto !important;}
+    .${NS}-header{margin-top: 50px;}
+    .${NS}-wrap{height:0px;}
+    ul.${NS}-area { width: min(520px, 100%); gap: 10px; height:430px; }
+    ul.${NS}-area li.${NS}-cell {
+      min-width: 135px; max-width: 170px; height: 135px;
+      outline-width: 3px; border-radius: 12px;
+    }
+    .${NS}-target { width: 46px; height: 46px; border-width: 5px; }
+    .${NS}-timerbar { width: 180px; }
+  }
+
+  @media (max-width: 640px) {
+    ul.${NS}-area li.${NS}-cell { min-width: 125px; height: 125px; }
+    .${NS}-timerbar { width: 170px; }
+  }
+  `;
+
+  function injectFont() {
+    if (document.querySelector(`link[data-${NS}-font]`)) return;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css?family=Open+Sans:400,700";
+    link.setAttribute(`data-${NS}-font`, "1");
+    document.head.appendChild(link);
+  }
+
+  function injectCSS() {
+    if (document.querySelector(`style[data-${NS}-style]`)) return;
+    const style = document.createElement("style");
+    style.setAttribute(`data-${NS}-style`, "1");
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  function build() {
+    injectFont();
+    injectCSS();
+
+    const btn = document.createElement("button");
+    btn.id = `${NS}-start-btn`;
+    btn.innerHTML = `<span class="${NS}-dot"></span><span>Oyuna Başla</span>`;
+    document.body.appendChild(btn);
+
+    const overlay = document.createElement("div");
+    overlay.id = `${NS}-overlay`;
+    overlay.innerHTML = `
+      <div class="${NS}-backdrop"></div>
+      <div class="${NS}-stage">
+        <div class="${NS}-panel" role="dialog" aria-modal="true">
+          <div class="${NS}-hud">
+            <div class="${NS}-hud-inner">
+              <div class="${NS}-pill">Skor: <span id="${NS}-score">0</span></div>
+              <div class="${NS}-pill">Süre: <span id="${NS}-time">${GAME_SECONDS}</span>s</div>
+              <div class="${NS}-timerbar"><i id="${NS}-bar"></i></div>
+            </div>
+          </div>
+
+          <div class="${NS}-controls">
+            <button class="${NS}-iconbtn" id="${NS}-restart">Yeniden Başlat</button>
+            <button class="${NS}-iconbtn" id="${NS}-close">Kapat</button>
+          </div>
+
+          <div class="${NS}-header">
+            <h1>Carnival Game: Target Practice</h1>
+            <h2>
+              <b>${GAME_SECONDS} saniyede</b> olabildiğince çok hedef vur!<br>
+              <b>5</b> hedef = <b>Kargo Bedava</b> • <b>10</b> hedef = <b>%5 İndirim</b> • <b>15</b> hedef = <b>1000 TL Hediye Çeki</b>
+            </h2>
+          </div>
+
+          <div class="${NS}-wrap">
+            <ul class="${NS}-area" id="${NS}-area"></ul>
+
+            <div class="${NS}-footer">
+              <div>Hedefleri yakala, ödülü kap! <b>5</b>/<b>10</b>/<b>15</b></div>
+              <div><a href="#" id="${NS}-exit">Çık</a></div>
+            </div>
+          </div>
+
+          <div class="${NS}-intro" id="${NS}-intro">
+            <div class="${NS}-card">
+              <h1>Nasıl Oynanır?</h1>
+              <div class="${NS}-card-body">
+                <div class="${NS}-rewarddesc">
+                  <b>${GAME_SECONDS} saniye</b> içinde çıkan hedeflere tıkla ve skor topla.<br><br>
+                  Ödüller:<br>
+                  • <b>5</b> hedef = <b>Kargo Bedava</b><br>
+                  • <b>10</b> hedef = <b>%5 İndirim</b><br>
+                  • <b>15</b> hedef = <b>1000 TL Hediye Çeki</b><br>
+                </div>
+                <div class="${NS}-btnrow">
+                  <button class="${NS}-cta ${NS}-primary" id="${NS}-introStart">Başla</button>
+                  <button class="${NS}-cta" id="${NS}-introClose">Kapat</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="${NS}-gameover" id="${NS}-gameover">
+            <div class="${NS}-card">
+              <h1>Oyun Bitti!</h1>
+              <div class="${NS}-card-body">
+                <div class="${NS}-scoreline">Vurulan Hedef: <span id="${NS}-final">0</span></div>
+                <div class="${NS}-rewardtitle" id="${NS}-rewardTitle">—</div>
+                <div class="${NS}-rewarddesc" id="${NS}-rewardDesc">—</div>
+                <div class="${NS}-btnrow">
+                  <button class="${NS}-cta ${NS}-primary" id="${NS}-playagain">Tekrar Oyna</button>
+                  <button class="${NS}-cta" id="${NS}-close2">Kapat</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const area = $(`#${NS}-area`, overlay);
+
+    for (let i = 0; i < CELLS; i++) {
+      const li = document.createElement("li");
+      li.className = `${NS}-cell`;
+      li.innerHTML = `<button type="button" class="${NS}-target" aria-label="Target"></button><div class="${NS}-shield"></div>`;
+      area.appendChild(li);
+    }
+
+    return { btn, overlay };
+  }
+
+  const ui = build();
+
+  const state = {
+    open: false,
+    running: false,
+    startAt: 0,
+    endAt: 0,
+    score: 0,
+    raf: 0,
+    tick: 0,
+    targetTimers: []
+  };
+
+  const els = {
+    overlay: ui.overlay,
+    btn: ui.btn,
+    score: () => $(`#${NS}-score`),
+    time: () => $(`#${NS}-time`),
+    bar: () => $(`#${NS}-bar`),
+    intro: () => $(`#${NS}-intro`),
+    gameover: () => $(`#${NS}-gameover`),
+    final: () => $(`#${NS}-final`),
+    rewardTitle: () => $(`#${NS}-rewardTitle`),
+    rewardDesc: () => $(`#${NS}-rewardDesc`),
+    cells: () => $$(`.${NS}-cell`, ui.overlay)
+  };
+
+  function setOpen(isOpen) {
+    state.open = isOpen;
+    els.overlay.classList.toggle(`${NS}-open`, isOpen);
+    document.documentElement.style.overflow = isOpen ? "hidden" : "";
+  }
+
+  function showIntro() {
+    els.gameover().classList.remove(`${NS}-show`);
+    els.intro().classList.add(`${NS}-show`);
+    els.score().textContent = "0";
+    els.time().textContent = String(GAME_SECONDS);
+    els.bar().style.transform = "scaleX(1)";
+  }
+
+  function hideIntro() {
+    els.intro().classList.remove(`${NS}-show`);
+  }
+
+  function resetBoard() {
+    els.cells().forEach((cell) => {
+      const t = $(`.${NS}-target`, cell);
+      t.classList.remove(`${NS}-hit`);
+      t.style.top = "0px";
+      t.style.opacity = "1";
+      t.style.pointerEvents = "";
+      t.__cooldownUntil = 0;
+      const hue = Math.floor(Math.random() * 360);
+      const bright = (Math.random() * 0.9 + 0.9).toFixed(2);
+      t.style.filter = `hue-rotate(${hue}deg) brightness(${bright})`;
+    });
+  }
+
+  function stopAllTimers() {
+    state.targetTimers.forEach((id) => clearInterval(id));
+    state.targetTimers = [];
+    cancelAnimationFrame(state.raf);
+    state.raf = 0;
+    clearInterval(state.tick);
+    state.tick = 0;
+  }
+
+  function showPlusOne(cell) {
+    const el = document.createElement("div");
+    el.className = `${NS}-plusone`;
+    el.textContent = "+1!";
+    cell.appendChild(el);
+    setTimeout(() => el.remove(), 650);
+  }
+
+  function startTargets() {
+    els.cells().forEach((cell) => {
+      const t = $(`.${NS}-target`, cell);
+      const speed = 900 + Math.random() * 3200;
+      const maxTop = Math.floor(cell.clientHeight * 0.55);
+      t.style.top = `${Math.random() < 0.5 ? 0 : maxTop}px`;
+
+      const id = setInterval(() => {
+        if (!state.running) return;
+        if ((t.__cooldownUntil || 0) > now()) return;
+        if (t.classList.contains(`${NS}-hit`)) return;
+
+        const deeper = Math.random() < 0.12 ? maxTop : Math.floor(maxTop * (0.85 + Math.random() * 0.15));
+        const nextTop = parseInt(t.style.top || "0", 10) < maxTop / 2 ? deeper : 0;
+        t.style.transition = `top ${Math.floor(speed * 0.35)}ms ease-in-out`;
+        t.style.top = `${nextTop}px`;
+      }, speed);
+
+      state.targetTimers.push(id);
+
+      if (!t.__cvBound) {
+        t.__cvBound = true;
+
+        t.addEventListener("click", (e) => {
+          e.preventDefault();
+          if (!state.running) return;
+          if ((t.__cooldownUntil || 0) > now()) return;
+          if (t.classList.contains(`${NS}-hit`)) return;
+
+          t.classList.add(`${NS}-hit`);
+          t.__cooldownUntil = now() + HIT_COOLDOWN_MS;
+
+          state.score += 1;
+          els.score().textContent = String(state.score);
+          showPlusOne(cell);
+
+          t.style.opacity = "0";
+          t.style.pointerEvents = "none";
+          t.style.top = `${maxTop}px`;
+
+          setTimeout(() => {
+            if (!state.running) return;
+
+            t.classList.remove(`${NS}-hit`);
+            const hue = Math.floor(Math.random() * 360);
+            const bright = (Math.random() * 0.9 + 0.9).toFixed(2);
+            t.style.filter = `hue-rotate(${hue}deg) brightness(${bright})`;
+
+            t.style.opacity = "1";
+            t.style.pointerEvents = "";
+            t.style.top = `${Math.random() < 0.5 ? 0 : maxTop}px`;
+          }, RESPAWN_DELAY_MS);
+        });
+      }
+    });
+  }
+
+  function startLoop() {
+    hideIntro();
+    stopAllTimers();
+
+    state.startAt = now();
+    state.endAt = state.startAt + GAME_SECONDS * 1000;
+    state.running = true;
+    state.score = 0;
+
+    els.score().textContent = "0";
+    els.time().textContent = String(GAME_SECONDS);
+    els.bar().style.transform = "scaleX(1)";
+
+    els.gameover().classList.remove(`${NS}-show`);
+    els.final().textContent = "0";
+    els.rewardTitle().textContent = "—";
+    els.rewardDesc().textContent = "—";
+
+    resetBoard();
+    startTargets();
+
+    state.tick = setInterval(() => {
+      const left = clamp(Math.ceil((state.endAt - now()) / 1000), 0, GAME_SECONDS);
+      els.time().textContent = String(left);
+    }, 120);
+
+    const bar = els.bar();
+    function raf() {
+      if (!state.running) return;
+      const p = clamp((state.endAt - now()) / (GAME_SECONDS * 1000), 0, 1);
+      bar.style.transform = `scaleX(${p})`;
+      if (p <= 0) endGame();
+      else state.raf = requestAnimationFrame(raf);
+    }
+    state.raf = requestAnimationFrame(raf);
+  }
+
+  function endGame() {
+    if (!state.running) return;
+    state.running = false;
+    stopAllTimers();
+
+    els.final().textContent = String(state.score);
+    const r = getRewardText(state.score);
+    els.rewardTitle().textContent = r.title;
+    els.rewardDesc().textContent = r.desc;
+    els.gameover().classList.add(`${NS}-show`);
+
+    try {
+      window.dataLayer?.push?.({
+        event: "carnival_game_complete",
+        game: "target_practice",
+        duration_sec: GAME_SECONDS,
+        score: state.score,
+        reward_title: r.title
+      });
+    } catch (_) {}
+  }
+
+  function open() {
+    setOpen(true);
+    state.running = false;
+    showIntro();
+  }
+
+  function close() {
+    stopAllTimers();
+    state.running = false;
+    hideIntro();
+    setOpen(false);
+  }
+
+  ui.btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    open();
+  });
+
+  ui.overlay.addEventListener("click", (e) => {
+    const t = e.target;
+    if (t && t.classList.contains(`${NS}-backdrop`)) close();
+  });
+
+  $(`#${NS}-close`, ui.overlay).addEventListener("click", close);
+  $(`#${NS}-close2`, ui.overlay).addEventListener("click", close);
+  $(`#${NS}-exit`, ui.overlay).addEventListener("click", (e) => {
+    e.preventDefault();
+    close();
+  });
+
+  $(`#${NS}-restart`, ui.overlay).addEventListener("click", () => startLoop());
+  $(`#${NS}-playagain`, ui.overlay).addEventListener("click", () => startLoop());
+
+  $(`#${NS}-introStart`, ui.overlay).addEventListener("click", () => startLoop());
+  $(`#${NS}-introClose`, ui.overlay).addEventListener("click", close);
+
+  document.addEventListener("keydown", (e) => {
+    if (!state.open) return;
+    if (e.key === "Escape") close();
+  });
+
+  window.__CV_CARNIVAL__ = {
+    open,
+    close,
+    restart: () => startLoop(),
+    destroy: () => {
+      close();
+      ui.btn.remove();
+      ui.overlay.remove();
+      const st = document.querySelector(`style[data-${NS}-style]`);
+      if (st) st.remove();
+      delete window.__CV_CARNIVAL__;
+    }
+  };
+
+  ui.btn.animate([{ transform: "translateY(8px)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }], {
+    duration: 240,
+    easing: "ease-out"
+  });
+})();
+</script>
+</body>
+</html>
