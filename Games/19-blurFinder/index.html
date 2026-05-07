@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Blur Finder</title>
 </head>
 
@@ -18,6 +18,8 @@
                 { img: "https://akn-gsstore.a-cdn.akinoncloud.com/cms/2026/01/13/1f2ba66a-9ad1-4f6b-aee6-ef500479dfc3_size600x800.png", dogru: "Icardi", siklar: ["Icardi", "Osimhen", "Barış Alper Yılmaz", "Yunus Akgün"] },
                 { img: "https://akn-gsstore.a-cdn.akinoncloud.com/cms/2026/01/13/c1aebed1-9ebb-4593-8d9f-0d62829fa3cf_size600x800.png", dogru: "Osimhen", siklar: ["Osimhen", "Uğurcan Çakır", "Lucas Torreira", "Hakim Ziyech"] }
             ];
+
+            var INDIRIM_KODU = "GSSTORE20";
 
             var currentSoru = 0;
             var dogruSayisi = 0;
@@ -53,63 +55,78 @@
                 align-items: center;
                 justify-content: center;
                 background: rgba(0,0,0,0.6);
-                padding: 16px;
+                padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
                 box-sizing: border-box;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
             #blur-finder-popup .bf-box {
                 position: relative;
                 z-index: 1;
                 display: flex;
                 flex-wrap: wrap;
-                gap: 24px;
-                max-width: 720px;
+                gap: clamp(16px, 3vw, 24px);
+                max-width: min(720px, 100%);
                 width: 100%;
+                max-height: min(92dvh, 92vh);
+                margin: auto;
                 background: #1a1a1a;
                 border: 3px solid #FDB813;
                 box-shadow: 0 0 0 2px #c8102e;
                 border-radius: 12px;
-                overflow: hidden;
-                padding: 28px;
+                overflow-x: hidden;
+                overflow-y: auto;
+                padding: clamp(18px, 4vw, 28px);
+                box-sizing: border-box;
             }
             #blur-finder-popup .bf-game {
                 display: flex;
                 flex: 1;
                 width: 100%;
+                min-width: 0;
                 flex-wrap: wrap;
-                gap: 24px;
+                gap: clamp(16px, 3vw, 24px);
+                align-items: flex-start;
             }
             #blur-finder-popup .bf-close {
                 position: absolute;
-                right: 15px;
-                top: 15px;
-                width: 30px;
-                height: 30px;
+                right: max(10px, env(safe-area-inset-right, 10px));
+                top: max(10px, env(safe-area-inset-top, 10px));
+                width: 36px;
+                height: 36px;
                 border: none;
                 border-radius: 50%;
                 background: transparent;
                 color: #fff;
-                font-size: 24px;
+                font-size: 26px;
+                line-height: 1;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 z-index: 5;
-                transition: all 0.3s ease;
+                transition: background 0.3s ease, color 0.3s ease;
             }
             #blur-finder-popup .bf-close:hover {
                 background: #c8102e;
             }
             #blur-finder-popup .bf-left {
-                flex: 1;
-                min-width: 240px;
+                flex: 1 1 220px;
+                min-width: 0;
+                max-width: 100%;
                 position: relative;
+                padding-right: 40px;
             }
             #blur-finder-popup .bf-card {
                 background: rgba(255,255,255,0.08);
                 border-radius: 16px;
                 overflow: hidden;
                 border: 1px solid rgba(253,184,19,0.4);
-                aspect-ratio: 1;
+                aspect-ratio: 3 / 4;
+                max-height: min(56dvh, 56vh, 420px);
+                width: 100%;
+                margin-left: auto;
+                margin-right: auto;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -118,37 +135,40 @@
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
+                object-position: center;
                 display: block;
+                transition: filter 0.45s ease;
             }
             #blur-finder-popup .bf-right {
-                flex: 1;
-                min-width: 260px;
+                flex: 1 1 260px;
+                min-width: 0;
                 display: flex;
                 flex-direction: column;
-                gap: 12px;
+                gap: 10px;
             }
             #blur-finder-popup .bf-title {
                 color: #FDB813;
-                font-size: 18px;
+                font-size: clamp(16px, 2.5vw, 18px);
                 font-weight: bold;
-                margin-bottom: 8px;
+                margin-bottom: 6px;
+                line-height: 1.3;
             }
             #blur-finder-popup .bf-hak {
                 color: #888;
-                font-size: 13px;
-                margin-bottom: 12px;
+                font-size: clamp(12px, 2vw, 13px);
+                margin-bottom: 4px;
             }
             #blur-finder-popup .bf-btn {
                 width: 100%;
-                padding: 14px 18px;
+                padding: max(14px, 0.75rem) 16px;
                 border: 2px solid #FDB813;
                 border-radius: 8px;
                 background: #1a1a1a;
                 color: #fff;
-                font-size: 15px;
+                font-size: clamp(14px, 2.2vw, 15px);
                 text-align: left;
                 cursor: pointer;
-                transition: all 0.3s ease;
+                transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
             }
             #blur-finder-popup .bf-btn:hover:not(:disabled) {
                 background: #FDB813;
@@ -156,59 +176,194 @@
             }
             #blur-finder-popup .bf-btn:disabled {
                 cursor: default;
-                opacity: 0.6;
+                opacity: 0.65;
             }
             #blur-finder-popup .bf-btn.correct {
                 background: #00c853;
                 border-color: #00c853;
+                color: #fff;
             }
             #blur-finder-popup .bf-btn.wrong {
                 background: #ff5252;
                 border-color: #ff5252;
+                color: #fff;
             }
             #blur-finder-popup .bf-result {
                 display: none;
                 text-align: center;
-                padding: 32px 24px;
+                padding: clamp(20px, 4vw, 32px) clamp(16px, 3vw, 24px);
                 width: 100%;
+                box-sizing: border-box;
             }
             #blur-finder-popup .bf-result-title {
                 color: #FDB813;
-                font-size: 24px;
+                font-size: clamp(20px, 4vw, 24px);
                 font-weight: bold;
                 margin-bottom: 12px;
             }
             #blur-finder-popup .bf-result-text {
                 color: #fff;
-                font-size: 16px;
-                margin-bottom: 20px;
+                font-size: clamp(14px, 2.5vw, 16px);
+                margin-bottom: 16px;
+                line-height: 1.45;
+            }
+            #blur-finder-popup .bf-result-win,
+            #blur-finder-popup .bf-result-lose {
+                width: 100%;
+                max-width: 320px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            #blur-finder-popup .bf-result-win {
+                display: none;
+            }
+            #blur-finder-popup .bf-result-lose {
+                display: none;
             }
             #blur-finder-popup .bf-result-code {
-                display: inline-block;
+                display: block;
                 width: 100%;
                 max-width: 280px;
-                padding: 16px 24px;
+                margin-left: auto;
+                margin-right: auto;
+                padding: 14px 20px;
                 background: #FDB813;
                 color: #1a1a1a;
-                border: 2px solid #FDB813;
+                border: 2px dashed #c8102e;
                 border-radius: 8px;
-                font-size: 18px;
+                font-size: clamp(16px, 3vw, 18px);
                 font-weight: bold;
                 text-align: center;
-                margin-top: 8px;
-                transition: all 0.3s ease;
+                margin-top: 0;
+                margin-bottom: 12px;
+                box-sizing: border-box;
+                transition: border-color 0.3s ease;
                 cursor: default;
             }
-            #blur-finder-popup .bf-result-code:hover {
-                background: #c8102e;
-                border-color: #c8102e;
+            #blur-finder-popup .bf-btn-copy {
+                width: 100%;
+                max-width: 280px;
+                margin-left: auto;
+                margin-right: auto;
+                display: block;
+                padding: 14px 20px;
+                border: none;
+                border-radius: 8px;
+                background: #f39c12;
                 color: #fff;
+                font-size: clamp(15px, 2.5vw, 16px);
+                font-weight: bold;
+                cursor: pointer;
+                transition: background 0.3s ease;
+                box-sizing: border-box;
+            }
+            #blur-finder-popup .bf-btn-copy:hover {
+                background: #e67e22;
+            }
+            #blur-finder-popup .bf-btn-copy.bf-copied {
+                background: #27ae60;
+            }
+            #blur-finder-popup .bf-btn-again {
+                width: 100%;
+                max-width: 280px;
+                margin-left: auto;
+                margin-right: auto;
+                display: block;
+                padding: 14px 22px;
+                border: 2px solid #7c3aed;
+                border-radius: 999px;
+                background: #7c3aed;
+                color: #fff;
+                font-size: clamp(15px, 2.5vw, 16px);
+                font-weight: bold;
+                cursor: pointer;
+                margin-top: 12px;
+                transition: background 0.3s ease, border-color 0.3s ease;
+                box-sizing: border-box;
+            }
+            #blur-finder-popup .bf-btn-again:hover {
+                background: #6d28d9;
+                border-color: #6d28d9;
+            }
+            @media (max-width: 900px) {
+                #blur-finder-popup .bf-box {
+                    flex-direction: column;
+                    max-height: min(96dvh, 96vh);
+                }
+                #blur-finder-popup .bf-game {
+                    flex-direction: column;
+                }
+                #blur-finder-popup .bf-left {
+                    flex-basis: auto;
+                    width: 100%;
+                    padding-right: 36px;
+                }
+                #blur-finder-popup .bf-right {
+                    flex-basis: auto;
+                    width: 100%;
+                }
+                #blur-finder-popup .bf-card {
+                    max-width: min(340px, 100%);
+                    max-height: min(50dvh, 50vh, 380px);
+                }
             }
             @media (max-width: 600px) {
-                #blur-finder-popup .bf-box { flex-direction: column; padding: 25px 20px; }
+                #blur-finder-popup .bf-box {
+                    padding: 20px 16px;
+                    border-radius: 10px;
+                }
                 #blur-finder-popup .bf-left,
                 #blur-finder-popup .bf-right { min-width: 100%; }
-                #blur-finder-popup .bf-result-title { font-size: 20px; }
+                #blur-finder-popup .bf-title { margin-top: 4px; }
+            }
+            @media (max-height: 520px) and (orientation: landscape) {
+                #blur-finder-popup .bf-box {
+                    max-height: min(98dvh, 98vh);
+                    padding: 12px 14px;
+                    gap: 12px;
+                }
+                #blur-finder-popup .bf-game {
+                    flex-direction: row;
+                    flex-wrap: nowrap;
+                    align-items: stretch;
+                }
+                #blur-finder-popup .bf-left {
+                    flex: 0 0 38%;
+                    max-width: 38%;
+                    padding-right: 32px;
+                }
+                #blur-finder-popup .bf-card {
+                    max-height: min(72dvh, 72vh);
+                    aspect-ratio: 3 / 4;
+                    max-width: 100%;
+                }
+                #blur-finder-popup .bf-right {
+                    flex: 1;
+                    min-width: 0;
+                    gap: 8px;
+                }
+                #blur-finder-popup .bf-btn {
+                    padding: 10px 12px;
+                    font-size: 13px;
+                }
+                #blur-finder-popup .bf-close {
+                    width: 32px;
+                    height: 32px;
+                    font-size: 22px;
+                }
+            }
+            @media (pointer: coarse) {
+                #blur-finder-popup .bf-close {
+                    min-width: 44px;
+                    min-height: 44px;
+                }
+                #blur-finder-popup .bf-btn {
+                    min-height: 44px;
+                }
+                #blur-finder-popup .bf-btn-copy,
+                #blur-finder-popup .bf-btn-again {
+                    min-height: 48px;
+                }
             }
         `;
                 (document.head || document.documentElement).appendChild(s);
@@ -240,7 +395,13 @@
                     '<div class="bf-result">' +
                     '<div class="bf-result-title" id="bf-result-title"></div>' +
                     '<div class="bf-result-text" id="bf-result-text"></div>' +
+                    '<div class="bf-result-win" id="bf-result-win">' +
                     '<div class="bf-result-code" id="bf-result-code"></div>' +
+                    '<button type="button" class="bf-btn-copy" id="bf-btn-copy">Kodu Kopyala</button>' +
+                    '</div>' +
+                    '<div class="bf-result-lose" id="bf-result-lose">' +
+                    '<button type="button" class="bf-btn-again" id="bf-btn-again">Tekrar Oyna</button>' +
+                    '</div>' +
                     '</div>' +
                     '</div>';
                 box.querySelector(".bf-close").onclick = function () { box.style.display = "none"; };
@@ -256,24 +417,84 @@
 
             function guncelleBlur(px) {
                 var img = getEl("bf-img");
-                if (img) img.style.filter = "blur(" + (px || 0) + "px)";
+                if (!img) return;
+                var n = typeof px === "number" ? px : parseFloat(px);
+                if (!n || n <= 0) img.style.filter = "none";
+                else img.style.filter = "blur(" + n + "px)";
+            }
+
+            function kopyalaKodu() {
+                var k = INDIRIM_KODU;
+                var btn = getEl("bf-btn-copy");
+                var bitti = function () {
+                    if (btn) {
+                        btn.textContent = "Kopyalandı!";
+                        btn.classList.add("bf-copied");
+                    }
+                };
+                var yedek = function () {
+                    var t = document.createElement("input");
+                    t.value = k;
+                    document.body.appendChild(t);
+                    t.select();
+                    try { document.execCommand("copy"); } catch (e) { }
+                    document.body.removeChild(t);
+                    bitti();
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(k).then(bitti).catch(yedek);
+                } else yedek();
+            }
+
+            function tekrarOyna() {
+                if (!popupEl || !gameEl || !resultEl) return;
+                currentSoru = 0;
+                dogruSayisi = 0;
+                yanlisHak = 3;
+                blurPx = 24;
+                resultEl.style.display = "none";
+                gameEl.style.display = "flex";
+                var winWrap = popupEl.querySelector("#bf-result-win");
+                var loseWrap = popupEl.querySelector("#bf-result-lose");
+                if (winWrap) winWrap.style.display = "none";
+                if (loseWrap) loseWrap.style.display = "none";
+                var cb = getEl("bf-btn-copy");
+                if (cb) {
+                    cb.textContent = "Kodu Kopyala";
+                    cb.classList.remove("bf-copied");
+                }
+                soruGoster();
             }
 
             function sonucGoster(kazandi) {
-                if (!gameEl || !resultEl) return;
+                if (!gameEl || !resultEl || !popupEl) return;
                 gameEl.style.display = "none";
                 resultEl.style.display = "block";
                 var title = getEl("bf-result-title");
                 var text = getEl("bf-result-text");
                 var code = getEl("bf-result-code");
+                var winWrap = popupEl.querySelector("#bf-result-win");
+                var loseWrap = popupEl.querySelector("#bf-result-lose");
+                var copyBtn = getEl("bf-btn-copy");
                 if (kazandi) {
                     if (title) title.textContent = "Tebrikler!";
-                    if (text) text.textContent = "%20 indirim kazandınız.";
-                    if (code) { code.style.display = "inline-block"; code.textContent = "%20 İNDİRİM"; }
+                    if (text) text.textContent = "%20 indirim kazandınız. Kodu sepette kullanabilirsiniz.";
+                    if (winWrap) winWrap.style.display = "block";
+                    if (loseWrap) loseWrap.style.display = "none";
+                    if (code) {
+                        code.style.display = "block";
+                        code.textContent = INDIRIM_KODU;
+                    }
+                    if (copyBtn) {
+                        copyBtn.textContent = "Kodu Kopyala";
+                        copyBtn.classList.remove("bf-copied");
+                    }
                 } else {
                     if (title) title.textContent = "Bu sefer olmadı";
                     if (text) text.textContent = "3 soruyu da doğru bilmeniz gerekiyordu.";
-                    if (code) code.style.display = "none";
+                    if (winWrap) winWrap.style.display = "none";
+                    if (loseWrap) loseWrap.style.display = "block";
+                    if (code) code.textContent = "";
                 }
             }
 
@@ -281,7 +502,10 @@
                 var u = URUNLER[currentSoru];
                 var img = getEl("bf-img");
                 var hakEl = getEl("bf-hak");
-                if (img) { img.src = u.img; img.style.filter = "blur(" + blurPx + "px)"; }
+                if (img) {
+                    img.src = u.img;
+                    guncelleBlur(blurPx);
+                }
                 if (hakEl) hakEl.textContent = "Kalan hak: " + yanlisHak;
                 var btns = popupEl.querySelectorAll(".bf-btn");
                 var siklar = shuffle(u.siklar);
@@ -300,6 +524,7 @@
                 if (cevap === u.dogru) {
                     var btn = popupEl.querySelector('[data-cevap="' + u.dogru + '"]');
                     if (btn) btn.classList.add("correct");
+                    guncelleBlur(0);
                     dogruSayisi++;
                     if (dogruSayisi >= 3) {
                         setTimeout(function () { sonucGoster(true); }, 600);
@@ -345,6 +570,22 @@
                     rightCol.onclick = function (e) {
                         var btn = e.target && e.target.classList && e.target.classList.contains("bf-btn") ? e.target : null;
                         if (btn && !btn.disabled) tikla(btn.dataset.cevap);
+                    };
+                }
+                var copyBtn = popupEl.querySelector("#bf-btn-copy");
+                if (copyBtn && !copyBtn.dataset.bfBound) {
+                    copyBtn.dataset.bfBound = "1";
+                    copyBtn.onclick = function (e) {
+                        e.stopPropagation();
+                        kopyalaKodu();
+                    };
+                }
+                var againBtn = popupEl.querySelector("#bf-btn-again");
+                if (againBtn && !againBtn.dataset.bfBound) {
+                    againBtn.dataset.bfBound = "1";
+                    againBtn.onclick = function (e) {
+                        e.stopPropagation();
+                        tekrarOyna();
                     };
                 }
                 popupEl.style.display = "flex";

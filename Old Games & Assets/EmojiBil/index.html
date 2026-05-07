@@ -16,7 +16,8 @@
     var config = {
         desktopWidth: "480px",
         mobileWidth: "94%",
-        confettiScript: "https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.min.js"
+        confettiScript: "https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.min.js",
+        rewardSubtitle: "Aşağıdaki indirim kodunu sepette kullanın."
     };
 
     var SARKILAR = [
@@ -44,12 +45,62 @@
 
     var currentIndex = 0;
     var won = false;
+    var rewardCodeValue = "";
 
     function normalize(str) {
         if (!str || typeof str !== "string") return "";
         var s = str.toLowerCase().trim();
         s = s.replace(/ı/g, "i").replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ö/g, "o").replace(/ş/g, "s").replace(/ç/g, "c");
         return s.replace(/\s+/g, " ");
+    }
+
+    function buildRewardCode() {
+        var part = "";
+        try {
+            if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+                var a = new Uint8Array(4);
+                crypto.getRandomValues(a);
+                part = Array.prototype.slice.call(a).map(function (b) {
+                    return (b % 36).toString(36);
+                }).join("")
+                    .toUpperCase();
+            }
+        } catch (e) {}
+        if (!part) part = Math.random().toString(36).substring(2, 8).toUpperCase();
+        return "VL-EMOJI-" + part + "-P20";
+    }
+
+    function copyTextToClipboard(text, onDone) {
+        if (!text) {
+            if (onDone) onDone(false);
+            return;
+        }
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+            navigator.clipboard.writeText(text).then(function () {
+                if (onDone) onDone(true);
+            }).catch(function () {
+                fallbackCopy(text, onDone);
+            });
+            return;
+        }
+        fallbackCopy(text, onDone);
+    }
+
+    function fallbackCopy(text, onDone) {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+            var ok = document.execCommand("copy");
+            if (onDone) onDone(ok);
+        } catch (e) {
+            if (onDone) onDone(false);
+        }
+        document.body.removeChild(ta);
     }
 
     function loadConfettiScript(cb) {
@@ -78,22 +129,28 @@
         if (!popup) return;
         var game = popup.querySelector(".vl-emoji-sarki-game");
         var result = popup.querySelector(".vl-emoji-sarki-result");
+        var giftBlock = popup.querySelector(".vl-emoji-gift-block");
         if (!game || !result) return;
         game.style.display = "none";
         result.style.display = "block";
         result.className = "vl-emoji-sarki-result " + (isWin ? "vl-emoji-won" : "vl-emoji-lost");
         var title = result.querySelector(".vl-emoji-result-title");
         var text = result.querySelector(".vl-emoji-result-text");
-        var code = result.querySelector(".vl-emoji-result-code");
+        var codeEl = result.querySelector("#vl-emoji-gift-code-text");
+        var hintEl = result.querySelector("#vl-emoji-copy-hint");
+        if (hintEl) hintEl.textContent = "";
         if (isWin) {
-            if (title) title.textContent = "Tebrikler! Doğru bildiniz.";
-            if (text) text.textContent = "Seçili ürünlerde %20 indirim kazandınız.";
-            if (code) { code.style.display = "inline-block"; code.textContent = "%20 İNDİRİM"; }
+            rewardCodeValue = buildRewardCode();
+            if (title) title.textContent = "Tebrikler! Hediyenizi kazandınız.";
+            if (text) text.textContent = config.rewardSubtitle + " Seçili ürünlerde ek %20 indirim için kodunuz aşağıda.";
+            if (codeEl) codeEl.textContent = rewardCodeValue;
+            if (giftBlock) giftBlock.style.display = "flex";
             loadConfettiScript(fireConfetti);
         } else {
             if (title) title.textContent = "Bu sefer olmadı";
             if (text) text.textContent = "Doğru şarkı: " + (SARKILAR[currentIndex].cevap) + " – " + SARKILAR[currentIndex].sanatci;
-            if (code) code.style.display = "none";
+            if (giftBlock) giftBlock.style.display = "none";
+            rewardCodeValue = "";
         }
     }
 
@@ -102,7 +159,8 @@
         if (!input) return;
         var userAnswer = normalize(input.value);
         var correct = normalize(SARKILAR[currentIndex].cevap);
-        if (userAnswer === correct || correct.indexOf(userAnswer) === 0 && userAnswer.length >= 3) {
+        var partialOk = correct.indexOf(userAnswer) === 0 && userAnswer.length >= 3;
+        if (userAnswer === correct || partialOk) {
             won = true;
             showResult(true);
         } else {
@@ -121,13 +179,14 @@
 
         currentIndex = Math.floor(Math.random() * SARKILAR.length);
         won = false;
+        rewardCodeValue = "";
 
         var style = document.createElement("style");
         style.id = "vl-emoji-sarki-style";
         style.textContent = [
-            "#vl-emoji-sarki-popup{position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);animation:vl-emoji-fadeIn .3s ease;padding:12px;box-sizing:border-box;}",
-            "#vl-emoji-sarki-popup .vl-emoji-sarki-box{position:relative;width:" + config.desktopWidth + ";max-width:" + config.mobileWidth + ";background:linear-gradient(165deg,#1a0a2e 0%,#2d1b4e 40%,#16213e 100%);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.45);overflow:hidden;padding:32px;}",
-            "#vl-emoji-sarki-popup .vl-emoji-close{position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;}",
+            "#vl-emoji-sarki-popup{position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);animation:vl-emoji-fadeIn .3s ease;padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));box-sizing:border-box;overflow-y:auto;-webkit-overflow-scrolling:touch;}",
+            "#vl-emoji-sarki-popup .vl-emoji-sarki-box{position:relative;width:" + config.desktopWidth + ";max-width:" + config.mobileWidth + ";margin:0 auto;background:linear-gradient(165deg,#1a0a2e 0%,#2d1b4e 40%,#16213e 100%);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.45);overflow:hidden;padding:32px;box-sizing:border-box;}",
+            "#vl-emoji-sarki-popup .vl-emoji-close{position:absolute;top:max(14px,env(safe-area-inset-top,0px));right:max(14px,env(safe-area-inset-right,0px));width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;}",
             "#vl-emoji-sarki-popup .vl-emoji-close:hover{background:rgba(255,255,255,0.25);}",
             "#vl-emoji-sarki-popup .vl-emoji-title{text-align:center;color:#fff;font-size:22px;font-weight:700;margin-bottom:8px;}",
             "#vl-emoji-sarki-popup .vl-emoji-sub{text-align:center;color:rgba(255,255,255,0.75);font-size:14px;margin-bottom:24px;}",
@@ -142,10 +201,16 @@
             "#vl-emoji-sarki-popup .vl-emoji-sarki-result{display:none;text-align:center;padding:20px 0;}",
             "#vl-emoji-sarki-popup .vl-emoji-result-title{color:#fff;font-size:24px;font-weight:800;margin-bottom:12px;}",
             "#vl-emoji-sarki-popup .vl-emoji-result-text{color:rgba(255,255,255,0.9);font-size:16px;line-height:1.5;}",
-            "#vl-emoji-sarki-popup .vl-emoji-result-code{margin-top:16px;padding:14px 24px;background:linear-gradient(135deg,#00e676,#00c853);border-radius:10px;font-weight:800;color:#fff;font-size:18px;display:none;}",
+            "#vl-emoji-sarki-popup .vl-emoji-gift-block{margin-top:20px;display:none;flex-direction:column;align-items:stretch;gap:12px;width:100%;}",
+            "#vl-emoji-sarki-popup .vl-emoji-gift-label{color:rgba(255,255,255,0.88);font-size:14px;font-weight:600;margin:0;text-align:center;}",
+            "#vl-emoji-sarki-popup .vl-emoji-code-row{display:flex;align-items:stretch;gap:10px;width:100%;flex-wrap:wrap;justify-content:center;}",
+            "#vl-emoji-sarki-popup #vl-emoji-gift-code-text{flex:1;min-width:140px;padding:14px 16px;background:rgba(255,255,255,0.1);border:2px dashed rgba(0,230,118,0.65);border-radius:10px;font-weight:800;color:#fff;font-size:clamp(13px,3.5vw,18px);letter-spacing:0.5px;text-align:center;word-break:break-all;box-sizing:border-box;}",
+            "#vl-emoji-sarki-popup .vl-emoji-copy-btn{padding:14px 20px;border:none;border-radius:10px;background:linear-gradient(135deg,#00e676,#00c853);color:#fff;font-weight:700;font-size:15px;cursor:pointer;flex-shrink:0;align-self:center;}",
+            "#vl-emoji-sarki-popup .vl-emoji-copy-btn:hover{opacity:0.92;}",
+            "#vl-emoji-sarki-popup .vl-emoji-copy-hint{min-height:1.2em;font-size:13px;color:#69f0ae;margin:0;text-align:center;}",
             "#vl-emoji-sarki-popup .vl-emoji-sarki-result.vl-emoji-lost .vl-emoji-result-title{color:#ff8a80;}",
             "@keyframes vl-emoji-fadeIn{from{opacity:0;}to{opacity:1;}}",
-            "@media(max-width:520px){#vl-emoji-sarki-popup .vl-emoji-chars{font-size:42px;letter-spacing:4px;}}"
+            "@media(max-width:520px){#vl-emoji-sarki-popup .vl-emoji-chars{font-size:42px;letter-spacing:4px;}#vl-emoji-sarki-popup .vl-emoji-sarki-box{padding:24px;}#vl-emoji-sarki-popup .vl-emoji-code-row{flex-direction:column;}#vl-emoji-sarki-popup .vl-emoji-copy-btn{width:100%;}}"
         ].join("");
 
         (document.head || document.documentElement).appendChild(style);
@@ -169,7 +234,14 @@
             '<div class="vl-emoji-sarki-result">' +
             '<div class="vl-emoji-result-title"></div>' +
             '<div class="vl-emoji-result-text"></div>' +
-            '<div class="vl-emoji-result-code"></div>' +
+            '<div class="vl-emoji-gift-block">' +
+            '<p class="vl-emoji-gift-label">İndirim kodunuz</p>' +
+            '<div class="vl-emoji-code-row">' +
+            '<div id="vl-emoji-gift-code-text"></div>' +
+            '<button type="button" class="vl-emoji-copy-btn" id="vl-emoji-copy-btn">Kopyala</button>' +
+            '</div>' +
+            '<p class="vl-emoji-copy-hint" id="vl-emoji-copy-hint"></p>' +
+            '</div>' +
             '</div>' +
             '</div>';
 
@@ -179,14 +251,37 @@
         box.querySelector(".vl-emoji-sarki-box").onclick = function (e) { e.stopPropagation(); };
         box.onclick = function () { box.style.display = "none"; };
 
+        var vlSubmitOnce = false;
+        var submitBtn = box.querySelector("#vl-emoji-submit");
+        if (submitBtn) {
+            submitBtn.onclick = function () {
+                if (!vlSubmitOnce) {
+                    vlSubmitOnce = true;
+                    <%VLSendClickFunc%>
+                }
+                checkAnswer();
+            };
+        }
+
+        var copyBtn = box.querySelector("#vl-emoji-copy-btn");
+        if (copyBtn) {
+            copyBtn.onclick = function () {
+                var codeTxt = rewardCodeValue || (document.getElementById("vl-emoji-gift-code-text") && document.getElementById("vl-emoji-gift-code-text").textContent) || "";
+                var hintEl = document.getElementById("vl-emoji-copy-hint");
+                copyTextToClipboard(codeTxt.trim(), function (ok) {
+                    if (hintEl) hintEl.textContent = ok ? "Kod panoya kopyalandı!" : "Kopyalanamadı; kodu seçip elle kopyalayın.";
+                });
+            };
+        }
+
         var inputEl = box.querySelector("#vl-emoji-sarki-input");
-        box.querySelector("#vl-emoji-submit").onclick = checkAnswer;
         if (inputEl) {
-            inputEl.onkeydown = function (e) { if (e.key === "Enter") checkAnswer(); };
+            inputEl.onkeydown = function (e) { if (e.key === "Enter") submitBtn && submitBtn.click(); };
             setTimeout(function () { inputEl.focus(); }, 300);
         }
 
         body.appendChild(box);
+        <%VLSendImpressionFunc%>
     }
 
     function run() {

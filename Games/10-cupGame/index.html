@@ -3,8 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cup Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Bardak Oyunu</title>
 </head>
 
 <body>
@@ -17,7 +17,7 @@
       shuffleTotalMs: 15000,
       shuffleSpeedMs: 950,
       winRate: null,
-      couponText: '50% OFF',
+      couponText: '%50 İNDİRİM',
       ctaUrl: '#',
       ctaText: 'Alışverişe Başla',
       copyCodeText: 'Kodu Kopyala',
@@ -33,11 +33,11 @@
         ctaText: '#ffffff',
         titleColor: '#333333'
       },
-      font: "'Segoe UI', system-ui, sans-serif",
+      font: '"Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif',
       copy: {
-        title: 'Find the item',
-        subtitle: 'and get a chance to win the prize',
-        startBtn: "LET'S PLAY",
+        title: 'Hediyeyi bulun',
+        subtitle: 'Doğru bardağın altında; ödül kazanma şansını yakalayın.',
+        startBtn: 'BAŞLA',
         tryAgain: 'Tekrar Dene',
         winMessage: 'Tebrikler! %50 indirim kazandınız.',
         loseMessage: 'Bu sefer olmadı.'
@@ -101,6 +101,14 @@
   
     function _px(n) { return n + 'px'; }
   
+    function _couponLines() {
+      var raw = String(CONFIG.couponText || '').trim();
+      if (!raw) return { big: '%50', small: 'İNDİRİM' };
+      var i = raw.indexOf(' ');
+      if (i === -1) return { big: raw, small: 'İNDİRİM' };
+      return { big: raw.slice(0, i), small: raw.slice(i + 1).trim() || 'İNDİRİM' };
+    }
+  
     function _createEl(tag, attrs, children) {
       var el = document.createElement(tag);
       if (attrs) {
@@ -127,29 +135,29 @@
         '@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");',
         SCOPE + '{ all:initial; font-family:' + CONFIG.font + '; }',
         SCOPE + ' *{ box-sizing:border-box; }',
-        '#cup-game-overlay{ position:fixed; top:0; left:0; right:0; bottom:0; z-index:2147483646; display:flex; align-items:center; justify-content:center; background:' + t.bg + '; padding:0; overflow:hidden; animation:cgf 0.4s ease-out; }',
+        '#cup-game-overlay{ position:fixed; top:0; left:0; right:0; bottom:0; z-index:2147483646; display:flex; align-items:center; justify-content:center; background:' + t.bg + '; padding:max(0px,env(safe-area-inset-top)) max(0px,env(safe-area-inset-right)) max(0px,env(safe-area-inset-bottom)) max(0px,env(safe-area-inset-left)); overflow:hidden; animation:cgf 0.4s ease-out; min-height:100vh; min-height:100dvh; box-sizing:border-box; }',
         '@keyframes cgf{ from{ opacity:0; } to{ opacity:1; } }',
-        SCOPE + ' .panel{ position:relative; width:100%; height:100%; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 40px 40px; overflow-x:hidden; overflow-y:auto; }',
-        SCOPE + ' .panel-inner{ width:100%; max-width:980px; display:flex; flex-direction:row; align-items:flex-start; justify-content:center; gap:56px; flex-wrap:wrap; }',
-        SCOPE + ' .left-col{ flex:0 1 auto; min-width:200px; max-width:340px; display:flex; flex-direction:column; align-items:flex-start; }',
-        SCOPE + ' .right-col{ flex:1 1 320px; min-width:300px; max-width:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-left:20px; }',
+        SCOPE + ' .panel{ position:relative; width:100%; height:100%; min-height:100vh; min-height:100dvh; max-height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:clamp(14px,3.5vw,32px) clamp(14px,4vw,40px) clamp(18px,4vw,40px); overflow-x:hidden; overflow-y:auto; -webkit-overflow-scrolling:touch; box-sizing:border-box; }',
+        SCOPE + ' .panel-inner{ width:100%; max-width:980px; margin:0 auto; display:flex; flex-direction:row; align-items:center; justify-content:center; gap:clamp(28px,5vw,56px); flex-wrap:wrap; }',
+        SCOPE + ' .left-col{ flex:0 1 auto; min-width:0; max-width:380px; width:100%; display:flex; flex-direction:column; align-items:center; text-align:center; }',
+        SCOPE + ' .right-col{ flex:1 1 280px; min-width:0; max-width:100%; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding-left:0; }',
         SCOPE + ' .deco{ position:fixed; pointer-events:none; }',
         SCOPE + ' .deco-dot{ width:10px; height:10px; border-radius:50%; background:rgba(0,0,0,0.06); }',
         SCOPE + ' .deco-circle{ border:2px solid rgba(0,0,0,0.05); border-radius:50%; }',
-        SCOPE + ' .title{ font-size:min(36px,7.5vw); font-weight:800; color:' + t.titleColor + '; margin:0 0 12px; text-align:left; line-height:1.15; }',
-        SCOPE + ' .subtitle{ font-size:min(17px,3.8vw); color:' + t.titleColor + '; opacity:0.88; margin:0 0 28px; text-align:left; line-height:1.4; }',
-        SCOPE + ' .coupon-preview{ padding:20px 24px; background:' + t.couponBg + '; border:2px dashed ' + t.couponBorder + '; border-radius:8px; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,0.1); transform:rotate(-3deg); min-width:120px; margin-bottom:8px; }',
+        SCOPE + ' .title{ font-size:min(36px,7.5vw); font-weight:800; color:' + t.titleColor + '; margin:0 0 12px; text-align:center; line-height:1.2; max-width:22em; margin-left:auto; margin-right:auto; }',
+        SCOPE + ' .subtitle{ font-size:min(17px,3.8vw); color:' + t.titleColor + '; opacity:0.88; margin:0 0 clamp(18px,3vh,28px); text-align:center; line-height:1.45; max-width:26em; margin-left:auto; margin-right:auto; }',
+        SCOPE + ' .coupon-preview{ padding:clamp(14px,3vw,20px) clamp(16px,3.5vw,24px); background:' + t.couponBg + '; border:2px dashed ' + t.couponBorder + '; border-radius:8px; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,0.1); transform:rotate(-2deg); min-width:min(120px,40vw); margin:0 auto 8px; }',
         SCOPE + ' .coupon-preview .big{ font-size:min(30px,6vw); font-weight:800; color:' + t.titleColor + '; line-height:1.1; }',
         SCOPE + ' .coupon-preview .small{ font-size:min(15px,3vw); color:' + t.couponText + '; margin-top:6px; }',
         SCOPE + ' .countdown{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:min(80px,18vw); font-weight:800; color:' + t.cupColor + '; z-index:5; opacity:0; pointer-events:none; text-shadow:0 4px 12px rgba(0,0,0,0.15); }',
         SCOPE + ' .countdown.show{ animation:cgcount 0.9s ease-out forwards; }',
         '@keyframes cgcount{ 0%{ opacity:0; transform:translate(-50%,-50%) scale(0.5); } 25%{ opacity:1; transform:translate(-50%,-50%) scale(1.15); } 70%{ opacity:1; transform:translate(-50%,-50%) scale(1); } 100%{ opacity:0; transform:translate(-50%,-50%) scale(1); } }',
-        SCOPE + ' .cups-row{ position:relative; width:100%; height:min(220px,40vw); max-height:260px; display:flex; justify-content:center; align-items:flex-end; padding:0 20px; }',
+        SCOPE + ' .cups-row{ position:relative; width:100%; max-width:min(100%,420px); margin:0 auto; height:min(220px,56vw); max-height:260px; display:flex; justify-content:center; align-items:flex-end; padding:0 20px; box-sizing:border-box; }',
         SCOPE + ' .cups-row.hidden{ opacity:0; pointer-events:none; transform:translateY(20px); transition:opacity 0.5s ease, transform 0.5s ease; }',
         SCOPE + ' .cups-row.visible{ opacity:1; transform:translateY(0); }',
-        SCOPE + ' .cup-wrap{ position:absolute; bottom:0; width:calc((100% - 40px - 24px) / 3); max-width:150px; min-width:64px; height:100%; max-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1); will-change:transform; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; overflow:hidden; }',
+        SCOPE + ' .cup-wrap{ position:absolute; bottom:0; width:calc((100% - 40px - 24px) / 3); max-width:150px; min-width:64px; height:100%; max-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; transition:left 0.4s cubic-bezier(0.34,1.56,0.64,1), transform 0.4s cubic-bezier(0.34,1.56,0.64,1); will-change:transform,left; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; overflow:hidden; }',
         SCOPE + ' .cup-wrap.pickable{ cursor:pointer; }',
-        SCOPE + ' .cup-wrap.pickable:hover{ transform:translateY(-6px) scale(1.03); }',
+        SCOPE + ' .cup-wrap.pickable:hover{ transform:translateX(-50%) translateY(-6px) scale(1.03); }',
         SCOPE + ' .cup-wrap.pickable:hover .cup-body{ box-shadow:0 14px 30px rgba(0,0,0,0.28); }',
         SCOPE + ' .cup-wrap.no-pointer{ pointer-events:none; }',
         SCOPE + ' .cup-wrap.revealed .cup-body{ transform:translateY(-55px) scale(1.08) rotateX(6deg); transition:transform 0.55s cubic-bezier(0.34,1.56,0.64,1); }',
@@ -178,7 +186,7 @@
         SCOPE + ' .result{ margin-top:28px; padding:24px; border-radius:16px; text-align:center; display:none; width:100%; max-width:400px; }',
         SCOPE + ' .result.win{ display:block; }',
         SCOPE + ' .result.lose{ display:block; background:rgba(244,67,54,0.15); }',
-        SCOPE + ' .close-btn{ position:fixed; top:20px; right:20px; width:48px; height:48px; border:none; background:rgba(0,0,0,0.12); border-radius:50%; cursor:pointer; font-size:24px; line-height:1; color:#333; display:flex; align-items:center; justify-content:center; transition:background 0.2s, transform 0.2s; z-index:10; }',
+        SCOPE + ' .close-btn{ position:fixed; top:max(16px,env(safe-area-inset-top)); right:max(16px,env(safe-area-inset-right)); width:48px; height:48px; border:none; background:rgba(0,0,0,0.12); border-radius:50%; cursor:pointer; font-size:24px; line-height:1; color:#333; display:flex; align-items:center; justify-content:center; transition:background 0.2s, transform 0.2s; z-index:10; }',
         SCOPE + ' .close-btn:hover{ background:rgba(0,0,0,0.25); transform:scale(1.06); }',
         SCOPE + ' .close-btn:focus{ outline:2px solid ' + t.couponText + '; outline-offset:2px; }',
         POPUP_SCOPE + '.popup-overlay{ position:fixed; top:0; left:0; right:0; bottom:0; z-index:200; background:rgba(0,0,0,0.5); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; padding:24px; animation:cgf 0.3s ease-out; }',
@@ -189,7 +197,7 @@
         POPUP_SCOPE + '.popup-desc{ font-size:1.05rem; color:#4a5c5c; margin:0 0 28px; line-height:1.6; font-weight:500; max-width:320px; margin-left:auto; margin-right:auto; }',
         POPUP_SCOPE + '.popup-coupon{ margin:0 auto 28px; padding:24px 40px; background:linear-gradient(135deg,' + t.couponText + ' 0%,#245555 100%); border:none; border-radius:20px; display:inline-block; box-shadow:0 16px 40px rgba(45,106,106,0.35), 0 0 0 3px rgba(255,255,255,0.4) inset; }',
         POPUP_SCOPE + '.popup-coupon .big{ font-size:2.25rem; font-weight:800; color:#fff; letter-spacing:-0.02em; line-height:1; text-shadow:0 2px 8px rgba(0,0,0,0.15); }',
-        POPUP_SCOPE + '.popup-coupon .small{ font-size:1rem; color:rgba(255,255,255,0.95); margin-top:4px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; }',
+        POPUP_SCOPE + '.popup-coupon .small{ font-size:1rem; color:rgba(255,255,255,0.95); margin-top:4px; font-weight:700; letter-spacing:0.04em; }',
         POPUP_SCOPE + '.popup-code-wrap{ margin-bottom:32px; text-align:left; }',
         POPUP_SCOPE + '.popup-code-label{ display:block; font-size:0.7rem; font-weight:700; color:#6b7c7c; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.15em; }',
         POPUP_SCOPE + '.popup-code-box{ display:flex; align-items:center; gap:14px; background:#0d3d3d; border:none; border-radius:14px; padding:16px 20px; box-shadow:0 8px 24px rgba(13,61,61,0.25); }',
@@ -201,8 +209,8 @@
         POPUP_SCOPE + '.btn-cta-popup{ display:block; width:100%; padding:22px 32px; font-size:1.1rem; font-weight:700; text-align:center; text-decoration:none; border-radius:16px; background:linear-gradient(180deg,#1a1a1a 0%,#0d0d0d 100%); color:#fff; box-shadow:0 10px 30px rgba(0,0,0,0.3); transition:all 0.25s ease; }',
         POPUP_SCOPE + '.btn-cta-popup:hover{ background:linear-gradient(180deg,#2d2d2d 0%,#1a1a1a 100%); color:#fff; transform:translateY(-3px); box-shadow:0 16px 40px rgba(0,0,0,0.35); }',
         POPUP_SCOPE + '.btn-cta-popup:active{ transform:scale(0.99); }',
-        '@media (max-width:520px){ ' + SCOPE + ' .panel{ padding:24px 20px 32px; } ' + SCOPE + ' .panel-inner{ flex-direction:column; align-items:center; gap:28px; } ' + SCOPE + ' .left-col{ align-items:center; max-width:100%; min-width:0; } ' + SCOPE + ' .right-col{ min-width:0; width:100%; flex:1 1 auto; padding-left:0; } ' + SCOPE + ' .title, .subtitle{ text-align:center; } ' + SCOPE + ' .title{ font-size:min(28px,7.5vw); margin-bottom:10px; } ' + SCOPE + ' .subtitle{ font-size:min(15px,4.2vw); margin-bottom:20px; } ' + SCOPE + ' .coupon-preview{ transform:rotate(-2deg); padding:18px 22px; margin-bottom:12px; } ' + SCOPE + ' .cups-row{ height:min(180px,42vw); padding:0 20px; } ' + SCOPE + ' .cup-wrap{ width:calc((100% - 40px - 24px) / 3); min-width:56px; max-width:120px; } ' + SCOPE + ' .btn-cta{ margin-top:24px; padding:16px 32px; } ' + SCOPE + ' .result{ margin-top:24px; padding:20px; } ' + POPUP_SCOPE + '.popup{ padding:36px 24px 40px; border-radius:24px; } ' + POPUP_SCOPE + '.popup-title{ font-size:1.85rem; } ' + POPUP_SCOPE + '.popup-coupon{ padding:20px 28px; } ' + POPUP_SCOPE + '.popup-coupon .big{ font-size:1.9rem; } ' + POPUP_SCOPE + '.popup-code-box{ flex-wrap:wrap; } ' + POPUP_SCOPE + '.btn-copy-popup{ width:100%; } }',
-        '@media (max-width:360px){ ' + SCOPE + ' .panel{ padding:20px 16px 28px; } ' + SCOPE + ' .panel-inner{ gap:24px; } ' + SCOPE + ' .cups-row{ height:min(160px,44vw); padding:0 16px; } ' + SCOPE + ' .cup-wrap{ width:calc((100% - 32px - 24px) / 3); min-width:52px; } }'
+        '@media (max-width:520px){ ' + SCOPE + ' .panel{ padding:clamp(12px,3vw,20px) clamp(12px,4vw,20px) max(12px,env(safe-area-inset-bottom)); justify-content:flex-start; padding-top:max(48px,env(safe-area-inset-top)); } ' + SCOPE + ' .panel-inner{ flex-direction:column; align-items:center; gap:clamp(20px,5vw,28px); } ' + SCOPE + ' .left-col, .right-col{ max-width:100%; align-items:center; } ' + SCOPE + ' .title{ font-size:min(26px,6.5vw); margin-bottom:8px; } ' + SCOPE + ' .subtitle{ font-size:min(15px,3.9vw); margin-bottom:clamp(12px,2.5vh,20px); } ' + SCOPE + ' .coupon-preview{ transform:rotate(-1.5deg); padding:14px 18px; } ' + SCOPE + ' .cups-row{ height:min(200px,50vw); max-height:240px; padding:0 20px; } ' + SCOPE + ' .cup-wrap{ width:calc((100% - 40px - 24px) / 3); min-width:56px; max-width:120px; } ' + SCOPE + ' .btn-cta{ margin-top:clamp(16px,3vh,24px); padding:16px 28px; width:100%; max-width:320px; } ' + SCOPE + ' .result{ margin-top:20px; padding:18px; max-width:100%; } ' + POPUP_SCOPE + '.popup{ padding:36px 24px 40px; border-radius:24px; } ' + POPUP_SCOPE + '.popup-title{ font-size:1.85rem; } ' + POPUP_SCOPE + '.popup-coupon{ padding:20px 28px; } ' + POPUP_SCOPE + '.popup-coupon .big{ font-size:1.9rem; } ' + POPUP_SCOPE + '.popup-code-box{ flex-wrap:wrap; } ' + POPUP_SCOPE + '.btn-copy-popup{ width:100%; } }',
+        '@media (max-width:360px){ ' + SCOPE + ' .panel{ padding:20px 16px 28px; } ' + SCOPE + ' .panel-inner{ gap:24px; } ' + SCOPE + ' .cups-row{ height:min(160px,44vw); padding:0 20px; } ' + SCOPE + ' .cup-wrap{ width:calc((100% - 40px - 24px) / 3); min-width:52px; } }'
       ].join('\n');
   
       if (state.reducedMotion) {
@@ -249,12 +257,11 @@
       var cupW = (w - padding - (n - 1) * gap) / n;
       if (cupW > 150) cupW = 150;
       if (cupW < 60) cupW = 60;
-      var halfW = cupW / 2;
       for (var i = 0; i < state.cups.length; i++) {
         var slot = state.slotAssignments.indexOf(i);
         if (slot === -1) slot = i;
         var x = _getSlotX(slot, w);
-        state.cups[i].wrap.style.left = _px(x - halfW);
+        state.cups[i].wrap.style.left = _px(x);
         state.cups[i].wrap.style.transform = 'translateX(-50%)';
       }
     }
@@ -315,14 +322,13 @@
       var xB = _getSlotX(slotB, w);
       var elA = cups[cupA].wrap;
       var elB = cups[cupB].wrap;
-      var halfW = _getCupWidth() / 2;
       var ease = 'cubic-bezier(0.34,1.56,0.64,1)';
       elA.style.transition = 'left ' + duration + 'ms ' + ease + ', transform ' + duration + 'ms ' + ease;
       elB.style.transition = 'left ' + duration + 'ms ' + ease + ', transform ' + duration + 'ms ' + ease;
       elA.style.transform = 'translateX(-50%) translateY(-14px)';
       elB.style.transform = 'translateX(-50%) translateY(-14px)';
-      elA.style.left = _px(xB - halfW);
-      elB.style.left = _px(xA - halfW);
+      elA.style.left = _px(xB);
+      elB.style.left = _px(xA);
       assigns[slotA] = cupB;
       assigns[slotB] = cupA;
       setTimeout(function () {
@@ -419,7 +425,7 @@
     }
   
     function _showWinPopup() {
-      var parts = CONFIG.couponText.split(' ');
+      var ln = _couponLines();
       var code = CONFIG.defaultCode || 'SAVE50';
       var overlay = state.container && state.container.parentElement;
       if (!overlay) overlay = document.body;
@@ -428,8 +434,8 @@
       var box = _createEl('div', { className: 'popup' });
       box.innerHTML =
         '<div class="popup-title">Tebrikler!</div>' +
-        '<p class="popup-desc">' + (parts[0] || '50%') + ' ' + (parts[1] || 'OFF') + ' kazandınız. Kodunuzu kopyalayıp alışverişe başlayabilirsiniz.</p>' +
-        '<div class="popup-coupon"><div class="big">' + (parts[0] || '50%') + '</div><div class="small">' + (parts[1] || 'OFF') + '</div></div>' +
+        '<p class="popup-desc"><strong>' + ln.big + '</strong> ' + ln.small + ' kazandınız. İndirim kodunu kopyalayıp alışverişe geçebilirsiniz.</p>' +
+        '<div class="popup-coupon"><div class="big">' + ln.big + '</div><div class="small">' + ln.small + '</div></div>' +
         '<div class="popup-code-wrap">' +
           '<span class="popup-code-label">İndirim kodu</span>' +
           '<div class="popup-code-box"><span class="popup-code-value">' + code + '</span><button type="button" class="btn btn-copy-popup" aria-label="' + CONFIG.copyCodeText + '">' + CONFIG.copyCodeText + '</button></div>' +
@@ -507,9 +513,9 @@
           cupsRow.classList.add('visible');
         }
         requestAnimationFrame(function () { _positionCups(); });
-        var parts = CONFIG.couponText.split(' ');
+        var cn = _couponLines();
         var coupon = _createEl('div', { className: 'coupon' });
-        coupon.innerHTML = '<div class="big">' + (parts[0] || '50%') + '</div><div class="small">' + (parts[1] || 'OFF') + '</div>';
+        coupon.innerHTML = '<div class="big">' + cn.big + '</div><div class="small">' + cn.small + '</div>';
         coupon.style.opacity = '0';
         state.cups[winningIdx].wrap.insertBefore(coupon, state.cups[winningIdx].wrap.firstChild);
         state.cups[winningIdx].coupon = coupon;
@@ -579,9 +585,9 @@
       var leftCol = _createEl('div', { className: 'left-col' });
       leftCol.appendChild(_createEl('h1', { className: 'title' }, CONFIG.copy.title));
       leftCol.appendChild(_createEl('p', { className: 'subtitle' }, CONFIG.copy.subtitle));
-      var parts = CONFIG.couponText.split(' ');
+      var pv = _couponLines();
       var preview = _createEl('div', { className: 'coupon-preview' });
-      preview.innerHTML = '<div class="big">' + (parts[0] || '50%') + '</div><div class="small">' + (parts[1] || 'OFF') + '</div>';
+      preview.innerHTML = '<div class="big">' + pv.big + '</div><div class="small">' + pv.small + '</div>';
       leftCol.appendChild(preview);
   
       var startBtn = _createEl('button', {
