@@ -1,573 +1,273 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <title>Modern Santa Deer</title>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        user-select: none;
-      }
-
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        font-family: "Segoe UI", Inter, sans-serif;
-        background: radial-gradient(
-          circle at top,
-          #284b63 0%,
-          #102030 35%,
-          #08111c 100%
-        );
-      }
-
-      #scene {
-        position: fixed;
-        inset: 0;
-        overflow: hidden;
-      }
-
-      /* KAR EFEKTİ */
-      .snow {
-        position: absolute;
-        inset: 0;
-        z-index: 1;
-        pointer-events: none;
-      }
-
-      .snowflake {
-        position: absolute;
-        top: -10vh;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.9);
-        animation-name: snowfall;
-        animation-timing-function: linear;
-        animation-iteration-count: infinite;
-        will-change: transform;
-      }
-
-      @keyframes snowfall {
-        from {
-          transform: translate3d(0, -10vh, 0);
-        }
-        to {
-          transform: translate3d(120px, 120vh, 0);
-        }
-      }
-
-      /* NOEL BABA */
-      #santa {
-        position: absolute;
-        top: 8vh;
-        right: -600px;
-        width: 450px;
-        z-index: 20;
-        pointer-events: none;
-        filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.5));
-      }
-
-      #santa img {
-        width: 100%;
-        animation: santaFloat 2.5s ease-in-out infinite;
-      }
-
-      @keyframes santaFloat {
-        0%,
-        100% {
-          transform: translateY(0px) rotate(2deg);
-        }
-        50% {
-          transform: translateY(-15px) rotate(-2deg);
-        }
-      }
-
-      /* OYUN ALANI VE HEDİYELER */
-      #game {
-        position: absolute;
-        inset: 0;
-        z-index: 5;
-      }
-
-      .gift {
-        position: absolute;
-        width: 70px;
-        height: 70px;
-        cursor: pointer;
-        /* Animasyonlarda transform-origin merkez olmalı */
-        transform-origin: center center;
-        z-index: 10;
-        transition: filter 0.2s ease;
-        will-change: transform, left, top, opacity;
-      }
-
-      .gift:hover {
-        filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.4));
-      }
-
-      .gift.opened {
-        pointer-events: none;
-        /* Seçilen kutu açılma esnasında en üstte olmalı */
-        z-index: 50;
-      }
-
-      .gift-box,
-      .gift-lid {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        will-change: transform, opacity;
-      }
-
-      .gift-lid {
-        z-index: 3;
-        transform-origin: center bottom;
-      }
-
-      .gift-box {
-        z-index: 2;
-      }
-
-      .gift svg {
-        width: 100%;
-        height: 100%;
-        overflow: visible;
-      }
-
-      /* POPUP */
-      #popupOverlay {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: rgba(0, 0, 0, 0.75);
-        backdrop-filter: blur(8px);
-        z-index: 999;
-        opacity: 0;
-        pointer-events: none;
-        transition: 0.4s ease;
-      }
-
-      #popupOverlay.active {
-        opacity: 1;
-        pointer-events: auto;
-      }
-
-      #popup {
-        background: #ffffff;
-        width: 420px;
-        max-width: 90%;
-        border-radius: 24px;
-        padding: 40px 30px;
-        color: #1e293b;
-        text-align: center;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        transform: scale(0.8) translateY(30px);
-        transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        position: relative;
-      }
-
-      #popupOverlay.active #popup {
-        transform: scale(1) translateY(0);
-      }
-
-      .close-icon {
-        position: absolute;
-        top: 16px;
-        right: 20px;
-        background: none;
-        border: none;
-        font-size: 28px;
-        color: #94a3b8;
-        cursor: pointer;
-        transition: color 0.2s;
-        line-height: 1;
-      }
-
-      .close-icon:hover {
-        color: #0f172a;
-      }
-
-      .popup-icon {
-        font-size: 54px;
-        margin-bottom: 10px;
-        line-height: 1;
-      }
-
-      .title {
-        font-size: 32px;
-        font-weight: 800;
-        margin-bottom: 10px;
-        color: #0f172a;
-        letter-spacing: -0.5px;
-      }
-
-      .desc {
-        font-size: 15px;
-        line-height: 1.5;
-        color: #64748b;
-        margin-bottom: 25px;
-        padding: 0 10px;
-      }
-
-      .coupon-wrapper {
-        margin-bottom: 25px;
-      }
-
-      .coupon {
-        display: inline-block;
-        padding: 16px 30px;
-        border-radius: 16px;
-        font-size: 28px;
-        font-weight: 900;
-        letter-spacing: 2px;
-        cursor: pointer;
-        border: 2px dashed #f59e0b;
-        background: #fffbeb;
-        color: #d97706;
-        transition: all 0.2s ease;
-        width: 100%;
-      }
-
-      .coupon:hover {
-        background: #fef3c7;
-        transform: scale(1.02);
-      }
-
-      .coupon-hint {
-        font-size: 12px;
-        color: #94a3b8;
-        margin-top: 8px;
-        font-weight: 500;
-      }
-
-      .btn-primary {
-        width: 100%;
-        height: 54px;
-        border: 0;
-        border-radius: 14px;
-        cursor: pointer;
-        font-weight: 700;
-        font-size: 16px;
-        background: #e11d48;
-        color: white;
-        transition: all 0.2s ease;
-        box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25);
-      }
-
-      .btn-primary:hover {
-        background: #be123c;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(225, 29, 72, 0.4);
-      }
-
-      @media (max-width: 768px) {
-        #santa {
-          width: 300px;
-          right: -400px;
-        }
-        .gift {
-          width: 60px;
-          height: 60px;
-        }
-        .title {
-          font-size: 28px;
-        }
-        .coupon {
-          font-size: 24px;
-          padding: 14px 20px;
-        }
-      }
-    </style>
-  </head>
-
-  <body>
-    <div id="scene">
-      <div class="snow" id="snow"></div>
-      <div id="santa">
-        <img
-          src="https://imgvisilabsnet.azureedge.net/banner/uploaded_images/308_1306_20260416103409019.gif"
-        />
-      </div>
-      <div id="game"></div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Modern Yılbaşı Hediye Oyunu</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', Inter, sans-serif; background: radial-gradient(circle at top, #284b63 0%, #102030 35%, #08111c 100%); touch-action: none; }
+    #scene { position: fixed; inset: 0; overflow: hidden; }
+    .snow { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+    .snowflake { position: absolute; top: -10vh; border-radius: 50%; background: rgba(255, 255, 255, .9); animation-name: snowfall; animation-timing-function: linear; animation-iteration-count: infinite; will-change: transform; }
+    @keyframes snowfall { from { transform: translate3d(0, -10vh, 0); } to { transform: translate3d(120px, 120vh, 0); } }
+    #santa { position: absolute; top: 12vh; right: -600px; width: 450px; max-width: 70vw; z-index: 20; pointer-events: none; filter: drop-shadow(0 15px 30px rgba(0, 0, 0, .5)); }
+    #santa img { width: 100%; animation: santaFloat 2.5s ease-in-out infinite; }
+    @keyframes santaFloat { 0%, 100% { transform: translateY(0px) rotate(2deg); } 50% { transform: translateY(-15px) rotate(-2deg); } }
+    #game { position: absolute; inset: 0; z-index: 5; }
+    .gift { position: absolute; cursor: pointer; transform-origin: center center; z-index: 10; transition: filter .2s ease; will-change: transform, left, top; }
+    .gift:hover { filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.4)); }
+    .gift.opened { pointer-events: none; z-index: 50; }
+    .gift-box, .gift-lid { position: absolute; inset: 0; width: 100%; height: 100%; will-change: transform, opacity; }
+    .gift-lid { z-index: 3; transform-origin: center bottom; }
+    .gift-box { z-index: 2; }
+    .gift svg { width: 100%; height: 100%; overflow: visible; }
+    #popupOverlay { position: fixed; inset: 0; display: flex; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 999; opacity: 0; pointer-events: none; transition: .4s ease; padding: 20px; }
+    #popupOverlay.active { opacity: 1; pointer-events: auto; }
+    #popup { background: #ffffff; width: 420px; max-width: 100%; border-radius: 24px; padding: 40px 30px; color: #1e293b; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(.8) translateY(30px); transition: .4s cubic-bezier(.175, .885, .32, 1.275); position: relative; }
+    #popupOverlay.active #popup { transform: scale(1) translateY(0); }
+    .close-icon { position: absolute; top: 16px; right: 20px; background: none; border: none; font-size: 28px; color: #94a3b8; cursor: pointer; transition: color 0.2s; line-height: 1; }
+    .close-icon:hover { color: #0f172a; }
+    .popup-icon { font-size: 54px; margin-bottom: 10px; line-height: 1; }
+    .title { font-size: 32px; font-weight: 800; margin-bottom: 10px; color: #0f172a; letter-spacing: -0.5px; }
+    .desc { font-size: 15px; line-height: 1.5; color: #64748b; margin-bottom: 25px; padding: 0 10px; }
+    .coupon-wrapper { margin-bottom: 25px; }
+    .coupon { display: inline-block; padding: 16px 20px; border-radius: 16px; font-size: 28px; font-weight: 900; letter-spacing: 2px; cursor: pointer; border: 2px dashed #f59e0b; background: #fffbeb; color: #d97706; transition: all .2s ease; width: 100%; word-break: break-all; }
+    .coupon:hover { background: #fef3c7; transform: scale(1.02); }
+    .coupon-hint { font-size: 12px; color: #94a3b8; margin-top: 8px; font-weight: 500; }
+    .btn-primary { width: 100%; height: 54px; border: 0; border-radius: 14px; cursor: pointer; font-weight: 700; font-size: 16px; background: #e11d48; color: white; transition: all .2s ease; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25); }
+    .btn-primary:hover { background: #be123c; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(225, 29, 72, 0.4); }
+    @media(max-width:768px) { #santa { right: -400px; top: 15vh; } .title { font-size: 26px; } .coupon { font-size: 22px; padding: 14px 10px; } #popup { padding: 30px 20px; } .popup-icon { font-size: 46px; } }
+  </style>
+</head>
+<body>
+  <div id="scene">
+    <div class="snow" id="snow"></div>
+    <div id="santa">
+      <img src="https://imgvisilabsnet.azureedge.net/banner/uploaded_images/308_1306_20260416103409019.gif">
     </div>
+    <div id="game"></div>
+  </div>
 
-    <div id="popupOverlay">
-      <div id="popup">
-        <button class="close-icon" id="closePopupBtn">&times;</button>
-        <div class="popup-icon">🎁</div>
-        <div class="title">Tebrikler!</div>
-        <div class="desc">
-          Yeni yıl kampanyasına özel indirim kuponunu buldun. Hemen kopyala ve
-          alışverişin tadını çıkar.
-        </div>
-
-        <div class="coupon-wrapper">
-          <div class="coupon" id="coupon">YILBASI2026</div>
-          <div class="coupon-hint" id="couponHint">
-            Kopyalamak için üzerine tıkla
-          </div>
-        </div>
-
-        <button
-          class="btn-primary"
-          onclick="alert('Alışveriş sayfasına yönlendiriliyor...')"
-        >
-          Alışverişe Başla
-        </button>
+  <div id="popupOverlay">
+    <div id="popup">
+      <button class="close-icon" id="closePopupBtn">&times;</button>
+      <div class="popup-icon">🎁</div>
+      <div class="title">Tebrikler!</div>
+      <div class="desc">Yeni yıl kampanyasına özel indirim kuponunu buldun. Hemen kopyala ve alışverişin tadını çıkar.</div>
+      <div class="coupon-wrapper">
+        <div class="coupon" id="coupon">YILBASI2026</div>
+        <div class="coupon-hint" id="couponHint">Kopyalamak için üzerine tıkla</div>
       </div>
+      <button class="btn-primary" onclick="alert('Alışveriş sayfasına yönlendiriliyor...')">Alışverişe Başla</button>
     </div>
+  </div>
 
-    <script>
-      const snow = document.getElementById("snow");
-      for (let i = 0; i < 100; i++) {
-        const flake = document.createElement("div");
-        flake.className = "snowflake";
-        const size = Math.random() * 4 + 2;
-        flake.style.width = size + "px";
-        flake.style.height = size + "px";
-        flake.style.left = Math.random() * 100 + "%";
-        flake.style.opacity = Math.random() * 0.8 + 0.2;
-        flake.style.animationDuration = Math.random() * 5 + 5 + "s";
-        flake.style.animationDelay = -Math.random() * 10 + "s";
-        snow.appendChild(flake);
-      }
+  <script>
+    const isMobile = window.innerWidth < 768;
+    const giftSize = isMobile ? 55 : 70;
 
-      gsap.to("#santa", {
-        x: () => -window.innerWidth - 800,
-        y: 50,
-        duration: 8,
-        ease: "power1.inOut",
+    const snow = document.getElementById("snow");
+    for (let i = 0; i < (isMobile ? 50 : 100); i++) {
+      const flake = document.createElement("div");
+      flake.className = "snowflake";
+      const size = Math.random() * 4 + 2;
+      flake.style.width = size + "px";
+      flake.style.height = size + "px";
+      flake.style.left = Math.random() * 100 + "%";
+      flake.style.opacity = Math.random() * 0.8 + 0.2;
+      flake.style.animationDuration = (Math.random() * 5 + 5) + "s";
+      flake.style.animationDelay = (-Math.random() * 10) + "s";
+      snow.appendChild(flake);
+    }
+
+    gsap.to("#santa", {
+      x: () => -window.innerWidth - 800,
+      y: isMobile ? 30 : 50,
+      duration: isMobile ? 12 : 8,
+      ease: "power1.inOut"
+    });
+
+    const { Engine, Runner, Bodies, Composite, Body } = Matter;
+    const engine = Engine.create();
+    const world = engine.world;
+    engine.gravity.y = 0.8;
+
+    Runner.run(Runner.create(), engine);
+
+    Composite.add(world, [
+      Bodies.rectangle(window.innerWidth / 2, window.innerHeight + 50, window.innerWidth * 2, 100, { isStatic: true }),
+      Bodies.rectangle(-50, window.innerHeight / 2, 100, window.innerHeight * 2, { isStatic: true }),
+      Bodies.rectangle(window.innerWidth + 50, window.innerHeight / 2, 100, window.innerHeight * 2, { isStatic: true })
+    ]);
+
+    const game = document.getElementById("game");
+    const gifts = [];
+
+    const palettes = [
+      { main: "#C0392B", shadow: "#922B21", ribbon: "#F1C40F" },
+      { main: "#E3F2FD", shadow: "#90CAF9", ribbon: "#1565C0" },
+      { main: "#B197FC", shadow: "#845EF7", ribbon: "#FFFFFF" },
+      { main: "#2E7D32", shadow: "#1B5E20", ribbon: "#FFB703" },
+      { main: "#fef102", shadow: "#b8860b", ribbon: "#004684" }
+    ];
+
+    function getBoxSVG(color) {
+      return `<svg viewBox="0 0 32 32" width="100%" height="100%"><g id="kutu"><path fill="${color.main}" d="M29.333 27.556c0 1.955-1.6 3.555-3.555 3.555H6.222c-1.955 0-3.555-1.6-3.555-3.555V12.444c0-1.955 1.6-3.555 3.555-3.555h19.556c1.955 0 3.555 1.6 3.555 3.555v15.112z" /><rect fill="${color.ribbon}" x="12.444" y="13.333" width="7.111" height="17.778" /></g></svg>`;
+    }
+
+    function getLidSVG(color) {
+      return `<svg viewBox="0 0 32 32" width="100%" height="100%"><g id="kapak"><path fill="${color.main}" d="M31.5 9.778c0 1.955-1.6 3.555-3.555 3.555H4.056C2.1 13.333 0.5 11.733 0.5 9.778S2.1 6.222 4.056 6.222h23.889c1.955 0 3.555 1.6 3.555 3.556z" /><path fill="${color.shadow}" d="M2.667 13.333h26.666v1.778H2.667z" /><path fill="${color.ribbon}" d="M16.889 2.667h-1.778c-1.473 0-2.667 1.194-2.667 4.666v8h7.111V5.333c0-1.472-1.194-2.666-2.666-2.666z" /><path fill="${color.ribbon}" d="M14.222 6.222c0.978 0 1.123-0.459 0.321-1.02L8.568 1.02c-0.802-0.561-1.853-0.325-2.339 0.524l-1.792 3.135C3.952 5.528 4.356 6.222 5.333 6.222h8.889zm3.556 0c-0.978 0-1.123-0.459-0.321-1.02l5.976-4.183c0.801-0.561 1.853-0.325 2.339 0.524l1.792 3.135c0.485 0.849 0.081 1.543-0.896 1.543h-8.89z" /></g></svg>`;
+    }
+
+    function createGift(x, y, palette) {
+      const body = Bodies.rectangle(x, y, giftSize, giftSize, {
+        restitution: 0.6,
+        friction: 0.3,
+        density: 0.002,
+        chamfer: { radius: 8 }
       });
 
-      const { Engine, Runner, Bodies, Composite, Body } = Matter;
-      const engine = Engine.create();
-      const world = engine.world;
-      engine.gravity.y = 0.8;
+      Body.setVelocity(body, { x: -3 + (Math.random() * 1.5), y: 1 });
+      Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.15);
 
-      Runner.run(Runner.create(), engine);
+      Composite.add(world, body);
 
-      Composite.add(world, [
-        Bodies.rectangle(
-          window.innerWidth / 2,
-          window.innerHeight + 50,
-          window.innerWidth * 2,
-          100,
-          { isStatic: true },
-        ),
-        Bodies.rectangle(
-          -50,
-          window.innerHeight / 2,
-          100,
-          window.innerHeight * 2,
-          { isStatic: true },
-        ),
-        Bodies.rectangle(
-          window.innerWidth + 50,
-          window.innerHeight / 2,
-          100,
-          window.innerHeight * 2,
-          { isStatic: true },
-        ),
-      ]);
+      const el = document.createElement("div");
+      el.className = "gift";
+      el.style.width = giftSize + "px";
+      el.style.height = giftSize + "px";
+      el.innerHTML = `<div class="gift-box">${getBoxSVG(palette)}</div><div class="gift-lid">${getLidSVG(palette)}</div>`;
+      game.appendChild(el);
 
-      const game = document.getElementById("game");
-      const gifts = [];
+      gifts.push({ body, el });
 
-      const palettes = [
-        { main: "#C0392B", shadow: "#922B21", ribbon: "#F1C40F" },
-        { main: "#E3F2FD", shadow: "#90CAF9", ribbon: "#1565C0" },
-        { main: "#B197FC", shadow: "#845EF7", ribbon: "#FFFFFF" },
-        { main: "#2E7D32", shadow: "#1B5E20", ribbon: "#FFB703" },
-        { main: "#fef102", shadow: "#b8860b", ribbon: "#004684" },
-      ];
+      el.addEventListener("click", () => {
+        if (el.classList.contains("opened")) return;
+        
+        el.classList.add("opened");
+        Composite.remove(world, body); 
 
-      function getBoxSVG(color) {
-        return `
-        <svg viewBox="0 0 32 32" width="100%" height="100%">
-          <g id="kutu">
-            <path fill="${color.main}" d="M29.333 27.556c0 1.955-1.6 3.555-3.555 3.555H6.222c-1.955 0-3.555-1.6-3.555-3.555V12.444c0-1.955 1.6-3.555 3.555-3.555h19.556c1.955 0 3.555 1.6 3.555 3.555v15.112z" />
-            <rect fill="${color.ribbon}" x="12.444" y="13.333" width="7.111" height="17.778" />
-          </g>
-        </svg>
-      `;
-      }
-
-      function getLidSVG(color) {
-        return `
-        <svg viewBox="0 0 32 32" width="100%" height="100%">
-          <g id="kapak">
-            <path fill="${color.main}" d="M31.5 9.778c0 1.955-1.6 3.555-3.555 3.555H4.056C2.1 13.333 0.5 11.733 0.5 9.778S2.1 6.222 4.056 6.222h23.889c1.955 0 3.555 1.6 3.555 3.556z" />
-            <path fill="${color.shadow}" d="M2.667 13.333h26.666v1.778H2.667z" />
-            <path fill="${color.ribbon}" d="M16.889 2.667h-1.778c-1.473 0-2.667 1.194-2.667 4.666v8h7.111V5.333c0-1.472-1.194-2.666-2.666-2.666z" />
-            <path fill="${color.ribbon}" d="M14.222 6.222c0.978 0 1.123-0.459 0.321-1.02L8.568 1.02c-0.802-0.561-1.853-0.325-2.339 0.524l-1.792 3.135C3.952 5.528 4.356 6.222 5.333 6.222h8.889zm3.556 0c-0.978 0-1.123-0.459-0.321-1.02l5.976-4.183c0.801-0.561 1.853-0.325 2.339 0.524l1.792 3.135c0.485 0.849 0.081 1.543-0.896 1.543h-8.89z" />
-          </g>
-        </svg>
-      `;
-      }
-
-      function createGift(x, y, palette) {
-        const body = Bodies.rectangle(x, y, 70, 70, {
-          restitution: 0.6,
-          friction: 0.3,
-          density: 0.002,
-          chamfer: { radius: 8 },
-        });
-
-        Body.setVelocity(body, { x: -3 + Math.random() * 1.5, y: 1 });
-        Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.15);
-
-        Composite.add(world, body);
-
-        const el = document.createElement("div");
-        el.className = "gift";
-        el.innerHTML = `
-        <div class="gift-box">${getBoxSVG(palette)}</div>
-        <div class="gift-lid">${getLidSVG(palette)}</div>
-      `;
-        game.appendChild(el);
-
-        gifts.push({ body, el });
-
-        el.addEventListener("click", () => {
-          if (el.classList.contains("opened")) return;
-
-          el.classList.add("opened");
-          Composite.remove(world, body);
-
-          gifts.forEach((g) => {
-            if (g.el !== el && !g.el.classList.contains("opened")) {
-              g.el.classList.add("opened");
-              Composite.remove(world, g.body);
-              gsap.to(g.el, { opacity: 0, duration: 1, ease: "power2.out" });
-            }
-          });
-
-          gsap.to(el, {
-            left: "50%",
-            top: "50%",
-            x: "-50%",
-            y: "-50%",
-            rotation: 0,
-            scale: 2,
-            duration: 0.8,
-            ease: "power3.inOut",
-            onComplete: () => {
-              const lid = el.querySelector(".gift-lid");
-              const box = el.querySelector(".gift-box");
-
-              gsap.to(lid, {
-                y: -80,
-                x: (Math.random() - 0.5) * 50,
-                rotation: (Math.random() - 0.5) * 45,
-                opacity: 0,
-                duration: 0.8,
-                ease: "power2.out",
-              });
-
-              gsap.to(box, {
-                y: "+=40",
-                scale: 0.5,
-                opacity: 0,
-                duration: 0.6,
-                delay: 0.15,
-                ease: "power2.in",
-              });
-
-              confetti({
-                particleCount: 200,
-                spread: 100,
-                startVelocity: 40,
-                colors: [palette.main, palette.ribbon, "#ffffff"],
-                origin: { x: 0.5, y: 0.5 },
-              });
-
-              setTimeout(openPopup, 600);
-            },
-          });
-        });
-      }
-
-      let giftsDropped = false;
-
-      function checkSantaPosition() {
-        if (giftsDropped) return;
-
-        const santaEl = document.getElementById("santa");
-        const rect = santaEl.getBoundingClientRect();
-
-        if (rect.left + rect.width / 2 <= window.innerWidth / 2 + 200) {
-          giftsDropped = true;
-
-          for (let i = 0; i < 5; i++) {
-            setTimeout(() => {
-              const currentRect = santaEl.getBoundingClientRect();
-              createGift(
-                currentRect.right - 10,
-                currentRect.bottom - 60,
-                palettes[i],
-              );
-            }, i * 250);
+        gifts.forEach(g => {
+          if (g.el !== el && !g.el.classList.contains("opened")) {
+            g.el.classList.add("opened");
+            Composite.remove(world, g.body);
+            gsap.to(g.el, { opacity: 0, duration: 1, ease: "power2.out" });
           }
-        } else {
-          requestAnimationFrame(checkSantaPosition);
+        });
+
+        gsap.to(el, {
+          left: "50%",
+          top: "50%",
+          x: "-50%",
+          y: "-50%",
+          rotation: 0,
+          scale: isMobile ? 2.5 : 2, 
+          duration: 0.8,
+          ease: "power3.inOut",
+          onComplete: () => {
+            const lid = el.querySelector(".gift-lid");
+            const box = el.querySelector(".gift-box");
+
+            gsap.to(lid, {
+              y: -80,
+              x: (Math.random() - 0.5) * 50,
+              rotation: (Math.random() - 0.5) * 45,
+              opacity: 0,
+              duration: 0.8,
+              ease: "power2.out"
+            });
+
+            gsap.to(box, {
+              y: "+=40",
+              scale: 0.5,
+              opacity: 0,
+              duration: 0.6,
+              delay: 0.15,
+              ease: "power2.in"
+            });
+
+            confetti({
+              particleCount: isMobile ? 100 : 200,
+              spread: 100,
+              startVelocity: 40,
+              colors: [palette.main, palette.ribbon, '#ffffff'],
+              origin: { x: 0.5, y: 0.5 } 
+            });
+
+            setTimeout(openPopup, 600);
+          }
+        });
+      });
+    }
+
+    let giftsDropped = false;
+    
+    function checkSantaPosition() {
+      if (giftsDropped) return;
+      
+      const santaEl = document.getElementById("santa");
+      const rect = santaEl.getBoundingClientRect();
+      const triggerPoint = window.innerWidth / 2 + (isMobile ? 0 : 200);
+      
+      if (rect.left + (rect.width / 2) <= triggerPoint) {
+        giftsDropped = true;
+        
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            const currentRect = santaEl.getBoundingClientRect();
+            let dropX = currentRect.right - (isMobile ? 20 : 10);
+            dropX = Math.min(dropX, window.innerWidth - (giftSize / 2) - 10);
+            createGift(dropX, currentRect.bottom - (isMobile ? 30 : 60), palettes[i]);
+          }, i * (isMobile ? 450 : 250)); 
         }
+      } else {
+        requestAnimationFrame(checkSantaPosition);
       }
+    }
+    
+    requestAnimationFrame(checkSantaPosition);
 
-      requestAnimationFrame(checkSantaPosition);
+    function update() {
+      gifts.forEach(gift => {
+        const { body, el } = gift;
+        if (!el.classList.contains("opened")) {
+          const offset = giftSize / 2;
+          el.style.left = (body.position.x - offset) + "px"; 
+          el.style.top = (body.position.y - offset) + "px";
+          el.style.transform = `rotate(${body.angle}rad)`;
+        }
+      });
+      requestAnimationFrame(update);
+    }
+    update();
 
-      function update() {
-        gifts.forEach((gift) => {
-          const { body, el } = gift;
+    const popup = document.getElementById("popupOverlay");
+    function openPopup() { popup.classList.add("active"); }
+    
+    document.getElementById("closePopupBtn").onclick = () => { 
+      popup.classList.remove("active"); 
+    };
 
-          if (!el.classList.contains("opened")) {
-            el.style.left = body.position.x - 35 + "px";
-            el.style.top = body.position.y - 35 + "px";
-            el.style.transform = `rotate(${body.angle}rad)`;
-          }
-        });
-        requestAnimationFrame(update);
-      }
-      update();
-
-      const popup = document.getElementById("popupOverlay");
-      function openPopup() {
-        popup.classList.add("active");
-      }
-
-      document.getElementById("closePopupBtn").onclick = () => {
-        popup.classList.remove("active");
-      };
-
-      document.getElementById("coupon").onclick = async () => {
-        await navigator.clipboard.writeText("YILBASI2026");
-        const el = document.getElementById("coupon");
-        const hint = document.getElementById("couponHint");
-
-        el.innerHTML = "KOPYALANDI ✓";
-        el.style.background = "#dcfce7";
-        el.style.borderColor = "#22c55e";
-        el.style.color = "#166534";
-        hint.style.visibility = "hidden";
-
-        gsap.fromTo(
-          el,
-          { scale: 0.9 },
-          { scale: 1, duration: 0.6, ease: "elastic.out(1,0.5)" },
-        );
-      };
-    </script>
-  </body>
+    document.getElementById("coupon").onclick = async () => {
+      await navigator.clipboard.writeText("YILBASI2026");
+      const el = document.getElementById("coupon");
+      const hint = document.getElementById("couponHint");
+      
+      el.innerHTML = "KOPYALANDI ✓";
+      el.style.background = "#dcfce7"; 
+      el.style.borderColor = "#22c55e";
+      el.style.color = "#166534";
+      hint.style.visibility = "hidden"; 
+      
+      gsap.fromTo(el, 
+        { scale: .9 },
+        { scale: 1, duration: .6, ease: "elastic.out(1,0.5)" }
+      );
+    };
+  </script>
+</body>
 </html>
