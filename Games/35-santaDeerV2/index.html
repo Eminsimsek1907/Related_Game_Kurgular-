@@ -11,12 +11,19 @@
     * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
     html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', Inter, sans-serif; background: radial-gradient(circle at top, #284b63 0%, #102030 35%, #08111c 100%); touch-action: none; }
     #scene { position: fixed; inset: 0; overflow: hidden; }
+    
+    /* KAR EFEKTİ */
     .snow { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
     .snowflake { position: absolute; top: -10vh; border-radius: 50%; background: rgba(255, 255, 255, .9); animation-name: snowfall; animation-timing-function: linear; animation-iteration-count: infinite; will-change: transform; }
     @keyframes snowfall { from { transform: translate3d(0, -10vh, 0); } to { transform: translate3d(120px, 120vh, 0); } }
+    
+    /* NOEL BABA VE TOZLAR */
     #santa { position: absolute; top: 12vh; right: -600px; width: 450px; max-width: 70vw; z-index: 20; pointer-events: none; filter: drop-shadow(0 15px 30px rgba(0, 0, 0, .5)); }
     #santa img { width: 100%; animation: santaFloat 2.5s ease-in-out infinite; }
     @keyframes santaFloat { 0%, 100% { transform: translateY(0px) rotate(2deg); } 50% { transform: translateY(-15px) rotate(-2deg); } }
+    .magic-dust { position: absolute; pointer-events: none; z-index: 15; filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8)); }
+
+    /* OYUN ALANI VE HEDİYELER */
     #game { position: absolute; inset: 0; z-index: 5; }
     .gift { position: absolute; cursor: pointer; transform-origin: center center; z-index: 10; transition: filter .2s ease; will-change: transform, left, top; }
     .gift:hover { filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.4)); }
@@ -25,6 +32,8 @@
     .gift-lid { z-index: 3; transform-origin: center bottom; }
     .gift-box { z-index: 2; }
     .gift svg { width: 100%; height: 100%; overflow: visible; }
+
+    /* POPUP */
     #popupOverlay { position: fixed; inset: 0; display: flex; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 999; opacity: 0; pointer-events: none; transition: .4s ease; padding: 20px; }
     #popupOverlay.active { opacity: 1; pointer-events: auto; }
     #popup { background: #ffffff; width: 420px; max-width: 100%; border-radius: 24px; padding: 40px 30px; color: #1e293b; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(.8) translateY(30px); transition: .4s cubic-bezier(.175, .885, .32, 1.275); position: relative; }
@@ -44,6 +53,7 @@
   </style>
 </head>
 <body>
+
   <div id="scene">
     <div class="snow" id="snow"></div>
     <div id="santa">
@@ -70,6 +80,7 @@
     const isMobile = window.innerWidth < 768;
     const giftSize = isMobile ? 55 : 70;
 
+    
     const snow = document.getElementById("snow");
     for (let i = 0; i < (isMobile ? 50 : 100); i++) {
       const flake = document.createElement("div");
@@ -84,29 +95,23 @@
       snow.appendChild(flake);
     }
 
-    gsap.to("#santa", {
-      x: () => -window.innerWidth - 800,
-      y: isMobile ? 30 : 50,
-      duration: isMobile ? 12 : 8,
-      ease: "power1.inOut"
-    });
-
+    
     const { Engine, Runner, Bodies, Composite, Body } = Matter;
     const engine = Engine.create();
     const world = engine.world;
     engine.gravity.y = 0.8;
 
-    Runner.run(Runner.create(), engine);
-
     Composite.add(world, [
-      Bodies.rectangle(window.innerWidth / 2, window.innerHeight + 50, window.innerWidth * 2, 100, { isStatic: true }),
+      Bodies.rectangle(window.innerWidth / 2, window.innerHeight + 50, window.innerWidth * 2, 100, { isStatic: true, label: "ground" }),
       Bodies.rectangle(-50, window.innerHeight / 2, 100, window.innerHeight * 2, { isStatic: true }),
       Bodies.rectangle(window.innerWidth + 50, window.innerHeight / 2, 100, window.innerHeight * 2, { isStatic: true })
     ]);
 
     const game = document.getElementById("game");
     const gifts = [];
+    let giftsDropped = false;
 
+    
     const palettes = [
       { main: "#C0392B", shadow: "#922B21", ribbon: "#F1C40F" },
       { main: "#E3F2FD", shadow: "#90CAF9", ribbon: "#1565C0" },
@@ -118,11 +123,51 @@
     function getBoxSVG(color) {
       return `<svg viewBox="0 0 32 32" width="100%" height="100%"><g id="kutu"><path fill="${color.main}" d="M29.333 27.556c0 1.955-1.6 3.555-3.555 3.555H6.222c-1.955 0-3.555-1.6-3.555-3.555V12.444c0-1.955 1.6-3.555 3.555-3.555h19.556c1.955 0 3.555 1.6 3.555 3.555v15.112z" /><rect fill="${color.ribbon}" x="12.444" y="13.333" width="7.111" height="17.778" /></g></svg>`;
     }
-
     function getLidSVG(color) {
       return `<svg viewBox="0 0 32 32" width="100%" height="100%"><g id="kapak"><path fill="${color.main}" d="M31.5 9.778c0 1.955-1.6 3.555-3.555 3.555H4.056C2.1 13.333 0.5 11.733 0.5 9.778S2.1 6.222 4.056 6.222h23.889c1.955 0 3.555 1.6 3.555 3.556z" /><path fill="${color.shadow}" d="M2.667 13.333h26.666v1.778H2.667z" /><path fill="${color.ribbon}" d="M16.889 2.667h-1.778c-1.473 0-2.667 1.194-2.667 4.666v8h7.111V5.333c0-1.472-1.194-2.666-2.666-2.666z" /><path fill="${color.ribbon}" d="M14.222 6.222c0.978 0 1.123-0.459 0.321-1.02L8.568 1.02c-0.802-0.561-1.853-0.325-2.339 0.524l-1.792 3.135C3.952 5.528 4.356 6.222 5.333 6.222h8.889zm3.556 0c-0.978 0-1.123-0.459-0.321-1.02l5.976-4.183c0.801-0.561 1.853-0.325 2.339 0.524l1.792 3.135c0.485 0.849 0.081 1.543-0.896 1.543h-8.89z" /></g></svg>`;
     }
 
+    
+    const emojis = ["✨", "🌟", "💫"];
+    function spawnMagicDust(x, y) {
+      const dust = document.createElement("div");
+      dust.className = "magic-dust";
+      dust.innerHTML = emojis[Math.floor(Math.random() * emojis.length)];
+      dust.style.left = x + "px";
+      dust.style.top = y + "px";
+      dust.style.fontSize = (Math.random() * 10 + 6) + "px";
+      document.getElementById("scene").appendChild(dust);
+
+      gsap.to(dust, {
+        y: "+=" + (Math.random() * 80 + 40),
+        x: "-=" + (Math.random() * 60 + 20),
+        opacity: 0,
+        rotation: (Math.random() - 0.5) * 180,
+        duration: Math.random() * 1 + 1,
+        ease: "power1.out",
+        onComplete: () => dust.remove()
+      });
+    }
+
+    
+    Runner.run(Runner.create(), engine);
+    update();
+    requestAnimationFrame(checkSantaPosition);
+
+    gsap.to("#santa", {
+      x: () => -window.innerWidth - 800,
+      y: isMobile ? 30 : 50,
+      duration: isMobile ? 12 : 8,
+      ease: "power1.inOut",
+      onUpdate: function() {
+        if (Math.random() > 0.4) {
+          const rect = document.getElementById("santa").getBoundingClientRect();
+          spawnMagicDust(rect.right - 40 - Math.random() * 60, rect.bottom - 40 - Math.random() * 40);
+        }
+      }
+    });
+
+    
     function createGift(x, y, palette) {
       const body = Bodies.rectangle(x, y, giftSize, giftSize, {
         restitution: 0.6,
@@ -143,19 +188,12 @@
       el.innerHTML = `<div class="gift-box">${getBoxSVG(palette)}</div><div class="gift-lid">${getLidSVG(palette)}</div>`;
       game.appendChild(el);
 
-      
-      gsap.from(el, {
-        scale: 0.2,
-        opacity: 0,
-        duration: 0.5,
-        ease: "back.out(1.7)"
-      });
+      gsap.from(el, { scale: 0.2, opacity: 0, duration: 0.5, ease: "back.out(1.7)" });
 
       gifts.push({ body, el });
 
       el.addEventListener("click", () => {
         if (el.classList.contains("opened")) return;
-        
         el.classList.add("opened");
         Composite.remove(world, body); 
 
@@ -168,40 +206,18 @@
         });
 
         gsap.to(el, {
-          left: "50%",
-          top: "50%",
-          x: "-50%",
-          y: "-50%",
-          rotation: 0,
-          scale: isMobile ? 2.5 : 2, 
-          duration: 0.8,
-          ease: "power3.inOut",
+          left: "50%", top: "50%", x: "-50%", y: "-50%",
+          rotation: 0, scale: isMobile ? 2.5 : 2, 
+          duration: 0.8, ease: "power3.inOut",
           onComplete: () => {
             const lid = el.querySelector(".gift-lid");
             const box = el.querySelector(".gift-box");
 
-            gsap.to(lid, {
-              y: -80,
-              x: (Math.random() - 0.5) * 50,
-              rotation: (Math.random() - 0.5) * 45,
-              opacity: 0,
-              duration: 0.8,
-              ease: "power2.out"
-            });
-
-            gsap.to(box, {
-              y: "+=40",
-              scale: 0.5,
-              opacity: 0,
-              duration: 0.6,
-              delay: 0.15,
-              ease: "power2.in"
-            });
+            gsap.to(lid, { y: -80, x: (Math.random() - 0.5) * 50, rotation: (Math.random() - 0.5) * 45, opacity: 0, duration: 0.8, ease: "power2.out" });
+            gsap.to(box, { y: "+=40", scale: 0.5, opacity: 0, duration: 0.6, delay: 0.15, ease: "power2.in" });
 
             confetti({
-              particleCount: isMobile ? 100 : 200,
-              spread: 100,
-              startVelocity: 40,
+              particleCount: isMobile ? 100 : 200, spread: 100, startVelocity: 40,
               colors: [palette.main, palette.ribbon, '#ffffff'],
               origin: { x: 0.5, y: 0.5 } 
             });
@@ -212,18 +228,14 @@
       });
     }
 
-    let giftsDropped = false;
-    
     function checkSantaPosition() {
       if (giftsDropped) return;
-      
       const santaEl = document.getElementById("santa");
       const rect = santaEl.getBoundingClientRect();
       const triggerPoint = window.innerWidth / 2 + (isMobile ? 0 : 200);
       
       if (rect.left + (rect.width / 2) <= triggerPoint) {
         giftsDropped = true;
-        
         for (let i = 0; i < 5; i++) {
           setTimeout(() => {
             const currentRect = santaEl.getBoundingClientRect();
@@ -236,25 +248,23 @@
         requestAnimationFrame(checkSantaPosition);
       }
     }
-    
-    requestAnimationFrame(checkSantaPosition);
 
     function update() {
       gifts.forEach(gift => {
         const { body, el } = gift;
         if (!el.classList.contains("opened")) {
           const offset = giftSize / 2;
-          
-          
           gsap.set(el, { x: body.position.x - offset, y: body.position.y - offset, rotation: body.angle * (180 / Math.PI) });
         }
       });
       requestAnimationFrame(update);
     }
-    update();
 
+    
     const popup = document.getElementById("popupOverlay");
-    function openPopup() { popup.classList.add("active"); }
+    function openPopup() { 
+      popup.classList.add("active"); 
+    }
     
     document.getElementById("closePopupBtn").onclick = () => { 
       popup.classList.remove("active"); 
@@ -264,17 +274,12 @@
       await navigator.clipboard.writeText("YILBASI2026");
       const el = document.getElementById("coupon");
       const hint = document.getElementById("couponHint");
-      
       el.innerHTML = "KOPYALANDI ✓";
       el.style.background = "#dcfce7"; 
       el.style.borderColor = "#22c55e";
       el.style.color = "#166534";
       hint.style.visibility = "hidden"; 
-      
-      gsap.fromTo(el, 
-        { scale: .9 },
-        { scale: 1, duration: .6, ease: "elastic.out(1,0.5)" }
-      );
+      gsap.fromTo(el, { scale: .9 }, { scale: 1, duration: .6, ease: "elastic.out(1,0.5)" });
     };
   </script>
 </body>
