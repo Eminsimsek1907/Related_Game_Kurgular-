@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sepeti Doldur Oyunu</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a1d; 
+            font-family: 'Poppins', sans-serif;
+            overflow: hidden;
+            touch-action: none; 
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, #55555d 0%, #1a1a1d 100%);
+            overflow: hidden;
+            transition: transform 0.1s ease-out;
+        }
+
+        .shake {
+            animation: shake 0.25s cubic-bezier(.36,.07,.19,.97) both;
+            box-shadow: inset 0 0 25px rgba(255, 50, 50, 0.25);
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+            40%, 60% { transform: translate3d(3px, 0, 0); }
+        }
+
+        /* --- Üst Barlar --- */
+        #ui-layer {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            right: 25px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-radius: 12px;
+            color: #1a1a1d;
+            font-weight: 700;
+            font-size: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-icon { font-size: 20px; }
+
+        .danger-time { color: #e74c3c !important; animation: pulse 0.5s infinite alternate; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        /* --- Sol Minimalist Hedef Barı --- */
+        #vertical-progress-wrapper {
+            position: absolute;
+            left: 25px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 40%;
+            width: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            z-index: 90;
+        }
+
+        #progress-fill {
+            width: 100%;
+            height: 0%;
+            background: #2ecc71;
+            border-radius: 8px;
+            transition: height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 10px rgba(46, 204, 113, 0.3);
+        }
+
+        #progress-label {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            font-weight: 700;
+            color: #ffffff;
+            white-space: nowrap;
+            opacity: 0.8;
+        }
+
+        /* --- Minimalist Menü Ekranları --- */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 10, 12, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-card {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            text-align: center;
+            max-width: 380px;
+            width: 85%;
+            transform: translateY(20px);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-height: 90vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .overlay.active .modal-card { transform: translateY(0); }
+
+        .modal-card h1 {
+            margin: 0 0 5px 0;
+            color: #1a1a1d;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .modal-card p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+
+        .onboarding-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .onboarding-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .onboarding-row span {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .onboarding-row span.good { color: #27ae60; }
+        .onboarding-row span.bad { color: #e74c3c; }
+
+        .onboarding-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .onboarding-items img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            background: #f5f5f5;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .powerups-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .powerup-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+        }
+
+        .powerup-item img {
+            width: 28px;
+            height: 28px;
+        }
+
+        .powerup-item span {
+            font-size: 10px;
+            font-weight: 700;
+            color: #555;
+            white-space: nowrap;
+        }
+
+        .coupon-wrapper {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            gap: 8px;
+            margin: 0 auto 10px auto;
+        }
+
+        .coupon-box {
+            background: #f8f9fa;
+            color: #1a1a1d;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            border: 1px solid #ddd;
+            user-select: all;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+        }
+
+        .copy-btn {
+            background: #1a1a1d;
+            border: none;
+            border-radius: 8px;
+            width: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin: 0; 
+            padding: 0;
+        }
+
+        .copy-btn:hover { background: #333; }
+        .copy-btn svg { width: 20px; height: 20px; fill: white; }
+
+        .copy-feedback {
+            color: #27ae60;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            height: 16px;
+        }
+        .copy-feedback.show { opacity: 1; }
+
+        .action-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 14px 0;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        .action-btn:hover:not(:disabled) { background: #219653; }
+        .action-btn:active:not(:disabled) { transform: scale(0.98); }
+        
+        /* Disabled buton stili (Yükleme aşaması için) */
+        .action-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* --- Oyun Objeleri --- */
+        .game-item {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: center center;
+            pointer-events: none;
+            z-index: 10;
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.3));
+        }
+
+        #basket-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 20;
+            transition: transform 0.1s ease-out; 
+            transform-origin: center bottom;
+        }
+
+        #basket-svg-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 22;
+            filter: drop-shadow(0 15px 15px rgba(0,0,0,0.4));
+            transition: filter 0.3s ease;
+        }
+
+        .magnet-glow {
+            filter: drop-shadow(0 0 15px #9b59b6) drop-shadow(0 0 30px #8e44ad) !important;
+        }
+
+        #basket-inner-items {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 21; 
+        }
+
+        #basket-inner-items img {
+            object-fit: contain;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.2));
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0) rotate(0deg); opacity: 0;}
+            100% { transform: scale(1) var(--final-rot); opacity: 1;}
+        }
+
+        .floating-text {
+            position: absolute;
+            font-weight: 800;
+            pointer-events: none;
+            z-index: 150;
+            -webkit-text-stroke: 1px white;
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 1;
+            white-space: nowrap;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+
+        /* RESPONSIVE CSS (Mobil Uyumluluk) */
+        @media (max-width: 768px) {
+            #ui-layer { top: 15px; left: 15px; right: 15px; }
+            .stat-card { padding: 6px 12px; font-size: 16px; border-radius: 10px; }
+            .stat-icon { font-size: 16px; }
+            
+            #vertical-progress-wrapper { left: 15px; height: 35%; width: 6px; }
+            #progress-label { font-size: 9px; top: -20px; }
+            
+            .modal-card { padding: 25px 20px; border-radius: 12px; width: 90%; }
+            .modal-card h1 { font-size: 22px; margin-bottom: 5px; }
+            .modal-card p { font-size: 12px; margin-bottom: 20px; }
+            
+            .onboarding-list { gap: 15px; margin-bottom: 20px; }
+            .onboarding-items img { width: 26px; height: 26px; border-radius: 6px; }
+            .powerup-item img { width: 24px; height: 24px; }
+            .powerup-item span { font-size: 9px; }
+            
+            .coupon-box { padding: 10px; font-size: 18px; }
+            .copy-btn { width: 45px; }
+            .copy-btn svg { width: 18px; height: 18px; }
+            .action-btn { padding: 12px 0; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    
+    <div id="ui-layer">
+        <div class="stat-card">
+            <span class="stat-icon">🧺</span>
+            <span id="score">0</span>
+        </div>
+        <div class="stat-card" id="timer-card">
+            <span class="stat-icon">⏱️</span>
+            <span id="timer">30</span>
+        </div>
+    </div>
+
+    <div id="vertical-progress-wrapper">
+        <div id="progress-label">HEDEF 10</div>
+        <div id="progress-fill"></div>
+    </div>
+
+    <div id="basket-wrapper">
+        <div id="basket-inner-items"></div>
+        <div id="basket-svg-container">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><defs><clipPath id="basket-body"><path d="M 80 200 L 105 345 C 115 370, 285 370, 295 345 L 320 200 Z" /></clipPath></defs><path d="M 90 200 C 90 30, 310 30, 310 200" fill="none" stroke="#8c5839" stroke-width="24" /><path d="M 90 200 C 90 30, 310 30, 310 200" fill="none" stroke="#d59a74" stroke-width="18" /><path d="M 75 200 L 102 347 C 112 374, 288 374, 298 347 L 325 200 Z" fill="#8c5839" /><path d="M 80 200 L 105 345 C 115 370, 285 370, 295 345 L 320 200 Z" fill="#c38560" /><g clip-path="url(#basket-body)" stroke="#8c5839" stroke-width="2"><path d="M -20 200 L 200 400 M 20 200 L 240 400 M 60 200 L 280 400 M 100 200 L 320 400 M 140 200 L 360 400 M 180 200 L 400 400 M 220 200 L 440 400" /><path d="M 420 200 L 200 400 M 380 200 L 160 400 M 340 200 L 120 400 M 300 200 L 80 400 M 260 200 L 40 400 M 220 200 L 0 400 M 180 200 L -40 400" /></g><rect x="48" y="198" width="304" height="44" rx="22" ry="22" fill="#8c5839" /><rect x="50" y="200" width="300" height="40" rx="20" ry="20" fill="#d29068" /><path d="M 70 206 Q 200 216 330 206" fill="none" stroke="#eab598" stroke-width="4" stroke-linecap="round" /></svg>
+        </div>
+    </div>
+
+    <div id="start-screen" class="overlay active">
+        <div class="modal-card">
+            <h1>Sepeti Doldur</h1>
+            <p>10 puana ulaş, indirim kuponunu kap!</p>
+            
+            <div class="onboarding-list">
+                <div class="onboarding-row">
+                    <span class="good">TOPLA (+1)</span>
+                    <div class="onboarding-items">
+                        <img src="https://imgvisilabsnet.azureedge.net/banner/uploaded_images/59_1086_20260415132316227.png" alt="ürün">
+                        <img src="https://imgvisilabsnet.azureedge.net/banner/uploaded_images/59_1086_20260415132405070.png" alt="ürün">
+                        <img src="https://imgvisilabsnet.azureedge.net/banner/uploaded_images/59_1086_20260415132332300.png" alt="ürün">
+                        <img src="https://imgvisilabsnet.azureedge.net/banner/uploaded_images/59_1086_20260415132649451.png" alt="ürün">
+                        <img src="https://imgvisilabsnet.azureedge.net/banner/uploaded_images/59_1086_20260415132456251.png" alt="ürün">
+                        <img src="https://imgvisilabsnet.azureedge.net/banner/uploaded_images/59_1086_20260415132429141.png" alt="ürün">
+                    </div>
+                </div>
+                
+                <div class="onboarding-row">
+                    <span class="bad">KAÇ (-1)</span>
+                    <div class="onboarding-items">
+                        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='%23555555' d='M20,26 C14,26 12,48 16,56 C18,60 24,62 32,62 C40,62 46,60 48,56 C52,48 50,26 44,26 Z'/><path fill='%23e74c3c' d='M26,22 L38,22 L36,26 L28,26 Z'/><path fill='%23555555' d='M28,22 C24,16 22,12 24,8 C26,10 28,14 32,18 C36,14 38,10 40,8 C42,12 40,16 36,22 Z'/><path fill='none' stroke='%23333333' stroke-width='2' stroke-linecap='round' d='M24,34 C26,42 24,52 24,52 M40,34 C38,42 40,52 40,52'/></svg>" alt="çöp poşeti">
+                        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='%23e55a5a' d='M32 10 C20 10 20 20 32 20 C44 20 44 10 32 10 Z'/><path fill='%23f4e6c3' d='M28 20 L36 20 L34 44 L30 44 Z'/><path fill='%23e55a5a' d='M32 54 C20 54 20 44 32 44 C44 44 44 54 32 54 Z'/><circle cx='32' cy='30' r='2' fill='%23444'/><circle cx='32' cy='34' r='2' fill='%23444'/><path fill='%236d4c41' d='M32 10 L34 4' stroke='%236d4c41' stroke-width='2'/></svg>" alt="elma çöpü">
+                        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='none' stroke='%23ddd' stroke-width='3' stroke-linecap='round' d='M10 32 L40 32'/><path fill='%23ddd' d='M40 32 L54 22 C60 32 60 32 54 42 Z'/><circle cx='48' cy='30' r='2' fill='%23333'/><path fill='%23ddd' d='M10 32 L4 24 L4 40 Z'/><path fill='none' stroke='%23ddd' stroke-width='3' stroke-linecap='round' d='M20 26 L20 38 M28 24 L28 40 M36 26 L36 38'/></svg>" alt="kılçık">
+                    </div>
+                </div>
+
+                <div class="powerups-row">
+                    <div class="powerup-item">
+                        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='%23f1c40f' d='M32 4l8.6 19.4L62 26.6 46 41.2l4.6 21.2L32 51.4l-18.6 11L18 41.2 2 26.6l21.4-3.2z'/></svg>" alt="altın">
+                        <span>ALTIN (+3)</span>
+                    </div>
+                    <div class="powerup-item">
+                        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='%233498db' d='M16 6h32v16L36 32l12 10v16H16V42l12-10L16 22V6zm8 10h16v-4H24v4zm0 32h16v-4H24v4z'/></svg>" alt="süre">
+                        <span>ZAMAN (+5s)</span>
+                    </div>
+                    <div class="powerup-item">
+                        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='%23e74c3c' d='M32 10C19.8 10 10 19.8 10 32v22h14V32c0-4.4 3.6-8 8-8s8 3.6 8 8v22h14V32C54 19.8 44.2 10 32 10z'/><rect x='10' y='44' width='14' height='10' fill='%23bdc3c7'/><rect x='40' y='44' width='14' height='10' fill='%23bdc3c7'/></svg>" alt="mıknatıs">
+                        <span>MIKNATIS (5s)</span>
+                    </div>
+                </div>
+            </div>
+
+            <button id="start-btn" class="action-btn" onclick="startGame()" disabled>YÜKLENİYOR...</button>
+        </div>
+    </div>
+
+    <div id="game-over" class="overlay">
+        <div class="modal-card">
+            <h1 id="game-over-title">Süre Bitti!</h1>
+            <p id="game-over-text" style="margin-bottom: 5px;">Puanın:</p>
+            <h1 style="font-size: 56px; color: #27ae60; margin: 10px 0 20px 0; line-height: 1;" id="final-score">0</h1>
+            
+            <div id="coupon-container" class="hidden">
+                <div class="coupon-wrapper">
+                    <div class="coupon-box" id="coupon-code">CATCH20</div>
+                    <button class="copy-btn" onclick="copyCouponCode()" title="Kodu Kopyala">
+                        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                    </button>
+                </div>
+                <div class="copy-feedback" id="copy-feedback">Kopyalandı!</div>
+            </div>
+
+            <button class="action-btn" onclick="startGame()">TEKRAR DENE</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+const productImgs = [
+    "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/59_1086_20260415132316227.png",
+    "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/59_1086_20260415132405070.png",
+    "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/59_1086_20260415132332300.png",
+    "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/59_1086_20260415132649451.png",
+    "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/59_1086_20260415132456251.png",
+    "https://imgvisilabsnet.azureedge.net/banner/uploaded_images/59_1086_20260415132429141.png"
+];
+
+const svgTrashBag = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='%23555555' d='M20,26 C14,26 12,48 16,56 C18,60 24,62 32,62 C40,62 46,60 48,56 C52,48 50,26 44,26 Z'/><path fill='%23e74c3c' d='M26,22 L38,22 L36,26 L28,26 Z'/><path fill='%23555555' d='M28,22 C24,16 22,12 24,8 C26,10 28,14 32,18 C36,14 38,10 40,8 C42,12 40,16 36,22 Z'/><path fill='none' stroke='%23333333' stroke-width='2' stroke-linecap='round' d='M24,34 C26,42 24,52 24,52 M40,34 C38,42 40,52 40,52'/></svg>";
+const svgAppleCore = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='%23e55a5a' d='M32 10 C20 10 20 20 32 20 C44 20 44 10 32 10 Z'/><path fill='%23f4e6c3' d='M28 20 L36 20 L34 44 L30 44 Z'/><path fill='%23e55a5a' d='M32 54 C20 54 20 44 32 44 C44 44 44 54 32 54 Z'/><circle cx='32' cy='30' r='2' fill='%23444'/><circle cx='32' cy='34' r='2' fill='%23444'/><path fill='%236d4c41' d='M32 10 L34 4' stroke='%236d4c41' stroke-width='2'/></svg>";
+const svgFishBone = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='none' stroke='%23ddd' stroke-width='3' stroke-linecap='round' d='M10 32 L40 32'/><path fill='%23ddd' d='M40 32 L54 22 C60 32 60 32 54 42 Z'/><circle cx='48' cy='30' r='2' fill='%23333'/><path fill='%23ddd' d='M10 32 L4 24 L4 40 Z'/><path fill='none' stroke='%23ddd' stroke-width='3' stroke-linecap='round' d='M20 26 L20 38 M28 24 L28 40 M36 26 L36 38'/></svg>";
+const trashImgs = [svgTrashBag, svgAppleCore, svgFishBone];
+
+const svgGold = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='%23f1c40f' d='M32 4l8.6 19.4L62 26.6 46 41.2l4.6 21.2L32 51.4l-18.6 11L18 41.2 2 26.6l21.4-3.2z'/></svg>";
+const svgHourglass = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='%233498db' d='M16 6h32v16L36 32l12 10v16H16V42l12-10L16 22V6zm8 10h16v-4H24v4zm0 32h16v-4H24v4z'/></svg>";
+const svgMagnet = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='%23e74c3c' d='M32 10C19.8 10 10 19.8 10 32v22h14V32c0-4.4 3.6-8 8-8s8 3.6 8 8v22h14V32C54 19.8 44.2 10 32 10z'/><rect x='10' y='44' width='14' height='10' fill='%23bdc3c7'/><rect x='40' y='44' width='14' height='10' fill='%23bdc3c7'/></svg>";
+
+const allImagesToPreload = [
+    ...productImgs,
+    ...trashImgs,
+    svgGold, svgHourglass, svgMagnet
+];
+
+
+let loadedImages = 0;
+function preloadAssets(callback) {
+    const total = allImagesToPreload.length;
+    if(total === 0) { callback(); return; }
+
+    allImagesToPreload.forEach(src => {
+        const img = new Image();
+        img.onload = img.onerror = () => {
+            loadedImages++;
+            if(loadedImages === total) {
+                callback();
+            }
+        };
+        img.src = src;
+    });
+}
+
+
+window.addEventListener('load', () => {
+    preloadAssets(() => {
+        const startBtn = document.getElementById('start-btn');
+        startBtn.innerText = "OYUNA BAŞLA";
+        startBtn.disabled = false;
+    });
+});
+
+
+
+let baseScale = 1;
+if (window.innerWidth <= 480) baseScale = 0.65;
+else if (window.innerWidth <= 768) baseScale = 0.85;
+
+const ITEM_SIZE = 65 * baseScale;
+const ITEM_RADIUS = 30 * baseScale;
+const BASKET_SIZE = 180 * baseScale;
+const BASKET_Y_OFFSET = 120 * baseScale;
+
+
+const basketWrapper = document.getElementById('basket-wrapper');
+basketWrapper.style.width = BASKET_SIZE + 'px';
+basketWrapper.style.height = BASKET_SIZE + 'px';
+basketWrapper.style.marginLeft = -(BASKET_SIZE / 2) + 'px';
+basketWrapper.style.marginTop = -(BASKET_SIZE / 2) + 'px';
+
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playTone(freq, type, duration, vol=0.1) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+}
+
+function playSound(type) {
+    switch(type) {
+        case 'good':
+            playTone(600, 'sine', 0.1, 0.1);
+            setTimeout(() => playTone(800, 'sine', 0.15, 0.1), 50);
+            break;
+        case 'bad':
+            playTone(300, 'sawtooth', 0.3, 0.1);
+            setTimeout(() => playTone(200, 'sawtooth', 0.3, 0.1), 100);
+            break;
+        case 'gold':
+            playTone(800, 'sine', 0.1, 0.1);
+            setTimeout(() => playTone(1200, 'sine', 0.2, 0.15), 100);
+            break;
+        case 'powerup':
+            playTone(400, 'square', 0.1, 0.05);
+            setTimeout(() => playTone(600, 'square', 0.1, 0.05), 100);
+            setTimeout(() => playTone(800, 'square', 0.2, 0.05), 200);
+            break;
+        case 'win':
+            playTone(523.25, 'sine', 0.2, 0.1); 
+            setTimeout(() => playTone(659.25, 'sine', 0.2, 0.1), 150); 
+            setTimeout(() => playTone(783.99, 'sine', 0.4, 0.1), 300); 
+            setTimeout(() => playTone(1046.50, 'sine', 0.6, 0.15), 450); 
+            break;
+        case 'lose':
+            playTone(400, 'sawtooth', 0.3, 0.1);
+            setTimeout(() => playTone(350, 'sawtooth', 0.3, 0.1), 250);
+            setTimeout(() => playTone(300, 'sawtooth', 0.5, 0.1), 500);
+            break;
+    }
+}
+
+
+function triggerConfetti() {
+    var duration = 3000;
+    var animationEnd = Date.now() + duration;
+    var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 300 };
+
+    function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+
+    var interval = setInterval(function() {
+        var timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) return clearInterval(interval);
+        
+        var particleCount = 50 * (timeLeft / duration);
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+    }, 250);
+}
+
+
+let score = 0;
+const targetScore = 10;
+let timeLeft = 30;
+let gameActive = false;
+let isMagnetActive = false;
+let magnetTimeout = null;
+
+let caughtUniqueItems = new Set();
+let spawnIntervalTimer;
+let countdownTimer;
+
+let pointerX = window.innerWidth / 2;
+let basketTargetX = window.innerWidth / 2;
+let basketCurrentX = window.innerWidth / 2;
+let basketCurrentY = window.innerHeight - BASKET_Y_OFFSET; 
+
+const Engine = Matter.Engine,
+      Bodies = Matter.Bodies,
+      Composite = Matter.Composite,
+      Events = Matter.Events,
+      Body = Matter.Body;
+
+const engine = Engine.create({ positionIterations: 10, velocityIterations: 10 });
+engine.world.gravity.y = 0.65;
+
+const BASKET_BOTTOM_W = 110 * baseScale;
+const BASKET_WALL_H = 100 * baseScale;
+const BASKET_WALL_OFFSET_X = 65 * baseScale;
+const BASKET_WALL_OFFSET_Y = 35 * baseScale;
+const BASKET_BOTTOM_OFFSET_Y = 95 * baseScale;
+
+const basketBottom = Bodies.rectangle(0, 0, BASKET_BOTTOM_W, 40, { isStatic: true, label: 'basket_bottom', friction: 1 });
+const basketLeft = Bodies.rectangle(0, 0, 40, BASKET_WALL_H, { isStatic: true, angle: -0.3, label: 'basket_wall', friction: 0 });
+const basketRight = Bodies.rectangle(0, 0, 40, BASKET_WALL_H, { isStatic: true, angle: 0.3, label: 'basket_wall', friction: 0 });
+Composite.add(engine.world, [basketBottom, basketLeft, basketRight]);
+
+let activeItems = [];
+
+const gameContainer = document.getElementById('game-container');
+const basketInnerItems = document.getElementById('basket-inner-items');
+const basketSvgContainer = document.getElementById('basket-svg-container');
+const timerCard = document.getElementById('timer-card');
+const scoreText = document.getElementById('score');
+const progressFill = document.getElementById('progress-fill');
+
+basketWrapper.style.transform = `translate(${basketCurrentX}px, ${basketCurrentY}px)`;
+
+const basketStackPositions = [
+    { x: 35, y: 70, z: 30 }, { x: 67.5, y: 75, z: 30 }, { x: 100, y: 70, z: 30 },
+    { x: 50, y: 55, z: 20 }, { x: 85, y: 55, z: 20 }, { x: 67.5, y: 35, z: 10 }
+];
+
+window.addEventListener('mousemove', (e) => { pointerX = e.clientX; });
+window.addEventListener('touchmove', (e) => { pointerX = e.touches[0].clientX; });
+window.addEventListener('resize', () => { basketCurrentY = window.innerHeight - BASKET_Y_OFFSET; });
+
+Events.on(engine, 'collisionStart', function(event) {
+    event.pairs.forEach((pair) => {
+        let bodyA = pair.bodyA;
+        let bodyB = pair.bodyB;
+
+        if (bodyA.label === 'basket_bottom' || bodyB.label === 'basket_bottom') {
+            let itemBody = bodyA.label === 'basket_bottom' ? bodyB : bodyA;
+            
+            if (!itemBody.isCaught && itemBody.label === 'item') {
+                let itemX = itemBody.position.x;
+                if (itemX > basketCurrentX - (55 * baseScale) && itemX < basketCurrentX + (55 * baseScale)) {
+                    
+                    itemBody.isCaught = true;
+                    
+                    if (itemBody.itemType === 'bad') {
+                        playSound('bad');
+                        updateScore(-1, itemBody.position.x, itemBody.position.y);
+                        triggerScreenShake(); 
+                    } else if (itemBody.itemType === 'time') {
+                        playSound('powerup');
+                        timeLeft += 5;
+                        document.getElementById('timer').innerText = timeLeft;
+                        showFloatingText("+5s", "#3498db", itemBody.position.x, itemBody.position.y);
+                    } else if (itemBody.itemType === 'magnet') {
+                        playSound('powerup');
+                        activateMagnet();
+                        showFloatingText("MIKNATIS!", "#9b59b6", itemBody.position.x, itemBody.position.y);
+                    } else if (itemBody.itemType === 'gold') {
+                        playSound('gold');
+                        updateScore(3, itemBody.position.x, itemBody.position.y);
+                        showFloatingText("+3", "#f1c40f", itemBody.position.x, itemBody.position.y);
+                    } else {
+                        playSound('good');
+                        updateScore(1, itemBody.position.x, itemBody.position.y);
+                        
+                        if (!caughtUniqueItems.has(itemBody.imgSrc)) {
+                            let currentItemIndex = caughtUniqueItems.size;
+                            caughtUniqueItems.add(itemBody.imgSrc);
+                            
+                            let staticImg = document.createElement('img');
+                            staticImg.src = itemBody.imgSrc;
+                            staticImg.style.position = 'absolute';
+                            staticImg.style.width = (45 * baseScale) + 'px';
+                            staticImg.style.height = (45 * baseScale) + 'px';
+                            
+                            let stackPos = basketStackPositions[Math.min(currentItemIndex, 5)];
+                            staticImg.style.left = (stackPos.x * baseScale) + 'px';
+                            staticImg.style.top = (stackPos.y * baseScale) + 'px';
+                            staticImg.style.zIndex = stackPos.z;
+                            staticImg.style.setProperty('--final-rot', `rotate(${(Math.random() * 40) - 20}deg)`);
+                            
+                            basketInnerItems.appendChild(staticImg);
+                        }
+                    }
+                    removeItem(itemBody); 
+                }
+            }
+        }
+    });
+});
+
+function activateMagnet() {
+    isMagnetActive = true;
+    basketSvgContainer.classList.add('magnet-glow');
+    
+    if (magnetTimeout) clearTimeout(magnetTimeout);
+    
+    magnetTimeout = setTimeout(() => {
+        isMagnetActive = false;
+        basketSvgContainer.classList.remove('magnet-glow');
+    }, 5000); 
+}
+
+function triggerScreenShake() {
+    gameContainer.classList.add('shake');
+    setTimeout(() => { gameContainer.classList.remove('shake'); }, 250);
+}
+
+function removeItem(bodyToRemove) {
+    let index = activeItems.findIndex(i => i.body.id === bodyToRemove.id);
+    if (index > -1) {
+        activeItems[index].element.remove(); 
+        Composite.remove(engine.world, bodyToRemove); 
+        activeItems.splice(index, 1);
+    }
+}
+
+function spawnItem() {
+    if (!gameActive) return;
+
+    let x = Math.random() * (window.innerWidth - 100) + 50;
+    
+    let rand = Math.random();
+    let itemType = 'good';
+    let src = productImgs[Math.floor(Math.random() * productImgs.length)];
+
+    if (rand < 0.15) {
+        itemType = 'bad';
+        src = trashImgs[Math.floor(Math.random() * trashImgs.length)];
+    } else if (rand < 0.20) {
+        itemType = 'time';
+        src = svgHourglass;
+    } else if (rand < 0.25) {
+        itemType = 'magnet';
+        src = svgMagnet;
+    } else if (rand < 0.35) {
+        itemType = 'gold';
+        src = svgGold;
+    }
+
+    let img = document.createElement('img');
+    img.src = src;
+    img.className = 'game-item';
+    img.style.width = ITEM_SIZE + 'px';
+    img.style.height = ITEM_SIZE + 'px';
+    gameContainer.appendChild(img);
+
+    let body = Bodies.circle(x, -50, ITEM_RADIUS, { 
+        restitution: 0.3, friction: 0.5, frictionAir: 0.012, density: 0.05, label: 'item' 
+    });
+    
+    body.itemType = itemType;
+    body.imgSrc = src;
+
+    Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.1);
+    Composite.add(engine.world, body);
+    activeItems.push({ body: body, element: img });
+}
+
+function showFloatingText(text, color, x, y) {
+    let floatText = document.createElement('div');
+    floatText.className = 'floating-text';
+    floatText.innerText = text;
+    floatText.style.color = color;
+    floatText.style.fontSize = (32 * baseScale) + 'px';
+    floatText.style.left = `${x - 20}px`;
+    floatText.style.top = `${y - 50}px`;
+    gameContainer.appendChild(floatText);
+
+    setTimeout(() => {
+        floatText.style.top = `${y - 120}px`;
+        floatText.style.opacity = '0';
+        floatText.style.transform = 'scale(1.3)';
+    }, 50);
+
+    setTimeout(() => floatText.remove(), 850);
+}
+
+function updateScore(points, x, y) {
+    score += points;
+    if (score < 0) score = 0;
+    
+    scoreText.innerText = score;
+    scoreText.parentElement.style.transform = "scale(1.1)";
+    setTimeout(() => scoreText.parentElement.style.transform = "scale(1)", 150);
+    
+    if (points === 1 || points === -1) {
+        let color = points > 0 ? '#27ae60' : '#e74c3c';
+        showFloatingText(points > 0 ? `+${points}` : points, color, x, y);
+    }
+
+    let progressPercentage = Math.min((score / targetScore) * 100, 100);
+    progressFill.style.height = `${progressPercentage}%`;
+}
+
+function gameLoop() {
+    if (gameActive) {
+        Engine.update(engine, 1000 / 60);
+
+        basketTargetX = Math.max(90 * baseScale, Math.min(pointerX, window.innerWidth - (90 * baseScale)));
+        let velocityX = basketTargetX - basketCurrentX;
+        basketCurrentX += velocityX * 0.4; 
+
+        let tiltAngle = velocityX * 0.15; 
+        tiltAngle = Math.max(-15, Math.min(tiltAngle, 15)); 
+
+        basketWrapper.style.transform = `translate(${basketCurrentX}px, ${basketCurrentY}px) rotate(${tiltAngle}deg)`;
+
+        Body.setPosition(basketBottom, { x: basketCurrentX, y: basketCurrentY + BASKET_BOTTOM_OFFSET_Y });
+        Body.setPosition(basketLeft, { x: basketCurrentX - BASKET_WALL_OFFSET_X, y: basketCurrentY + BASKET_WALL_OFFSET_Y });
+        Body.setPosition(basketRight, { x: basketCurrentX + BASKET_WALL_OFFSET_X, y: basketCurrentY + BASKET_WALL_OFFSET_Y });
+
+        for (let i = activeItems.length - 1; i >= 0; i--) {
+            let item = activeItems[i];
+            
+            if (isMagnetActive && (item.body.itemType === 'good' || item.body.itemType === 'gold')) {
+                let targetX = basketCurrentX;
+                let targetY = basketCurrentY + (80 * baseScale);
+                
+                let dx = targetX - item.body.position.x;
+                let dy = targetY - item.body.position.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (dist < (800 * baseScale) && dist > 0) { 
+                    let forceMagnitude = (dist < (200 * baseScale)) ? 0.0006 : 0.0015; 
+                    let forceX = (dx / dist) * forceMagnitude * item.body.mass;
+                    let forceY = (dy / dist) * forceMagnitude * item.body.mass; 
+                    
+                    Body.applyForce(item.body, item.body.position, { x: forceX, y: forceY });
+                }
+            }
+
+            item.element.style.transform = `translate(${item.body.position.x - ITEM_SIZE / 2}px, ${item.body.position.y - ITEM_SIZE / 2}px) rotate(${item.body.angle}rad)`;
+
+            if (item.body.position.y > window.innerHeight + 100) {
+                removeItem(item.body);
+            }
+        }
+    }
+    requestAnimationFrame(gameLoop);
+}
+
+requestAnimationFrame(gameLoop);
+
+function copyCouponCode() {
+    const code = document.getElementById('coupon-code').innerText;
+    navigator.clipboard.writeText(code).then(() => {
+        const feedback = document.getElementById('copy-feedback');
+        feedback.classList.add('show');
+        setTimeout(() => feedback.classList.remove('show'), 2000);
+    });
+}
+
+function startGame() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    document.getElementById('start-screen').classList.remove('active');
+    document.getElementById('game-over').classList.remove('active');
+    document.getElementById('coupon-container').classList.add('hidden');
+    document.getElementById('copy-feedback').classList.remove('show');
+    
+    basketInnerItems.innerHTML = '';
+    caughtUniqueItems.clear();
+    [...activeItems].forEach(item => removeItem(item.body));
+    timerCard.classList.remove('danger-time');
+    basketSvgContainer.classList.remove('magnet-glow');
+
+    score = 0;
+    timeLeft = 30;
+    isMagnetActive = false;
+    if (magnetTimeout) clearTimeout(magnetTimeout);
+    
+    scoreText.innerText = score;
+    document.getElementById('timer').innerText = timeLeft;
+    progressFill.style.height = '0%';
+    
+    gameActive = true;
+    spawnIntervalTimer = setInterval(spawnItem, 750); 
+
+    countdownTimer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').innerText = timeLeft;
+        
+        if (timeLeft <= 5 && timeLeft > 0) {
+            timerCard.classList.add('danger-time');
+            playTone(1000, 'sine', 0.1, 0.05); 
+        }
+        if (timeLeft <= 0) endGame();
+    }, 1000);
+}
+
+function endGame() {
+    gameActive = false;
+    clearInterval(spawnIntervalTimer);
+    clearInterval(countdownTimer);
+    
+    document.getElementById('final-score').innerText = score;
+    const gameOverTitle = document.getElementById('game-over-title');
+    const gameOverText = document.getElementById('game-over-text');
+    const couponContainer = document.getElementById('coupon-container');
+
+    if (score >= targetScore) { 
+        playSound('win');
+        triggerConfetti();
+        gameOverTitle.innerText = "Tebrikler!";
+        gameOverText.innerText = `Hedefi başarıyla geçtin ve kuponu kaptın!`;
+        document.getElementById('coupon-code').innerText = "CATCH20"; 
+        couponContainer.classList.remove('hidden');
+    } else {
+        playSound('lose');
+        gameOverTitle.innerText = "Süre Bitti!";
+        gameOverText.innerText = `10 puana ulaşamadın. Tekrar dene!`;
+        couponContainer.classList.add('hidden');
+    }
+
+    document.getElementById('game-over').classList.add('active');
+    timerCard.classList.remove('danger-time');
+}
+</script>
+
+</body>
+</html>
