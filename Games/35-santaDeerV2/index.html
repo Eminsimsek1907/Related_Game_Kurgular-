@@ -143,6 +143,14 @@
       el.innerHTML = `<div class="gift-box">${getBoxSVG(palette)}</div><div class="gift-lid">${getLidSVG(palette)}</div>`;
       game.appendChild(el);
 
+      
+      gsap.from(el, {
+        scale: 0.2,
+        opacity: 0,
+        duration: 0.5,
+        ease: "back.out(1.7)"
+      });
+
       gifts.push({ body, el });
 
       el.addEventListener("click", () => {
@@ -236,9 +244,9 @@
         const { body, el } = gift;
         if (!el.classList.contains("opened")) {
           const offset = giftSize / 2;
-          el.style.left = (body.position.x - offset) + "px"; 
-          el.style.top = (body.position.y - offset) + "px";
-          el.style.transform = `rotate(${body.angle}rad)`;
+          
+          
+          gsap.set(el, { x: body.position.x - offset, y: body.position.y - offset, rotation: body.angle * (180 / Math.PI) });
         }
       });
       requestAnimationFrame(update);
