@@ -162,7 +162,11 @@
       onUpdate: function() {
         if (Math.random() > 0.4) {
           const rect = document.getElementById("santa").getBoundingClientRect();
-          spawnMagicDust(rect.right - 40 - Math.random() * 60, rect.bottom - 40 - Math.random() * 40);
+          
+          const offsetX = isMobile ? (10 + Math.random() * 20) : (40 + Math.random() * 60);
+          const offsetY = isMobile ? (25 + Math.random() * 20) : (40 + Math.random() * 40);
+          
+          spawnMagicDust(rect.right - offsetX, rect.bottom - offsetY);
         }
       }
     });
