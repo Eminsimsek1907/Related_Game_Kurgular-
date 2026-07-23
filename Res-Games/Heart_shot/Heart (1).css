@@ -1,0 +1,118 @@
+/* Kalp Vurma — RMC Gamification (REVİZE: ok atarak vurma) */
+:root{ --ink:#3A1128; --dim:#9C7386; --pink:#F2557E; --pink2:#D62D5C; --gold:#FFD166; --ok:#27AE60;
+  --font:'Inter',system-ui,sans-serif; }
+*{ box-sizing:border-box; }
+html, body{ overscroll-behavior:none; }
+.hv-root{ font-family:var(--font); min-height:100vh; width:100%; margin:0; display:flex; align-items:center; justify-content:center; background:#FEF3F6; }
+.hv-wrap{ position:relative; width:100%; max-width:900px; padding:16px 16px 22px; display:flex; flex-direction:column; }
+
+.hv-campaign{ text-align:center; margin-bottom:11px; }
+.hv-title{ font-weight:800; font-size:30px; line-height:1.06;
+  background:linear-gradient(92deg,#C42B5C,#F2557E 50%,#FFA36B); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.hv-pill{ display:inline-block; margin-top:9px; font-size:11.5px; font-weight:700; color:#C42B5C;
+  background:#FDE7ED; border:1px solid rgba(242,85,126,0.3); border-radius:999px; padding:8px 15px; }
+.hv-pill b{ color:#8E1A3D; }
+
+.hv-box{ position:relative; }
+.hv-area{ position:relative; width:100%; aspect-ratio:900/640; border-radius:20px; overflow:hidden;
+  touch-action:none; user-select:none; cursor:crosshair;
+  background:radial-gradient(120% 100% at 50% 100%, #6E1E45 0%, #47143A 45%, #2A0B26 100%);
+  box-shadow:0 18px 44px rgba(42,11,38,0.36), inset 0 0 0 2px rgba(242,85,126,0.28); }
+.hv-stage{ position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform; }
+
+.hv-heart{ position:absolute; width:64px; height:64px; display:flex; align-items:center; justify-content:center;
+  font-size:50px; line-height:1; filter:drop-shadow(0 4px 12px rgba(255,90,130,0.55));
+  animation:hv-float 1.6s ease-in-out infinite; }
+.hv-heart.bad{ filter:drop-shadow(0 4px 12px rgba(60,60,70,0.7)); }
+@keyframes hv-float{ 0%,100%{ transform:rotate(-6deg) } 50%{ transform:rotate(6deg) } }
+
+
+
+.hv-base{ position:absolute; left:0; right:0; bottom:0; height:44px;
+  background:linear-gradient(180deg, rgba(255,150,190,0.22), rgba(42,11,38,0.9));
+  border-top:2px solid rgba(242,85,126,0.4); }
+
+.hv-pop{ position:absolute; width:60px; text-align:center; font-weight:800; font-size:20px; color:var(--gold);
+  text-shadow:0 3px 10px rgba(0,0,0,0.55); pointer-events:none; z-index:7;
+  animation:hv-up .65s ease-out both; }
+.hv-pop.bad{ color:#FF8A8A; }
+.hv-pop.miss{ color:#B9A6B4; font-size:15px; }
+@keyframes hv-up{ 0%{ transform:translateY(0) scale(.7); opacity:0 } 25%{ opacity:1; transform:translateY(-8px) scale(1.1) }
+  100%{ transform:translateY(-40px) scale(1); opacity:0 } }
+
+.hv-hud{ position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between;
+  padding:12px 15px; z-index:8; pointer-events:none;
+  background:linear-gradient(180deg, rgba(42,11,38,0.6), rgba(42,11,38,0)); }
+.hv-stat b{ display:block; font-size:27px; font-weight:800; color:#fff; line-height:1; }
+.hv-stat span{ display:block; font-size:9px; font-weight:800; letter-spacing:1.6px; color:#E0AFC4; margin-top:3px; }
+.hv-combo{ font-size:12px; font-weight:800; color:#3A1128; background:linear-gradient(180deg,#FFE07A,#FFB84D);
+  padding:6px 11px; border-radius:999px; animation:hv-cb .5s ease-in-out infinite alternate; }
+@keyframes hv-cb{ 0%{ transform:scale(1) } 100%{ transform:scale(1.07) } }
+.hv-time{ font-weight:800; font-size:14px; color:#FFE6EE; background:rgba(42,11,38,0.6);
+  border:1px solid rgba(242,85,126,0.4); padding:6px 12px; border-radius:999px; min-width:66px; text-align:center; }
+.hv-time.low{ color:#FFB3B3; border-color:rgba(255,140,140,0.6); animation:hv-tick .4s ease-in-out infinite; }
+@keyframes hv-tick{ 0%,100%{ transform:scale(1) } 50%{ transform:scale(1.11) } }
+
+.hv-hint{ position:absolute; top:62px; left:50%; transform:translateX(-50%); z-index:6; pointer-events:none;
+  font-size:12px; font-weight:700; color:#E7C3D3; white-space:nowrap; }
+.hv-nudge{ position:absolute; bottom:12px; left:14px; z-index:6; pointer-events:none;
+  font-size:11.5px; font-weight:700; color:#fff; background:rgba(42,11,38,0.75);
+  border:1px solid rgba(242,85,126,0.4); padding:7px 13px; border-radius:999px; white-space:nowrap; }
+.hv-nudge b{ color:var(--gold); }
+
+.hv-overlay{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:14px; z-index:20;
+  background:rgba(42,11,38,0.8); border-radius:20px; }
+.hv-modal{ position:relative; width:min(390px,96%); background:#fff; border-radius:20px; padding:22px 20px 16px; text-align:center;
+  box-shadow:0 26px 60px rgba(42,11,38,0.5); border-top:6px solid var(--pink); animation:hv-mi .3s cubic-bezier(.34,1.5,.6,1) both; }
+@keyframes hv-mi{ 0%{ transform:scale(.9); opacity:0 } 100%{ transform:scale(1); opacity:1 } }
+.hv-emoji{ font-size:40px; }
+.hv-modal-title{ font-weight:800; font-size:20px; color:var(--ink); }
+.hv-modal-title.win{ color:var(--ok); }
+.hv-modal-body{ font-size:13px; color:var(--dim); font-weight:600; line-height:1.55; margin:9px 2px 14px; }
+.hv-modal-body b{ color:var(--ink); }
+.hv-tiers{ display:flex; gap:8px; margin-bottom:14px; }
+.hv-tier{ flex:1; background:#FDF5F7; border:1px solid #F6E1E8; border-radius:12px; padding:8px 5px; }
+.hv-tier b{ display:block; font-size:12px; color:var(--ink); }
+.hv-tier span{ display:block; font-size:11px; color:var(--dim); font-weight:700; margin-top:2px; }
+.hv-tier.hot{ background:linear-gradient(180deg,#FDE7ED,#FBCEDA); border-color:var(--pink); }
+.hv-tier.hot b, .hv-tier.hot span{ color:#8E1A3D; }
+.hv-btn{ display:block; width:100%; font-weight:800; font-size:15px; color:#fff; padding:14px; border:none; border-radius:12px; cursor:pointer;
+  background:linear-gradient(180deg,#F86D92,#D62D5C); box-shadow:0 10px 22px rgba(214,45,92,0.4); font-family:var(--font); }
+.hv-btn:active{ transform:scale(.98); }
+.hv-replay{ display:block; width:100%; margin-top:9px; background:none; border:none; color:var(--pink); font-weight:700; font-size:13px; cursor:pointer; }
+.hv-fine{ font-size:11.5px; color:var(--dim); margin:9px 0; }
+.hv-x{ position:absolute; top:12px; right:14px; width:28px; height:28px; border-radius:50%; border:none; background:#FAF1F4; color:var(--dim); font-size:13px; cursor:pointer; }
+.hv-coupon{ display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer;
+  background:#FFF7F9; border:1.5px dashed var(--pink); border-radius:12px; padding:13px 14px; }
+.hv-code{ font-weight:800; font-size:18px; color:var(--pink2); letter-spacing:1.5px; }
+.hv-copy{ font-size:11px; font-weight:800; color:#fff; background:var(--pink); padding:7px 13px; border-radius:999px; white-space:nowrap; }
+
+@media (max-width:640px){
+  .hv-title{ font-size:21px; }
+  .hv-pill{ font-size:10.5px; padding:7px 12px; }
+  .hv-stat b{ font-size:22px; }
+  .hv-time{ font-size:12px; min-width:58px; }
+  .hv-combo{ font-size:10.5px; padding:5px 9px; }
+  .hv-hint{ font-size:10px; bottom:40px; }
+  .hv-nudge{ font-size:10.5px; }
+}
+
+/* ===== REVİZE 2: gösterge yok — süpüren yay + uçan ok ===== */
+.hv-arrow{ position:absolute; width:44px; height:8px; z-index:5; pointer-events:none; transform-origin:50% 50%; }
+.hv-arrow i{ position:absolute; left:0; top:0; width:44px; height:8px; border-radius:4px;
+  background:linear-gradient(90deg, rgba(255,209,102,0.1), #FFD166 45%, #FFF3D0);
+  box-shadow:0 0 10px rgba(255,209,102,0.85);
+  clip-path:polygon(0% 42%, 74% 42%, 74% 0%, 100% 50%, 74% 100%, 74% 58%, 0% 58%);
+  transform:rotate(-90deg); }
+
+.hv-bow{ position:absolute; width:88px; height:88px; z-index:6; transform-origin:50% 50%;
+  display:flex; align-items:center; justify-content:center; }
+.hv-bow .hv-bowimg{ transition:filter .12s, transform .12s; }
+.hv-bow.draw .hv-bowimg{ filter:drop-shadow(0 0 14px rgba(255,209,102,0.9)) drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+  transform:rotate(-45deg) scale(1.08); }
+.hv-bowimg{ font-size:60px; line-height:1; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+  transform:rotate(-45deg); }
+@media (max-width:640px){
+  .hv-title{ font-size:21px; }
+  /* .hv-bowimg mobilde EZİLMEZ: yay ölçeklenen dünyanın içinde, tek scale(k) yeter (mobil = PC) */
+}

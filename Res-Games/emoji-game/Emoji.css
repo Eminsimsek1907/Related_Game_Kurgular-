@@ -1,0 +1,86 @@
+/* ================================================================
+   Emoji ile Şarkı Bul — RMC Gamification
+   Koyu lacivert/mor kart, mor-mavi vurgu. Mobil = PC.
+   ================================================================ */
+:root{
+  --bg:#0E1330; --bg-2:#1A1F4D; --violet:#6C63FF; --violet-2:#8E86FF; --cyan:#4FD1FF;
+  --ink:#1B2140; --dim:#7E86A8; --white:#fff; --font:'Inter',system-ui,sans-serif;
+}
+*{ box-sizing:border-box; }
+.em-root{ font-family:var(--font); min-height:100vh; width:100%; margin:0; display:flex; align-items:center; justify-content:center; background:#F5F6FC; }
+.em-wrap{ position:relative; width:100%; max-width:520px; padding:20px 18px 26px; display:flex; flex-direction:column; }
+
+.em-campaign{ text-align:center; margin-bottom:14px; }
+.em-title{ font-weight:800; font-size:29px; line-height:1.05;
+  background:linear-gradient(92deg,#5A50E0,#6C63FF 50%,#4FD1FF);
+  -webkit-background-clip:text; background-clip:text; color:transparent; }
+.em-pill{ display:inline-block; margin-top:10px; font-size:12.5px; font-weight:700; color:#3F3AA8;
+  background:#EDECFF; border:1px solid rgba(108,99,255,0.35); border-radius:999px; padding:8px 16px; }
+.em-pill b{ color:#2C2790; }
+
+.em-panel{ position:relative; border-radius:20px; padding:22px 20px 20px; text-align:center; color:#EDEFFA;
+  background:radial-gradient(120% 100% at 50% 0%, #232A63 0%, #141A40 55%, #0C1130 100%);
+  box-shadow:0 20px 48px rgba(14,19,48,0.35), inset 0 0 0 1px rgba(108,99,255,0.3); }
+
+/* Oyun */
+.em-hud{ display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; color:#A6ADD6; }
+.em-score b{ color:#fff; }
+.em-dots{ display:flex; gap:6px; justify-content:center; margin:10px 0 4px; }
+.em-dot{ width:26px; height:5px; border-radius:999px; background:rgba(255,255,255,0.16); }
+.em-dot.done{ background:var(--cyan); }
+.em-dot.on{ background:var(--violet-2); }
+
+.em-stage{ display:flex; gap:14px; justify-content:center; align-items:center; margin:18px 0 16px;
+  background:rgba(255,255,255,0.06); border:1px solid rgba(108,99,255,0.28); border-radius:16px; padding:22px 12px; }
+.em-big{ font-size:52px; line-height:1; animation:em-pop .45s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes em-pop{ 0%{ transform:scale(.4); opacity:0 } 100%{ transform:scale(1); opacity:1 } }
+
+.em-hint{ font-size:12px; font-weight:700; color:#F2C94C; margin-bottom:10px; }
+
+.em-input{ width:100%; font-family:var(--font); font-size:15px; font-weight:600; color:#fff; padding:14px 16px;
+  border-radius:12px; border:1.5px solid rgba(108,99,255,0.55); background:rgba(255,255,255,0.07); outline:none; margin-bottom:10px; }
+.em-input::placeholder{ color:#8189B5; }
+.em-input:focus{ border-color:var(--violet-2); box-shadow:0 0 0 3px rgba(108,99,255,0.22); }
+.em-input:disabled{ opacity:.6; }
+
+.em-btn{ display:block; width:100%; font-weight:800; font-size:15px; color:#fff; padding:14px; border:none; border-radius:12px; cursor:pointer;
+  background:linear-gradient(180deg,#7A72FF,#5B52E8); box-shadow:0 10px 22px rgba(91,82,232,0.45); transition:transform .08s; }
+.em-btn:active{ transform:scale(.98); }
+.em-btn:disabled{ opacity:.6; cursor:default; }
+
+.em-sub{ display:flex; justify-content:space-between; margin-top:10px; }
+.em-link{ background:none; border:none; color:#9AA2CF; font-size:12px; font-weight:700; cursor:pointer; padding:4px; }
+.em-link:disabled{ opacity:.4; cursor:default; }
+
+.em-feed{ margin-top:12px; font-weight:800; font-size:16px; animation:em-pop .35s cubic-bezier(.3,1.5,.5,1) both; }
+.em-feed.ok{ color:#6FCF97; text-shadow:0 0 14px rgba(111,207,151,0.5); }
+.em-feed.no{ color:#FF8A8A; }
+
+/* Kartlar (intro/ödül) */
+.em-card{ position:relative; text-align:center; }
+.em-emoji{ font-size:42px; }
+.em-card-title{ font-weight:800; font-size:23px; color:#fff; margin-top:2px; }
+.em-card-title.win{ color:#6FCF97; letter-spacing:.5px; }
+.em-card-body{ font-size:13.5px; color:#A6ADD6; font-weight:600; line-height:1.55; margin:10px 2px 16px; }
+.em-card-body b{ color:#fff; }
+.em-tiers{ display:flex; gap:8px; margin-bottom:18px; }
+.em-tier{ flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:10px 6px; }
+.em-tier b{ display:block; font-size:13px; color:#fff; }
+.em-tier span{ display:block; font-size:10.5px; color:#A6ADD6; font-weight:600; margin-top:2px; }
+.em-tier.hot{ background:linear-gradient(180deg,rgba(108,99,255,0.5),rgba(79,209,255,0.28)); border-color:var(--violet-2); }
+.em-fine{ font-size:11.5px; color:#8189B5; margin:10px 0; }
+.em-replay{ display:block; width:100%; margin-top:9px; background:none; border:none; color:#9AA2CF; font-weight:700; font-size:13px; cursor:pointer; }
+.em-x{ position:absolute; top:-6px; right:-4px; width:28px; height:28px; border-radius:50%; border:none;
+  background:rgba(255,255,255,0.12); color:#C9CEEA; font-size:13px; cursor:pointer; }
+
+.em-coupon{ display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer;
+  background:rgba(255,255,255,0.08); border:1.5px dashed var(--violet-2); border-radius:12px; padding:13px 14px; }
+.em-code{ font-weight:800; font-size:19px; color:#fff; letter-spacing:1.5px; }
+.em-copy{ font-size:11px; font-weight:800; color:#fff; background:var(--violet); padding:7px 13px; border-radius:999px; white-space:nowrap; }
+
+@media (max-width:640px){
+  .em-title{ font-size:23px; }
+  .em-pill{ font-size:11px; padding:7px 12px; }
+  .em-big{ font-size:42px; }
+  .em-stage{ gap:10px; padding:18px 8px; }
+}

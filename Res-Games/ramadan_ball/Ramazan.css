@@ -1,0 +1,154 @@
+/* Ramazan Topu — RMC Gamification (REVİZE: iftar akşamı + top arabası) */
+:root{ --ink:#2A1B32; --dim:#8B7794; --gold:#F2C94C; --amber:#F2994A; --ok:#27AE60; --font:'Inter',system-ui,sans-serif; }
+*{ box-sizing:border-box; }
+html, body{ overscroll-behavior:none; }
+.rz-root{ font-family:var(--font); min-height:100vh; width:100%; margin:0; display:flex; align-items:center; justify-content:center; background:#FBF5EC; }
+.rz-wrap{ position:relative; width:100%; max-width:1360px; padding:16px 16px 22px; display:flex; flex-direction:column; }
+
+.rz-campaign{ text-align:center; margin-bottom:11px; }
+.rz-title{ font-weight:800; font-size:30px; line-height:1.06;
+  background:linear-gradient(92deg,#8E3B8C,#E0663C 52%,#F2C94C); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.rz-pill{ display:inline-block; margin-top:9px; font-size:12px; font-weight:700; color:#9A4A20;
+  background:#FCEEDD; border:1px solid rgba(226,124,62,0.32); border-radius:999px; padding:8px 16px; }
+.rz-pill b{ color:#6E3111; }
+
+.rz-box{ position:relative; }
+.rz-arena{ position:relative; width:100%; aspect-ratio:1400/760; border-radius:20px; overflow:hidden;
+  touch-action:none; user-select:none; cursor:crosshair;
+  box-shadow:0 18px 44px rgba(42,27,50,0.34), inset 0 0 0 2px rgba(242,201,76,0.28); }
+.rz-stage{ position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform; }
+
+/* İFTAR AKŞAMI GÖĞÜ */
+.rz-sky{ position:absolute; inset:0;
+  background:linear-gradient(180deg, #1B1038 0%, #3A1B4C 26%, #7A2F55 48%, #C25A3E 68%, #EE9146 82%, #F7BF67 92%, #F6D28B 100%); }
+.rz-dusk{ position:absolute; left:0; right:0; bottom:0; height:46%;
+  background:radial-gradient(120% 100% at 50% 100%, rgba(255,196,110,0.55), rgba(255,150,80,0.16) 45%, transparent 70%);
+  pointer-events:none; }
+.rz-star{ position:absolute; border-radius:50%; background:#FFF3D6; box-shadow:0 0 6px rgba(255,243,214,0.9);
+  animation:rz-tw 2.6s ease-in-out infinite; }
+@keyframes rz-tw{ 0%,100%{ opacity:.25 } 50%{ opacity:1 } }
+
+.rz-moon{ position:absolute; left:1180px; top:60px; filter:drop-shadow(0 0 30px rgba(255,217,122,0.5)); }
+
+/* UZAK DAMLAR — cami/minare yok */
+.rz-roofs{ position:absolute; left:0; right:0; top:0; bottom:190px; }
+.rz-roof{ position:absolute; bottom:0; background:linear-gradient(180deg,#2A1740,#1B0F2C); border-radius:3px 3px 0 0;
+  box-shadow:0 -1px 0 rgba(255,190,120,0.22); }
+.rz-roof i{ position:absolute; bottom:26%; width:8px; height:11px; border-radius:2px;
+  background:#FFC978; box-shadow:0 0 9px rgba(255,201,120,0.85); opacity:.85; }
+
+.rz-ground{ position:absolute; left:0; right:0; bottom:0; height:190px; overflow:hidden;
+  background:linear-gradient(180deg,#54331F 0%, #3A2114 45%, #26150C 100%); }
+.rz-rim{ position:absolute; left:0; right:0; top:0; height:26px;
+  background:linear-gradient(180deg, rgba(255,176,96,0.75), rgba(255,150,80,0) 100%); }
+.rz-soil{ position:absolute; inset:0;
+  background-image:radial-gradient(circle at 12% 34%, rgba(255,200,140,0.10) 2px, transparent 3px),
+    radial-gradient(circle at 38% 62%, rgba(255,200,140,0.08) 3px, transparent 4px),
+    radial-gradient(circle at 63% 28%, rgba(255,200,140,0.09) 2px, transparent 3px),
+    radial-gradient(circle at 84% 55%, rgba(255,200,140,0.07) 3px, transparent 4px),
+    radial-gradient(circle at 26% 82%, rgba(255,200,140,0.06) 2px, transparent 3px),
+    radial-gradient(circle at 72% 78%, rgba(255,200,140,0.06) 3px, transparent 4px);
+  background-size:220px 120px, 260px 140px, 200px 110px, 280px 150px, 240px 130px, 300px 160px; }
+
+/* HEDEFLER */
+.rz-target{ position:absolute; width:88px; height:88px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  border-radius:50%; will-change:opacity, transform; }
+.rz-target span{ font-size:62px; line-height:1; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.5)); }
+.rz-art{ display:block; width:72px; height:72px; line-height:0;
+  filter:drop-shadow(0 4px 12px rgba(0,0,0,0.55)); }
+.rz-art svg{ display:block; width:72px; height:72px; }
+.rz-target em{ position:absolute; bottom:-16px; font-style:normal; font-size:13px; font-weight:800; white-space:nowrap;
+  padding:3px 10px; border-radius:999px; }
+.rz-target.food{ background:radial-gradient(circle, rgba(242,201,76,0.22), transparent 66%); }
+.rz-target.food em{ color:#3A2610; background:rgba(242,201,76,0.92); }
+.rz-target.bomb{ background:radial-gradient(circle, rgba(235,87,87,0.28), transparent 66%);
+  animation:rz-danger 1.5s ease-in-out infinite; }
+.rz-target.bomb span{ font-size:56px; }
+.rz-target.bomb em{ color:#fff; background:rgba(235,87,87,0.95); }
+@keyframes rz-danger{ 0%,100%{ transform:scale(1) } 50%{ transform:scale(1.09) } }
+
+
+.rz-cannon{ position:absolute; left:0; top:0; pointer-events:none; }
+
+.rz-ball{ position:absolute; border-radius:50%;
+  background:radial-gradient(circle at 34% 30%, #8D99A6, #3E4A55 45%, #1C242B 100%);
+  box-shadow:0 4px 14px rgba(0,0,0,0.55), inset -4px -4px 8px rgba(0,0,0,0.5); }
+
+.rz-boom{ position:absolute; width:100px; height:100px; display:flex; align-items:center; justify-content:center;
+  font-size:60px; pointer-events:none; animation:rz-pop .5s cubic-bezier(.3,1.6,.5,1) both; }
+.rz-boom.bad{ filter:drop-shadow(0 0 16px rgba(235,87,87,0.9)); }
+@keyframes rz-pop{ 0%{ transform:scale(.3); opacity:0 } 55%{ transform:scale(1.3); opacity:1 } 100%{ transform:scale(1); opacity:0 } }
+
+.rz-hud{ position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between;
+  padding:12px 15px; z-index:8; pointer-events:none;
+  background:linear-gradient(180deg, rgba(20,10,35,0.55), rgba(20,10,35,0)); }
+.rz-stat{ text-align:left; }
+.rz-stat b{ display:block; font-size:24px; font-weight:800; color:#fff; line-height:1; }
+.rz-stat b.low{ color:#FF9E9E; animation:rz-tick .6s ease-in-out infinite; }
+@keyframes rz-tick{ 0%,100%{ transform:scale(1) } 50%{ transform:scale(1.12) } }
+.rz-stat span{ display:block; font-size:9px; font-weight:800; letter-spacing:1.5px; color:#D4BFA4; margin-top:3px; }
+.rz-score{ font-size:13px; font-weight:700; color:#FFF3D6; background:rgba(20,10,35,0.55);
+  border:1px solid rgba(242,201,76,0.35); padding:7px 12px; border-radius:999px; white-space:nowrap; }
+.rz-score b{ color:var(--gold); }
+.rz-score i{ font-style:normal; color:#FF9E9E; }
+.rz-power{ font-size:12px; font-weight:800; color:#FFE6AE; background:rgba(20,10,35,0.55);
+  border:1px solid rgba(242,201,76,0.3); padding:7px 11px; border-radius:999px; white-space:nowrap; }
+
+.rz-toast{ position:absolute; top:34%; left:50%; transform:translate(-50%,-50%); z-index:9; pointer-events:none;
+  font-weight:800; font-size:20px; color:#3A2610; background:linear-gradient(180deg,#FFE79A,#F2C94C);
+  padding:10px 18px; border-radius:999px; white-space:nowrap; box-shadow:0 10px 26px rgba(0,0,0,0.45);
+  animation:rz-in .3s cubic-bezier(.3,1.6,.5,1) both; }
+.rz-toast.bad{ color:#fff; background:linear-gradient(180deg,#FF7A7A,#D63B3B); }
+@keyframes rz-in{ 0%{ transform:translate(-50%,-50%) scale(.6); opacity:0 } 100%{ transform:translate(-50%,-50%) scale(1); opacity:1 } }
+
+.rz-hint{ position:absolute; bottom:44px; left:50%; transform:translateX(-50%); z-index:6; pointer-events:none;
+  font-size:11.5px; font-weight:700; color:#F0DCC0; white-space:nowrap; }
+.rz-nudge{ position:absolute; bottom:12px; left:50%; transform:translateX(-50%); z-index:6; pointer-events:none;
+  font-size:11.5px; font-weight:700; color:#fff; background:rgba(20,10,35,0.72);
+  border:1px solid rgba(242,201,76,0.35); padding:7px 13px; border-radius:999px; white-space:nowrap; }
+.rz-nudge b{ color:var(--gold); }
+
+.rz-overlay{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:14px; z-index:20;
+  background:rgba(26,15,40,0.78); border-radius:20px; }
+.rz-modal{ position:relative; width:min(390px,96%); background:#fff; border-radius:20px; padding:22px 20px 16px; text-align:center;
+  box-shadow:0 26px 60px rgba(26,15,40,0.55); border-top:6px solid var(--amber); animation:rz-mi .3s cubic-bezier(.34,1.5,.6,1) both; }
+@keyframes rz-mi{ 0%{ transform:scale(.9); opacity:0 } 100%{ transform:scale(1); opacity:1 } }
+.rz-emoji{ font-size:40px; }
+.rz-modal-title{ font-weight:800; font-size:21px; color:var(--ink); }
+.rz-modal-title.win{ color:var(--ok); }
+.rz-modal-body{ font-size:13px; color:var(--dim); font-weight:600; line-height:1.55; margin:9px 2px 14px; }
+.rz-modal-body b{ color:var(--ink); }
+.rz-tiers{ display:flex; gap:8px; margin-bottom:14px; }
+.rz-tier{ flex:1; background:#FCF6EE; border:1px solid #F0E2CE; border-radius:12px; padding:8px 5px; }
+.rz-tier b{ display:block; font-size:12px; color:var(--ink); }
+.rz-tier span{ display:block; font-size:11px; color:var(--dim); font-weight:700; margin-top:2px; }
+.rz-tier.hot{ background:linear-gradient(180deg,#FCEEDD,#F8DBBB); border-color:var(--amber); }
+.rz-tier.hot b, .rz-tier.hot span{ color:#6E3111; }
+.rz-btn{ display:block; width:100%; font-weight:800; font-size:15px; color:#fff; padding:14px; border:none; border-radius:12px; cursor:pointer;
+  background:linear-gradient(180deg,#F2994A,#D2632B); box-shadow:0 10px 22px rgba(210,99,43,0.4); font-family:var(--font); }
+.rz-btn:active{ transform:scale(.98); }
+.rz-replay{ display:block; width:100%; margin-top:9px; background:none; border:none; color:var(--amber); font-weight:700; font-size:13px; cursor:pointer; }
+.rz-fine{ font-size:11.5px; color:var(--dim); margin:9px 0; }
+.rz-x{ position:absolute; top:12px; right:14px; width:28px; height:28px; border-radius:50%; border:none; background:#F7F1EA; color:var(--dim); font-size:13px; cursor:pointer; }
+.rz-coupon{ display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer;
+  background:#FFFAF3; border:1.5px dashed var(--amber); border-radius:12px; padding:13px 14px; }
+.rz-code{ font-weight:800; font-size:17px; color:#C2571F; letter-spacing:1.2px; }
+.rz-copy{ font-size:11px; font-weight:800; color:#fff; background:var(--amber); padding:7px 13px; border-radius:999px; white-space:nowrap; }
+
+@media (max-width:640px){
+  .rz-title{ font-size:21px; }
+  .rz-pill{ font-size:10.5px; padding:7px 12px; }
+  .rz-stat b{ font-size:19px; }
+  .rz-score, .rz-power{ font-size:10px; padding:6px 9px; }
+  .rz-toast{ font-size:15px; padding:8px 14px; }
+  .rz-hint{ font-size:10px; bottom:40px; }
+  .rz-nudge{ font-size:10.5px; }
+}
+
+/* ilk atış ipucu */
+.rz-drag{ position:absolute; left:9%; bottom:26%; z-index:7; pointer-events:none;
+  font-size:12px; font-weight:800; color:#FFE6AE; background:rgba(20,10,35,0.7);
+  border:1px solid rgba(242,201,76,0.45); padding:6px 11px; border-radius:999px; white-space:nowrap;
+  animation:rz-nudgeIn 1.4s ease-in-out infinite; }
+@keyframes rz-nudgeIn{ 0%,100%{ transform:translateX(0); opacity:.75 } 50%{ transform:translateX(-7px); opacity:1 } }
+@media (max-width:640px){ .rz-drag{ font-size:10px; padding:5px 9px; } }

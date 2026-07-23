@@ -1,0 +1,180 @@
+/* ============================================================
+   Bardak (Hediyeyi Bulun) — Kurumsal Açık Tema
+   Aynı ortak token seti (Şişe Çevirme / Bulanık Bul ile tutarlı),
+   bu oyunun kendi vurgu rengi: --primary-3 (mor-indigo)
+   ============================================================ */
+
+:root{
+  --bg:        #1C2035;
+  --bg-alt:    #2A2F4A;
+  --surface:   #2A2F4A;
+  --border:    #3A4060;
+  --text:      #F2F4FA;
+  --text-dim:  #A8AEC4;
+
+  --primary-3:      #7A6FF0;
+  --primary-3-dark: #5B4FE0;
+  --primary-3-lt:   #3A3470;
+
+  --gold:      #E0B455;
+  --gold-lt:   #C99A3D;
+  --success:   #3FB876;
+  --success-lt:#22563A;
+  --danger:    #E1483A;
+  --danger-lt: #5A2622;
+
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.25);
+  --shadow-md: 0 10px 28px rgba(0,0,0,0.4);
+}
+
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+.bk-root{
+  font-family:'Inter', -apple-system, sans-serif;
+  background:
+    radial-gradient(ellipse 90% 50% at 50% -5%, rgba(120,111,240,0.22) 0%, transparent 60%),
+    linear-gradient(180deg, #22273F 0%, #1A1E30 100%);
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  padding:24px 16px;
+}
+.bk-stage{ width:min(420px, 100%); text-align:center; }
+.bk-title{ font-weight:800; font-size:23px; color:var(--text); margin:0 0 8px; letter-spacing:-0.2px; }
+
+/* Kampanya başlığı + teşvik metni (RMC zorunlu) */
+.bk-campaign{ text-align:center; margin-bottom:18px; }
+.bk-ribbon{
+  display:inline-block; background:linear-gradient(180deg, var(--primary-3), var(--primary-3-dark));
+  color:#fff; font-weight:700; font-size:13px; padding:7px 20px; border-radius:999px; margin-bottom:12px;
+  box-shadow:0 3px 8px rgba(91,79,224,0.3);
+}
+.bk-hero-offer{
+  font-weight:800; font-size:19px; line-height:1.05; color:#C7C2F5;
+  margin-bottom:10px; letter-spacing:-0.3px;
+}
+.bk-hero-big{
+  display:block; font-size:40px; font-weight:800; letter-spacing:-1px;
+  background:linear-gradient(180deg, #A99EFF, #6D62F0);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+}
+.bk-campaign-sub{ color:var(--text-dim); font-weight:600; font-size:13px; line-height:1.4; margin:0 auto; max-width:320px; }
+.bk-sub{ color:var(--text-dim); font-size:13.5px; line-height:1.5; margin:0 auto 20px; max-width:320px; }
+
+.bk-reward-preview{
+  display:inline-block; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md);
+  padding:12px 24px; margin-bottom:22px; box-shadow:var(--shadow-sm);
+}
+.bk-reward-preview .bk-rp-value{ font-weight:800; font-size:20px; color:var(--text); }
+.bk-reward-preview .bk-rp-label{ font-size:11px; color:var(--text-dim); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+
+.bk-start-btn{
+  font-weight:700; font-size:15px; color:#fff; padding:13px 40px; border:none; border-radius:999px; cursor:pointer;
+  background:linear-gradient(180deg, var(--primary-3), var(--primary-3-dark));
+  box-shadow:0 6px 16px rgba(91,79,224,0.32);
+  transition: transform .08s ease;
+}
+.bk-start-btn:active{ transform:translateY(2px); }
+
+.bk-countdown{ height:206px; display:flex; align-items:center; justify-content:center; }
+.bk-countdown-num{
+  font-weight:800; font-size:64px; color:var(--primary-3);
+  animation: bkCountdownPop .7s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes bkCountdownPop{
+  0%{ transform:scale(0.3); opacity:0; }
+  30%{ transform:scale(1.15); opacity:1; }
+  60%{ transform:scale(1); opacity:1; }
+  100%{ transform:scale(0.85); opacity:0; }
+}
+
+.bk-arena{
+  position:relative; height:210px; margin:28px auto 20px; width:min(340px,92%);
+  background:linear-gradient(170deg, #333A5C 0%, #262B44 100%);
+  border-radius:24px; padding:30px 20px 24px;
+  border:1px solid rgba(255,255,255,0.06);
+  box-shadow:inset 0 2px 20px rgba(0,0,0,0.35), 0 10px 30px rgba(0,0,0,0.3);
+  overflow:hidden;
+}
+.bk-arena::before{
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse 70% 50% at 50% 38%, rgba(120,111,240,0.18), transparent 70%);
+  pointer-events:none;
+}
+.bk-slot-shadow{ position:absolute; bottom:34px; width:70px; height:12px; background:radial-gradient(ellipse, rgba(0,0,0,0.4), transparent 70%); border-radius:50%; }
+
+.bk-cup{
+  position:absolute; bottom:34px; width:72px; height:90px; z-index:2;
+  transition: left .48s cubic-bezier(.4,.1,.2,1), transform .35s ease;
+  cursor:default;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35));
+}
+.bk-cup.bk-clickable{ cursor:pointer; }
+.bk-cup-body{
+  width:100%; height:100%;
+  background: linear-gradient(180deg, #FFFFFF 0%, #EEF0F6 55%, #D8DCE8 100%);
+  clip-path: polygon(16% 0%, 84% 0%, 100% 100%, 0% 100%);
+  border-radius: 2px 2px 8px 8px;
+  box-shadow:
+    inset 5px 0 8px rgba(255,255,255,0.9),
+    inset -6px 0 10px rgba(60,70,110,0.15);
+  position:relative;
+}
+.bk-cup-rim{
+  position:absolute; top:-3px; left:14%; width:72%; height:7px; border-radius:50%;
+  background:#FFFFFF; box-shadow:0 1px 3px rgba(0,0,0,0.25), inset 0 -1px 2px rgba(20,30,60,0.08);
+}
+.bk-cup.bk-lifted{ transform: translateY(-58px); }
+
+.bk-prize-badge{
+  position:absolute; bottom:34px; z-index:1;
+  display:flex; align-items:center; gap:3px;
+  padding:5px 10px; border-radius:999px;
+  background:linear-gradient(155deg, var(--gold), #A87C2A);
+  box-shadow:0 3px 8px rgba(0,0,0,0.22);
+  opacity:0; transform: translateX(-50%) scale(0.3) translateY(6px);
+  transition: opacity .25s ease, transform .4s cubic-bezier(.34,1.56,.64,1);
+  white-space:nowrap; pointer-events:none;
+}
+.bk-prize-badge span{ font-family:'Inter',sans-serif; font-weight:800; font-size:12px; color:#fff; }
+.bk-prize-badge.bk-show{ opacity:1; transform: translateX(-50%) scale(1) translateY(0); transition-delay:.15s; }
+
+.bk-hint{ color:var(--text-dim); font-size:13px; font-weight:600; margin-top:8px; min-height:18px; }
+
+.bk-overlay{
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  background:rgba(28,34,51,0.35); backdrop-filter:blur(2px);
+  opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:10;
+}
+.bk-overlay.bk-show{ opacity:1; pointer-events:auto; }
+.bk-card{
+  position:relative;
+  width:min(300px, 84vw); background:var(--surface); border-radius:var(--radius-lg);
+  padding:28px 24px 24px; text-align:center; box-shadow:var(--shadow-md);
+  transform:translateY(14px) scale(0.96); transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.bk-overlay.bk-show .bk-card{ transform:translateY(0) scale(1); }
+.bk-icon-wrap{ width:56px; height:56px; margin:0 auto 14px; border-radius:16px; display:flex; align-items:center; justify-content:center; }
+.bk-icon-wrap.bk-win{ background:linear-gradient(155deg, var(--gold-lt), #fff); box-shadow:0 0 0 1px var(--gold); }
+.bk-icon-wrap.bk-lose{ background:var(--danger-lt); }
+.bk-card-title{ color:var(--text-dim); font-size:12px; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px; font-weight:700; }
+.bk-card-sub{ color:var(--text-dim); font-size:12.5px; margin-bottom:8px; line-height:1.4; }
+.bk-card-label{ font-weight:800; color:var(--text); font-size:19px; margin-bottom:14px; }
+.bk-card-x{
+  position:absolute; top:12px; right:14px; width:26px; height:26px; border-radius:50%;
+  background:var(--bg-alt); border:none; color:var(--text-dim); font-size:12px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.bk-coupon-box{
+  background:var(--bg); border:1.5px dashed var(--primary-3); border-radius:var(--radius-md);
+  padding:11px 14px; margin-bottom:12px;
+}
+.bk-coupon-code{ font-weight:800; font-size:14px; color:var(--text); letter-spacing:0.3px; }
+.bk-copy-btn{
+  width:100%; font-weight:700; font-size:14px; color:#fff; padding:12px; border:none; border-radius:999px; cursor:pointer;
+  background:linear-gradient(180deg, var(--primary-3), var(--primary-3-dark));
+  box-shadow:0 6px 16px rgba(91,79,224,0.28); margin-bottom:10px;
+}
+.bk-copy-btn:active{ transform:translateY(1px); }
+.bk-card-close{ font-weight:700; font-size:14px; color:var(--primary-3-dark); background:var(--primary-3-lt); border:none; padding:10px 24px; border-radius:999px; cursor:pointer; }
+
+.bk-confetti{ position:fixed; top:0; width:8px; height:8px; border-radius:2px; z-index:9; pointer-events:none; }

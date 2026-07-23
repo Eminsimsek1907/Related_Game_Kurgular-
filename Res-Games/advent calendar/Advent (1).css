@@ -1,0 +1,146 @@
+/* Sevgililer Takvimi (30 gün) — RMC Gamification */
+:root{ --ink:#3B0F27; --dim:#9C7386; --red:#E23A5E; --red2:#B81F44; --pink:#FF8FA8; --gold:#F2C94C;
+  --font:'Inter',system-ui,sans-serif; }
+*{ box-sizing:border-box; }
+html, body{ overscroll-behavior:none; }
+.ad-root{ font-family:var(--font); min-height:100vh; width:100%; margin:0; display:flex; align-items:center; justify-content:center; background:#FFF3F5; padding:14px 0; }
+.ad-wrap{ position:relative; width:100%; max-width:1360px; padding:16px 12px 22px; display:flex; flex-direction:column; }
+
+.ad-campaign{ text-align:center; margin-bottom:11px; }
+.ad-title{ font-weight:800; font-size:27px; line-height:1.06;
+  background:linear-gradient(92deg,#B81F44,#E23A5E 50%,#FF8FA8); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.ad-pill{ display:inline-block; margin-top:9px; font-size:11.5px; font-weight:700; color:#B81F44;
+  background:#FFE4EA; border:1px solid rgba(226,58,94,0.28); border-radius:999px; padding:8px 15px; }
+.ad-pill b{ color:#7E122E; }
+
+.ad-box{ position:relative; }
+.ad-panel{ position:relative; border-radius:22px; padding:16px 14px 14px; overflow:hidden; touch-action:manipulation;
+  background:linear-gradient(180deg,#520B1E 0%, #6E1029 48%, #8A1538 100%);
+  box-shadow:0 18px 44px rgba(82,11,30,0.42), inset 0 0 0 2px rgba(255,180,200,0.22); }
+
+.ad-hearts{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.ad-hearts i{ position:absolute; bottom:-24px; font-size:13px; font-style:normal; opacity:.28;
+  animation:ad-rise linear infinite; }
+@keyframes ad-rise{ 0%{ transform:translateY(0) rotate(0); opacity:0 } 12%{ opacity:.32 }
+  100%{ transform:translateY(-560px) rotate(28deg); opacity:0 } }
+
+.ad-head{ position:relative; z-index:2; text-align:center; margin-bottom:12px; }
+.ad-ribbon{ display:inline-block; font-size:11px; font-weight:800; letter-spacing:2px; color:#7E122E;
+  background:linear-gradient(180deg,#FFE9B0,#F2C94C); padding:6px 16px; border-radius:999px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.22); }
+.ad-sub{ margin-top:8px; font-size:12px; font-weight:600; color:#FFD6DE; line-height:1.45; }
+
+.ad-grid{ position:relative; z-index:2; display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:7px; }
+.ad-door{ position:relative; min-width:0; aspect-ratio:1/1; border:none; background:transparent; padding:0; cursor:pointer;
+  perspective:600px; font-family:var(--font); }
+.ad-face{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  border-radius:11px; backface-visibility:hidden; transition:transform .62s cubic-bezier(.4,.2,.2,1); }
+.ad-front{ transform:rotateY(0deg);
+  background:linear-gradient(160deg,#FFD3E0 0%, #FFA9C4 46%, #F87CA5 100%);
+  border:2px solid rgba(255,255,255,0.7);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,0.65), inset 0 -4px 10px rgba(184,31,68,0.24),
+             0 4px 12px rgba(40,5,16,0.28); }
+.ad-front b{ font-size:16px; font-weight:800; color:#8A1538; line-height:1; text-shadow:0 1px 0 rgba(255,255,255,0.5); }
+.ad-front i{ font-size:10px; font-style:normal; margin-top:3px; opacity:.9; }
+.ad-door:hover .ad-front{ background:linear-gradient(160deg,#FFE1EA 0%, #FFBBD1 46%, #FA92B5 100%);
+  transform:translateY(-2px); }
+.ad-back{ transform:rotateY(180deg);
+  background:linear-gradient(160deg,#FFF6DC,#FFE1A8); border:2px solid var(--gold);
+  box-shadow:0 0 18px rgba(242,201,76,0.6); }
+.ad-gift{ font-size:24px; }
+.ad-door.open .ad-front{ transform:rotateY(-180deg); }
+.ad-door.open .ad-back{ transform:rotateY(0deg); }
+.ad-door.open{ animation:ad-pick .6s ease both; z-index:3; }
+@keyframes ad-pick{ 0%{ transform:scale(1) } 45%{ transform:scale(1.16) } 100%{ transform:scale(1.08) } }
+.ad-door:not(:disabled):hover{ transform:translateY(-2px); }
+.ad-door.dim{ opacity:.35; filter:saturate(.6); }
+
+.ad-hint{ position:relative; z-index:2; margin-top:12px; text-align:center; font-size:12px; font-weight:700; color:#FFD6DE; }
+.ad-hint b{ color:var(--gold); }
+
+.ad-overlay{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:14px; z-index:20;
+  background:rgba(59,15,39,0.82); border-radius:22px; }
+.ad-modal{ position:relative; width:min(400px,97%); background:#fff; border-radius:20px; padding:22px 20px 16px; text-align:center;
+  box-shadow:0 26px 60px rgba(59,15,39,0.5); border-top:6px solid var(--red); animation:ad-mi .3s cubic-bezier(.34,1.5,.6,1) both; }
+.ad-modal.love{ background:linear-gradient(180deg,#FFFFFF,#FFF4F7); border-top-color:var(--gold); }
+@keyframes ad-mi{ 0%{ transform:scale(.9); opacity:0 } 100%{ transform:scale(1); opacity:1 } }
+.ad-emoji{ font-size:40px; }
+.ad-modal-title{ font-weight:800; font-size:20px; color:var(--ink); }
+.ad-modal-body{ font-size:13px; color:var(--dim); font-weight:600; line-height:1.55; margin:9px 2px 12px; }
+.ad-modal-body b{ color:var(--ink); }
+.ad-note{ font-size:11.5px; font-weight:700; color:#B81F44; background:#FFE4EA; border:1px dashed rgba(226,58,94,0.4);
+  border-radius:12px; padding:10px 12px; margin-bottom:14px; }
+
+.ad-day{ display:inline-block; font-size:10.5px; font-weight:800; letter-spacing:1.6px; color:#7E122E;
+  background:linear-gradient(180deg,#FFE9B0,#F2C94C); padding:5px 13px; border-radius:999px; margin-bottom:6px; }
+.ad-love{ font-size:17px; font-weight:700; color:var(--ink); line-height:1.5; margin:8px 6px 4px; font-style:italic; }
+.ad-from{ font-size:12px; font-weight:700; color:var(--red); margin-bottom:13px; }
+.ad-gift-line{ font-size:12.5px; font-weight:700; color:var(--dim); margin-bottom:9px; }
+.ad-gift-line b{ color:var(--red2); }
+
+.ad-btn{ display:block; width:100%; font-weight:800; font-size:15px; color:#fff; padding:14px; border:none; border-radius:12px; cursor:pointer;
+  background:linear-gradient(180deg,#F4517A,#B81F44); box-shadow:0 10px 22px rgba(184,31,68,0.4); font-family:var(--font); }
+.ad-btn:active{ transform:scale(.98); }
+.ad-replay{ display:block; width:100%; margin-top:9px; background:none; border:none; color:var(--red); font-weight:700; font-size:13px; cursor:pointer; }
+.ad-fine{ font-size:11.5px; color:var(--dim); margin:9px 0; }
+.ad-x{ position:absolute; top:12px; right:14px; width:28px; height:28px; border-radius:50%; border:none; background:#FBEFF2; color:var(--dim); font-size:13px; cursor:pointer; }
+.ad-coupon{ display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer;
+  background:#FFFBF2; border:1.5px dashed var(--gold); border-radius:12px; padding:13px 14px; }
+.ad-code{ font-weight:800; font-size:18px; color:var(--red2); letter-spacing:1.4px; }
+.ad-copy{ font-size:11px; font-weight:800; color:#fff; background:var(--red); padding:7px 13px; border-radius:999px; white-space:nowrap; }
+
+@media (max-width:640px){
+  .ad-title{ font-size:21px; }
+  .ad-pill{ font-size:10.5px; padding:7px 12px; }
+  .ad-grid{ grid-template-columns:repeat(5, minmax(0,1fr)); gap:6px; }
+  .ad-front b{ font-size:13px; }
+  .ad-gift{ font-size:19px; }
+  .ad-sub{ font-size:11px; }
+  .ad-love{ font-size:15px; }
+}
+
+/* ===== REVİZE 2: tam ekran · iki sütun (solda takvim, sağda söz + kupon) ===== */
+.ad-stage{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:stretch; }
+.ad-stage > *{ min-width:0; }
+
+.ad-side{ position:relative; border-radius:20px; padding:22px; display:flex; flex-direction:column; justify-content:center;
+  background:linear-gradient(165deg,#FFF6F9,#FFE9F1); border:1px solid #F6CBDC; text-align:center;
+  box-shadow:0 10px 30px rgba(180,60,110,0.1); }
+.ad-side.on{ background:linear-gradient(165deg,#FFFFFF,#FFF2F7); border-color:#EFA9C6; }
+
+.ad-empty{ opacity:.75; }
+.ad-empty-e{ font-size:52px; line-height:1; margin-bottom:12px; filter:saturate(.6); }
+.ad-empty-t{ font-size:19px; font-weight:800; color:#8A3E60; }
+.ad-empty-s{ margin-top:7px; font-size:12.5px; font-weight:600; color:#B07A93; line-height:1.5; }
+
+.ad-card{ animation:ad-cardin .42s cubic-bezier(.34,1.4,.6,1) both; }
+@keyframes ad-cardin{ 0%{ transform:translateY(14px); opacity:0 } 100%{ transform:none; opacity:1 } }
+.ad-card .ad-day{ display:inline-block; margin-bottom:10px; }
+.ad-card .ad-emoji{ font-size:48px; line-height:1; margin-bottom:10px; }
+.ad-card .ad-love{ font-size:16px; line-height:1.62; }
+.ad-card .ad-coupon{ margin-top:10px; flex-direction:column; gap:10px; padding:16px 14px; }
+.ad-card .ad-code{ font-size:26px; letter-spacing:2px; }
+.ad-card .ad-copy{ width:100%; justify-content:center; }
+.ad-card .ad-btn{ margin-top:12px; }
+
+@media (max-width:900px){
+  .ad-stage{ grid-template-columns:1fr; }
+  .ad-side{ padding:18px; }
+  .ad-empty{ display:none; }
+  .ad-side:not(.on){ display:none; }          /* mobilde boş sağ panel yer kaplamasın */
+  .ad-card .ad-love{ font-size:14.5px; }
+}
+
+/* ===== REVİZE 3: sağ yarı SADECE söz + kupon ===== */
+.ad-side{ justify-content:center; padding:34px 30px; }
+.ad-card .ad-love{ font-size:22px; line-height:1.6; font-style:italic; color:#7A2E4E; margin:0 0 22px; }
+.ad-card .ad-coupon{ margin-top:0; flex-direction:column; gap:12px; padding:22px 18px; }
+.ad-pct{ font-size:30px; font-weight:800; line-height:1; color:#D6336C; }
+.ad-card .ad-code{ font-size:28px; letter-spacing:2.4px; }
+.ad-card .ad-copy{ width:100%; justify-content:center; }
+@media (max-width:900px){
+  .ad-side{ padding:20px 16px; }
+  .ad-card .ad-love{ font-size:16px; margin-bottom:16px; }
+  .ad-pct{ font-size:24px; }
+  .ad-card .ad-code{ font-size:22px; }
+}

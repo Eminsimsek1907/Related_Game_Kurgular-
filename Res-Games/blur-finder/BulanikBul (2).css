@@ -1,0 +1,124 @@
+/* ============================================================
+   Bulanık Bul — Kurumsal Açık Tema
+   Şişe Çevirme ile aynı token setini paylaşır (marka tutarlılığı),
+   vurgu rengi bu oyunda --primary-2 (turkuaz) olarak ayrıştırılmıştır.
+   ============================================================ */
+
+:root{
+  --bg:        #F4F6FB;
+  --bg-alt:    #EAEDF6;
+  --surface:   #FFFFFF;
+  --border:    #E3E6EE;
+  --text:      #1C2233;
+  --text-dim:  #6B7280;
+
+  --primary-2:      #0EA5B7;
+  --primary-2-dark: #0A7C8A;
+  --primary-2-lt:   #E3F7FA;
+
+  --gold:      #C99A3D;
+  --gold-lt:   #F3E4C2;
+
+  --success:   #2F9E63;
+  --success-lt:#E6F6ED;
+  --danger:    #E1483A;
+  --danger-lt: #FCEAE8;
+
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --shadow-sm: 0 2px 8px rgba(20,30,60,0.06);
+  --shadow-md: 0 10px 28px rgba(20,30,60,0.10);
+}
+
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+.bb-root{
+  font-family:'Inter', -apple-system, sans-serif;
+  background:
+    radial-gradient(ellipse 90% 50% at 80% -10%, var(--primary-2-lt) 0%, transparent 60%),
+    var(--bg);
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  padding:24px 16px;
+}
+.bb-stage{ width:min(400px, 100%); }
+
+/* Kampanya başlığı + teşvik metni (RMC zorunlu unsur) */
+.bb-campaign{ text-align:center; margin-bottom:18px; }
+.bb-campaign-badge{
+  display:inline-block; background:linear-gradient(180deg, var(--primary-2), var(--primary-2-dark));
+  color:#fff; font-weight:700; font-size:12px; letter-spacing:0.4px;
+  padding:5px 14px; border-radius:999px; margin-bottom:10px;
+  box-shadow:0 4px 10px rgba(14,165,183,0.28);
+}
+.bb-campaign-title{ font-weight:800; font-size:20px; color:var(--text); margin:0 0 6px; letter-spacing:-0.2px; }
+.bb-campaign-sub{ color:var(--text-dim); font-size:13px; line-height:1.5; margin:0 auto; max-width:320px; }
+
+.bb-eyebrow-row{ display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:8px; }
+.bb-step-badge{ font-weight:700; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--primary-2-dark); background:var(--primary-2-lt); padding:6px 16px; border-radius:999px; }
+.bb-step-dots{ display:flex; gap:8px; }
+.bb-step-dot{ width:9px; height:9px; border-radius:50%; background:var(--border); transition:all .3s ease; }
+.bb-step-dot.bb-done{ background:var(--success); }
+.bb-step-dot.bb-active{ background:var(--primary-2); box-shadow:0 0 0 4px var(--primary-2-lt); }
+
+.bb-title{ text-align:center; color:var(--text); font-size:22px; font-weight:800; margin:0 0 18px; letter-spacing:-0.2px; }
+
+.bb-badges{ display:flex; justify-content:center; margin-bottom:12px; }
+.bb-badge{ font-weight:700; font-size:12.5px; padding:7px 14px; border-radius:999px; display:flex; align-items:center; gap:6px; background:var(--danger-lt); color:var(--danger); }
+.bb-badge .bb-num{ display:inline-block; transition:transform .25s ease; }
+.bb-badge .bb-num.bb-pulse{ animation: bbPulse .35s ease; }
+@keyframes bbPulse{ 0%{transform:scale(1);} 40%{transform:scale(1.3);} 100%{transform:scale(1);} }
+
+.bb-game-row{ display:flex; gap:12px; align-items:stretch; margin-bottom:14px; }
+.bb-photo-card{
+  position:relative; width:48%; flex-shrink:0; aspect-ratio:1/1; border-radius:var(--radius-md); overflow:hidden;
+  background:var(--surface); box-shadow:0 0 0 2px var(--primary-2), var(--shadow-sm);
+}
+.bb-photo-card svg{ width:100%; height:100%; display:block; transition:filter .5s ease; }
+
+.bb-options{ display:flex; flex-direction:column; gap:8px; flex:1; min-width:0; justify-content:space-between; }
+.bb-opt{
+  flex:1; display:flex; align-items:center;
+  font-weight:600; font-size:13px; color:var(--text); background:var(--surface);
+  border:1px solid var(--border); border-radius:11px; padding:9px 13px; cursor:pointer; text-align:left;
+  transition: transform .08s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.bb-opt:active{ transform:scale(0.98); }
+.bb-opt.bb-wrong{ animation: bbShake .4s ease; background:var(--danger-lt); border-color:var(--danger); opacity:0.7; }
+.bb-opt.bb-correct{ background:var(--success-lt); border-color:var(--success); box-shadow:0 0 0 1px var(--success); }
+.bb-opt.bb-reveal{ background:var(--success-lt); border-color:var(--success); }
+.bb-opt.bb-disabled{ pointer-events:none; }
+@keyframes bbShake{ 0%,100%{transform:translateX(0);} 20%{transform:translateX(-6px);} 40%{transform:translateX(6px);} 60%{transform:translateX(-4px);} 80%{transform:translateX(4px);} }
+
+.bb-toast{ text-align:center; font-size:12.5px; color:var(--text-dim); margin-top:14px; min-height:16px; font-weight:600; }
+
+.bb-overlay{
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  background:rgba(28,34,51,0.35); backdrop-filter:blur(2px);
+  opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:10;
+}
+.bb-overlay.bb-show{ opacity:1; pointer-events:auto; }
+.bb-card{ position:relative; width:min(300px, 84vw); background:var(--surface); border-radius:var(--radius-lg); padding:28px 24px 24px; text-align:center; box-shadow:var(--shadow-md); transform:translateY(14px) scale(0.96); transition:transform .3s cubic-bezier(.34,1.56,.64,1); }
+.bb-overlay.bb-show .bb-card{ transform:translateY(0) scale(1); }
+.bb-icon-wrap{ width:54px; height:54px; margin:0 auto 14px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:linear-gradient(155deg, var(--gold-lt), #fff); box-shadow:0 0 0 1px var(--gold); }
+.bb-card-title{ color:var(--text-dim); font-size:12px; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px; font-weight:700; }
+.bb-card-count{ color:var(--text-dim); font-size:13px; margin-bottom:8px; }
+.bb-card-label{ font-weight:800; color:var(--text); font-size:19px; margin-bottom:16px; }
+.bb-card-x{
+  position:absolute; top:12px; right:14px; width:26px; height:26px; border-radius:50%;
+  background:var(--bg-alt); border:none; color:var(--text-dim); font-size:12px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.bb-coupon-box{
+  background:var(--bg); border:1.5px dashed var(--primary-2); border-radius:var(--radius-md);
+  padding:11px 14px; margin-bottom:12px;
+}
+.bb-coupon-code{ font-weight:800; font-size:14px; color:var(--text); letter-spacing:0.3px; }
+.bb-copy-btn{
+  width:100%; font-weight:700; font-size:14px; color:#fff; padding:12px; border:none; border-radius:999px; cursor:pointer;
+  background:linear-gradient(180deg, var(--primary-2), var(--primary-2-dark));
+  box-shadow:0 6px 16px rgba(14,165,183,0.28); margin-bottom:10px;
+}
+.bb-copy-btn:active{ transform:translateY(1px); }
+.bb-card-close{ font-weight:700; font-size:14px; color:var(--primary-2-dark); background:var(--primary-2-lt); border:none; padding:10px 24px; border-radius:999px; cursor:pointer; }
+
+.bb-confetti{ position:fixed; top:0; width:8px; height:8px; border-radius:2px; z-index:9; pointer-events:none; }
